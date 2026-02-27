@@ -1,13 +1,13 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "protocols": [
     {
-      "id": "jupiter-v6-mainnet",
-      "name": "Jupiter V6",
+      "id": "orca-whirlpool-mainnet",
+      "name": "Orca Whirlpools",
       "network": "mainnet-beta",
-      "programId": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
-      "idlPath": "/idl/jupiter_v6.json",
-      "transport": "jupiter-lite-api",
+      "programId": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "idlPath": "/idl/orca_whirlpool.json",
+      "transport": "local-orca-whirlpool",
       "supportedCommands": ["/swap"],
       "status": "active"
     }

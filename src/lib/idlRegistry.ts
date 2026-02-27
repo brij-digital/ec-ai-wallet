@@ -4,7 +4,7 @@ export type ProtocolManifest = {
   network: string;
   programId: string;
   idlPath: string;
-  transport: 'jupiter-lite-api';
+  transport: 'local-orca-whirlpool';
   supportedCommands: string[];
   status: 'active' | 'inactive';
 };

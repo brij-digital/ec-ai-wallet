@@ -2,18 +2,13 @@ import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { VersionedTransaction } from '@solana/web3.js';
 import './App.css';
 import { formatTokenAmount, listSupportedTokens, resolveToken } from './constants/tokens';
 import { parseCommand } from './lib/commandParser';
 import type { SwapCommand } from './lib/commandParser';
 import { getPrimarySwapProtocol } from './lib/idlRegistry';
-import {
-  buildJupiterSwapTransaction,
-  decodeBase64Transaction,
-  fetchJupiterQuote,
-} from './lib/jupiter';
-import type { JupiterQuote } from './lib/jupiter';
+import { executeOrcaSwap, prepareOrcaSwap } from './lib/orcaWhirlpool';
+import type { PreparedOrcaSwap } from './lib/orcaWhirlpool';
 
 type Message = {
   id: number;
@@ -23,7 +18,7 @@ type Message = {
 
 type PendingSwap = {
   command: SwapCommand;
-  quote: JupiterQuote;
+  preparedSwap: PreparedOrcaSwap;
   protocolName: string;
 };
 
@@ -63,7 +58,11 @@ function App() {
 
   async function handleSwapCommand(command: SwapCommand) {
     const protocol = await getPrimarySwapProtocol();
-    const quote = await fetchJupiterQuote(command);
+    const preparedSwap = await prepareOrcaSwap({
+      command,
+      connection,
+      wallet,
+    });
 
     const inputToken = resolveToken(command.inputMint);
     const outputToken = resolveToken(command.outputMint);
@@ -72,19 +71,18 @@ function App() {
       throw new Error('Token metadata not found in local token list.');
     }
 
-    const inAmountUi = formatTokenAmount(quote.inAmount, inputToken.decimals);
-    const outAmountUi = formatTokenAmount(quote.outAmount, outputToken.decimals);
-    const bestHop = quote.routePlan[0]?.swapInfo?.label ?? 'Unknown AMM';
+    const inAmountUi = formatTokenAmount(preparedSwap.estimatedAmountInAtomic, inputToken.decimals);
+    const outAmountUi = formatTokenAmount(preparedSwap.estimatedAmountOutAtomic, outputToken.decimals);
 
-    setPendingSwap({ command, quote, protocolName: protocol.name });
+    setPendingSwap({ command, preparedSwap, protocolName: protocol.name });
 
     pushMessage(
       'assistant',
       [
         `Route found via ${protocol.name}.`,
         `Expected output: ${outAmountUi} ${outputToken.symbol} for ${inAmountUi} ${inputToken.symbol}.`,
-        `Price impact: ${Number(quote.priceImpactPct) * 100}%`,
-        `Primary hop: ${bestHop}`,
+        `Whirlpool pool: ${preparedSwap.poolAddress}`,
+        `Tick spacing: ${preparedSwap.tickSpacing}`,
         'Run /confirm to sign and execute.',
       ].join('\n'),
     );
@@ -99,29 +97,11 @@ function App() {
       throw new Error('Connect a wallet that supports transaction signing first.');
     }
 
-    const built = await buildJupiterSwapTransaction({
-      quote: pendingSwap.quote,
-      userPublicKey: wallet.publicKey.toBase58(),
+    const signature = await executeOrcaSwap({
+      preparedSwap: pendingSwap.preparedSwap,
+      connection,
+      wallet,
     });
-
-    const serialized = decodeBase64Transaction(built.swapTransaction);
-    const tx = VersionedTransaction.deserialize(serialized);
-    const signedTx = await wallet.signTransaction(tx);
-
-    const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-      skipPreflight: false,
-      maxRetries: 3,
-    });
-
-    const latest = await connection.getLatestBlockhash('confirmed');
-    await connection.confirmTransaction(
-      {
-        signature,
-        blockhash: latest.blockhash,
-        lastValidBlockHeight: latest.lastValidBlockHeight,
-      },
-      'confirmed',
-    );
 
     const explorerUrl = `https://solscan.io/tx/${signature}`;
     pushMessage('assistant', `Swap executed. Signature: ${signature}\n${explorerUrl}`);
