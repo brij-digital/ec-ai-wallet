@@ -26,6 +26,8 @@ import type { PreparedOrcaSwap } from './lib/orcaWhirlpool';
 
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
 const ORCA_ACTION_ID = 'swap_exact_in';
+const QUICK_PREFILL_SWAP_COMMAND =
+  '/swap EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v So11111111111111111111111111111111111111112 0.01 50';
 
 type Message = {
   id: number;
@@ -486,6 +488,15 @@ function App() {
             {isWorking ? 'Running...' : 'Run'}
           </button>
         </form>
+        <div className="quick-actions">
+          <button
+            type="button"
+            onClick={() => setCommandInput(QUICK_PREFILL_SWAP_COMMAND)}
+            disabled={isWorking}
+          >
+            Prefill USDC-&gt;SOL 0.01
+          </button>
+        </div>
       </section>
     </main>
   );
