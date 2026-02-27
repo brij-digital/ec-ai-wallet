@@ -402,8 +402,6 @@ function App() {
             `pair: ${parsed.value.inputToken}/${parsed.value.outputToken}`,
             `pool: ${String(selectedPool?.whirlpool ?? 'n/a')}`,
             `estimatedOut: ${estimatedOutUi} ${parsed.value.outputToken} (${estimatedOutAtomic})`,
-            'Raw instruction preview:',
-            asPrettyJson(rawPreview),
             result.signature,
             result.explorerUrl,
           ].join('\n'),
