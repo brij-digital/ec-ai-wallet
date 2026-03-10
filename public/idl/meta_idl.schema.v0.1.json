@@ -86,6 +86,7 @@
         "amount": {},
         "a_to_b": {},
         "slippage_bps": {},
+        "tick_arrays": { "$ref": "#/$defs/tickArrayStrategy" },
         "source": { "type": "string" },
         "where": {},
         "select": {},
@@ -118,6 +119,7 @@
         "amount": {},
         "a_to_b": {},
         "slippage_bps": {},
+        "tick_arrays": { "$ref": "#/$defs/tickArrayStrategy" },
         "source": { "type": "string" },
         "where": {},
         "select": {},
@@ -172,6 +174,23 @@
           "additionalProperties": false
         }
       ]
+    },
+    "tickArrayStrategy": {
+      "type": "object",
+      "properties": {
+        "search_start_offsets": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 1
+        },
+        "window_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "allow_reuse_last": { "type": "boolean" }
+      },
+      "additionalProperties": false
     },
     "postStep": {
       "type": "object",

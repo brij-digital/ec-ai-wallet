@@ -65,7 +65,12 @@
           "whirlpool": "$selected_pool.whirlpool",
           "amount": "$input.amount_in",
           "a_to_b": "$selected_pool.aToB",
-          "slippage_bps": "$input.slippage_bps"
+          "slippage_bps": "$input.slippage_bps",
+          "tick_arrays": {
+            "search_start_offsets": [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6],
+            "window_size": 3,
+            "allow_reuse_last": true
+          }
         }
       ],
       "args": {

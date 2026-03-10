@@ -32,19 +32,6 @@ export async function loadRegistry(): Promise<RegistryShape> {
   return parsed;
 }
 
-export async function getPrimarySwapProtocol(): Promise<ProtocolManifest> {
-  const registry = await loadRegistry();
-  const manifest = registry.protocols.find(
-    (protocol) => protocol.status === 'active' && protocol.supportedCommands.includes('/swap'),
-  );
-
-  if (!manifest) {
-    throw new Error('No active swap protocol found in registry.');
-  }
-
-  return manifest;
-}
-
 export async function getProtocolById(protocolId: string): Promise<ProtocolManifest> {
   const registry = await loadRegistry();
   const manifest = registry.protocols.find((protocol) => protocol.id === protocolId);

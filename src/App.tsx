@@ -7,11 +7,10 @@ import {
   createCloseAccountInstruction,
 } from '@solana/spl-token';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import Decimal from 'decimal.js';
 import './App.css';
 import { formatTokenAmount, listSupportedTokens, resolveToken } from './constants/tokens';
 import { parseCommand } from './lib/commandParser';
-import type { SwapOldCommand } from './lib/commandParser';
-import { getPrimarySwapProtocol } from './lib/idlRegistry';
 import {
   decodeIdlAccount,
   getInstructionTemplate,
@@ -21,8 +20,6 @@ import {
   simulateIdlInstruction,
 } from './lib/idlDeclarativeRuntime';
 import { prepareMetaInstruction } from './lib/metaIdlRuntime';
-import { executeOrcaSwap, prepareOrcaSwap } from './lib/orcaWhirlpool';
-import type { PreparedOrcaSwap } from './lib/orcaWhirlpool';
 
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
 const ORCA_ACTION_ID = 'swap_exact_in';
@@ -35,18 +32,10 @@ type Message = {
   text: string;
 };
 
-type PendingSwap = {
-  command: SwapOldCommand;
-  preparedSwap: PreparedOrcaSwap;
-  protocolName: string;
-};
-
 const HELP_TEXT = [
   'Commands:',
   '/swap <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]',
   '/quote <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]',
-  '/swap-old <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]',
-  '/confirm',
   '/write-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
   '/read-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
   '/idl-list',
@@ -61,7 +50,6 @@ const HELP_TEXT = [
   'Examples:',
   '/quote SOL USDC 0.1 50',
   '/swap SOL USDC 0.1 50',
-  '/swap-old SOL USDC 0.1 50',
 ].join('\n');
 
 function App() {
@@ -75,7 +63,6 @@ function App() {
       text: 'Espresso Cash MVP ready. Use /help to see commands.',
     },
   ]);
-  const [pendingSwap, setPendingSwap] = useState<PendingSwap | null>(null);
   const [commandInput, setCommandInput] = useState('');
   const [isWorking, setIsWorking] = useState(false);
 
@@ -98,6 +85,14 @@ function App() {
       binary += String.fromCharCode(byte);
     }
     return btoa(binary);
+  }
+
+  function compactPubkey(value: unknown): string {
+    const text = String(value ?? 'n/a');
+    if (text.length <= 12) {
+      return text;
+    }
+    return `${text.slice(0, 4)}...${text.slice(-4)}`;
   }
 
   function buildOwnerAtaPreInstructions(options: {
@@ -138,58 +133,6 @@ function App() {
     });
   }
 
-  async function handleSwapOldCommand(command: SwapOldCommand) {
-    const protocol = await getPrimarySwapProtocol();
-    const preparedSwap = await prepareOrcaSwap({
-      command,
-      connection,
-      wallet,
-    });
-
-    const inputToken = resolveToken(command.inputMint);
-    const outputToken = resolveToken(command.outputMint);
-
-    if (!inputToken || !outputToken) {
-      throw new Error('Token metadata not found in local token list.');
-    }
-
-    const inAmountUi = formatTokenAmount(preparedSwap.estimatedAmountInAtomic, inputToken.decimals);
-    const outAmountUi = formatTokenAmount(preparedSwap.estimatedAmountOutAtomic, outputToken.decimals);
-
-    setPendingSwap({ command, preparedSwap, protocolName: protocol.name });
-
-    pushMessage(
-      'assistant',
-      [
-        `Route found via ${protocol.name}.`,
-        `Expected output: ${outAmountUi} ${outputToken.symbol} for ${inAmountUi} ${inputToken.symbol}.`,
-        `Whirlpool pool: ${preparedSwap.poolAddress}`,
-        `Tick spacing: ${preparedSwap.tickSpacing}`,
-        'Run /confirm to sign and execute.',
-      ].join('\n'),
-    );
-  }
-
-  async function handleConfirmCommand() {
-    if (!pendingSwap) {
-      throw new Error('No pending legacy swap. Submit /swap-old first.');
-    }
-
-    if (!wallet.publicKey || !wallet.signTransaction) {
-      throw new Error('Connect a wallet that supports transaction signing first.');
-    }
-
-    const signature = await executeOrcaSwap({
-      preparedSwap: pendingSwap.preparedSwap,
-      connection,
-      wallet,
-    });
-
-    const explorerUrl = `https://solscan.io/tx/${signature}`;
-    pushMessage('assistant', `Legacy swap executed. Signature: ${signature}\n${explorerUrl}`);
-    setPendingSwap(null);
-  }
-
   async function handleCommandSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -207,11 +150,6 @@ function App() {
 
       if (parsed.kind === 'help') {
         pushMessage('assistant', `${HELP_TEXT}\n\nSupported tokens: ${supportedTokens}`);
-        return;
-      }
-
-      if (parsed.kind === 'confirm') {
-        await handleConfirmCommand();
         return;
       }
 
@@ -245,6 +183,7 @@ function App() {
         if (!wallet.publicKey) {
           throw new Error('Connect wallet first to derive owner token accounts.');
         }
+        const walletPublicKey = wallet.publicKey;
 
         const prepared = await prepareMetaInstruction({
           protocolId: ORCA_PROTOCOL_ID,
@@ -256,7 +195,7 @@ function App() {
             slippage_bps: parsed.value.slippageBps,
           },
           connection,
-          walletPublicKey: wallet.publicKey,
+          walletPublicKey,
         });
 
         const derivedQuote = prepared.derived.quote as Record<string, unknown> | undefined;
@@ -276,7 +215,7 @@ function App() {
         }
 
         const preInstructions = buildOwnerAtaPreInstructions({
-          owner: wallet.publicKey,
+          owner: walletPublicKey,
           pairs: [
             {
               ata: prepared.accounts.token_owner_account_a,
@@ -314,32 +253,41 @@ function App() {
           );
         }
 
-        const rawPreview = {
-          preInstructions: preInstructions.map((ix) => ({
-            programId: ix.programId.toBase58(),
-            keys: ix.keys.map((key) => ({
-              pubkey: key.pubkey.toBase58(),
-              isSigner: key.isSigner,
-              isWritable: key.isWritable,
+        let rawPreviewCache: Record<string, unknown> | null = null;
+        const getRawPreview = async (): Promise<Record<string, unknown>> => {
+          if (rawPreviewCache) {
+            return rawPreviewCache;
+          }
+
+          rawPreviewCache = {
+            preInstructions: preInstructions.map((ix) => ({
+              programId: ix.programId.toBase58(),
+              keys: ix.keys.map((key) => ({
+                pubkey: key.pubkey.toBase58(),
+                isSigner: key.isSigner,
+                isWritable: key.isWritable,
+              })),
+              dataBase64: encodeIxDataBase64(ix.data),
             })),
-            dataBase64: encodeIxDataBase64(ix.data),
-          })),
-          postInstructions: postInstructions.map((ix) => ({
-            programId: ix.programId.toBase58(),
-            keys: ix.keys.map((key) => ({
-              pubkey: key.pubkey.toBase58(),
-              isSigner: key.isSigner,
-              isWritable: key.isWritable,
+            postInstructions: postInstructions.map((ix) => ({
+              programId: ix.programId.toBase58(),
+              keys: ix.keys.map((key) => ({
+                pubkey: key.pubkey.toBase58(),
+                isSigner: key.isSigner,
+                isWritable: key.isWritable,
+              })),
+              dataBase64: encodeIxDataBase64(ix.data),
             })),
-            dataBase64: encodeIxDataBase64(ix.data),
-          })),
-          mainInstruction: await previewIdlInstruction({
-            protocolId: prepared.protocolId,
-            instructionName: prepared.instructionName,
-            args: prepared.args,
-            accounts: prepared.accounts,
-            walletPublicKey: wallet.publicKey,
-          }),
+            mainInstruction: await previewIdlInstruction({
+              protocolId: prepared.protocolId,
+              instructionName: prepared.instructionName,
+              args: prepared.args,
+              accounts: prepared.accounts,
+              walletPublicKey,
+            }),
+          };
+
+          return rawPreviewCache;
         };
 
         if (parsed.kind === 'quote') {
@@ -357,23 +305,39 @@ function App() {
             });
           } catch (error) {
             const base = error instanceof Error ? error.message : 'Unknown simulation error.';
+            const rawPreview = await getRawPreview();
             throw new Error(`${base}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
+          }
+
+          const minOutAtomic = String(
+            derivedQuote?.otherAmountThreshold ??
+              derivedQuote?.other_amount_threshold ??
+              prepared.args.other_amount_threshold ??
+              '0',
+          );
+          const minOutUi = outputTokenMeta ? formatTokenAmount(minOutAtomic, outputTokenMeta.decimals) : minOutAtomic;
+          let impliedRateText = 'n/a';
+          if (inputTokenMeta && outputTokenMeta && estimatedInAtomic !== '0') {
+            const inUi = new Decimal(estimatedInAtomic).div(new Decimal(10).pow(inputTokenMeta.decimals));
+            const outUi = new Decimal(estimatedOutAtomic).div(new Decimal(10).pow(outputTokenMeta.decimals));
+            if (inUi.gt(0)) {
+              impliedRateText = outUi.div(inUi).toSignificantDigits(8).toString();
+            }
           }
 
           pushMessage(
             'assistant',
             [
-              `Quote (meta IDL):`,
+              'Quote (meta IDL + simulation):',
               `pair: ${parsed.value.inputToken}/${parsed.value.outputToken}`,
               `pool: ${String(selectedPool?.whirlpool ?? 'n/a')}`,
-              `estimatedIn: ${estimatedInUi} ${parsed.value.inputToken} (${estimatedInAtomic})`,
-              `estimatedOut: ${estimatedOutUi} ${parsed.value.outputToken} (${estimatedOutAtomic})`,
-              `simulation ok: ${sim.ok}`,
-              `units consumed: ${sim.unitsConsumed ?? 'n/a'}`,
+              `input: ${estimatedInUi} ${parsed.value.inputToken}`,
+              `estimated output: ${estimatedOutUi} ${parsed.value.outputToken}`,
+              `min output @ ${parsed.value.slippageBps} bps: ${minOutUi} ${parsed.value.outputToken}`,
+              `implied rate: 1 ${parsed.value.inputToken} ≈ ${impliedRateText} ${parsed.value.outputToken}`,
+              `tick arrays: ${compactPubkey(prepared.accounts.tick_array_0)}, ${compactPubkey(prepared.accounts.tick_array_1)}, ${compactPubkey(prepared.accounts.tick_array_2)}`,
+              `simulation: ${sim.ok ? 'ok' : 'failed'}${sim.unitsConsumed ? ` (${sim.unitsConsumed} CU)` : ''}`,
               sim.error ? `error: ${sim.error}` : 'error: none',
-              '',
-              'Raw instruction preview:',
-              asPrettyJson(rawPreview),
               'Run /swap with same params to execute.',
             ].join('\n'),
           );
@@ -394,6 +358,7 @@ function App() {
           });
         } catch (error) {
           const base = error instanceof Error ? error.message : 'Unknown send error.';
+          const rawPreview = await getRawPreview();
           throw new Error(`${base}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
         }
 
@@ -437,7 +402,6 @@ function App() {
         return;
       }
 
-      await handleSwapOldCommand(parsed.value);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error while handling command.';
       pushMessage('assistant', `Error: ${message}`);
@@ -464,16 +428,6 @@ function App() {
             </article>
           ))}
         </div>
-
-        {pendingSwap && (
-          <aside className="pending-block">
-            <strong>Pending Legacy Swap</strong>
-            <p>
-              {pendingSwap.command.amountUi} {pendingSwap.command.inputToken} {'->'} {pendingSwap.command.outputToken} at{' '}
-              {pendingSwap.command.slippageBps} bps
-            </p>
-          </aside>
-        )}
 
         <form className="command-form" onSubmit={handleCommandSubmit}>
           <input

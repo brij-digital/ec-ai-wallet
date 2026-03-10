@@ -13,8 +13,6 @@ Current scope:
 - `/help`
 - `/swap <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]`
 - `/quote <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]`
-- `/swap-old <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]`
-- `/confirm` (for `/swap-old` pending flow)
 - `/write-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>`
 - `/read-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>`
 - `/idl-list`
@@ -26,8 +24,6 @@ Examples:
 ```text
 /quote SOL USDC 0.1 50
 /swap SOL USDC 0.1 50
-/swap-old SOL USDC 0.1 50
-/confirm
 ```
 
 Raw examples:
@@ -37,7 +33,7 @@ Raw examples:
 /write-raw orca-whirlpool-mainnet swap | {"amount":"1000","other_amount_threshold":"1","sqrt_price_limit":"0","amount_specified_is_input":true,"a_to_b":true} | {"token_authority":"$WALLET","whirlpool":"<PUBKEY>","token_owner_account_a":"<PUBKEY>","token_vault_a":"<PUBKEY>","token_owner_account_b":"<PUBKEY>","token_vault_b":"<PUBKEY>","tick_array_0":"<PUBKEY>","tick_array_1":"<PUBKEY>","tick_array_2":"<PUBKEY>","oracle":"<PUBKEY>"}
 ```
 
-Supported token aliases for `/swap`, `/quote`, and `/swap-old`:
+Supported token aliases for `/swap` and `/quote`:
 - `SOL`
 - `USDC`
 
@@ -65,6 +61,20 @@ Meta IDL v0.1 resolver primitives currently implemented in runtime:
 - `pda`
 - `orca_swap_quote`
 - `lookup` (query indexed relation from local/remote JSON directory)
+
+`orca_swap_quote` supports declarative tick-array strategy:
+
+```json
+{
+  "name": "quote",
+  "resolver": "orca_swap_quote",
+  "tick_arrays": {
+    "search_start_offsets": [0, -1, 1, -2, 2, -3, 3],
+    "window_size": 3,
+    "allow_reuse_last": true
+  }
+}
+```
 
 Meta IDL execution supports optional declarative `post` steps:
 - current built-in: `spl_token_close_account`
@@ -102,6 +112,5 @@ npm run build
 
 - The app targets `mainnet-beta` by default.
 - Swap execution requires a connected Phantom wallet.
-- `/swap` and `/quote` are strict declarative wrappers: they resolve accounts/PDAs/tick arrays from meta IDL, then call `write-raw/read-raw` under the hood.
+- `/swap` and `/quote` are strict declarative wrappers: they resolve accounts/PDAs/tick arrays from meta IDL, derive quotes with RPC simulation, then call `write-raw/read-raw` under the hood.
 - SOL output is auto-unwrapped by default via declarative meta `post` step (`spl_token_close_account`).
-- `/swap-old` keeps the legacy Orca SDK flow only for comparison.

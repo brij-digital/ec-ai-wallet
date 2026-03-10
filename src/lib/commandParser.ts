@@ -1,16 +1,5 @@
 import { parseUiAmountToAtomic, resolveToken } from '../constants/tokens';
 
-export type SwapOldCommand = {
-  kind: 'swap-old';
-  inputToken: string;
-  outputToken: string;
-  amountUi: string;
-  amountAtomic: string;
-  inputMint: string;
-  outputMint: string;
-  slippageBps: number;
-};
-
 export type SwapPrefillCommand = {
   kind: 'swap';
   inputToken: string;
@@ -32,9 +21,6 @@ export type QuotePrefillCommand = {
   outputMint: string;
   slippageBps: number;
 };
-
-// Backward compatibility for modules expecting the old name.
-export type SwapCommand = SwapOldCommand;
 
 export type IdlSendCommand = {
   kind: 'idl-send';
@@ -58,12 +44,10 @@ export type IdlTemplateCommand = {
 };
 
 export type ParsedCommand =
-  | { kind: 'swap-old'; value: SwapOldCommand }
   | { kind: 'swap'; value: SwapPrefillCommand }
   | { kind: 'quote'; value: QuotePrefillCommand }
   | { kind: 'write-raw'; value: IdlSendCommand }
   | { kind: 'read-raw'; value: IdlSendCommand }
-  | { kind: 'confirm' }
   | { kind: 'help' }
   | { kind: 'idl-list' }
   | { kind: 'idl-template'; value: IdlTemplateCommand }
@@ -156,49 +140,6 @@ function parseRawCommand(trimmed: string, commandName: '/write-raw' | '/read-raw
   };
 }
 
-function parseTokenSwapArgs(args: string[], mode: 'swap-old'): SwapOldCommand {
-  if (args.length < 3 || args.length > 4) {
-    throw new Error(`Usage: /${mode} <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]`);
-  }
-
-  const [inputRaw, outputRaw, amountUi, slippageRaw] = args;
-  const inputToken = resolveToken(inputRaw);
-  const outputToken = resolveToken(outputRaw);
-
-  if (!inputToken) {
-    throw new Error(`Unsupported input token: ${inputRaw}`);
-  }
-
-  if (!outputToken) {
-    throw new Error(`Unsupported output token: ${outputRaw}`);
-  }
-
-  if (inputToken.mint === outputToken.mint) {
-    throw new Error('Input and output token must differ.');
-  }
-
-  const amountAtomic = parseUiAmountToAtomic(amountUi, inputToken.decimals);
-  if (amountAtomic <= 0n) {
-    throw new Error('Amount must be greater than zero.');
-  }
-
-  const slippageBps = slippageRaw ? Number(slippageRaw) : 50;
-  if (!Number.isInteger(slippageBps) || slippageBps < 1 || slippageBps > 5000) {
-    throw new Error('Slippage must be an integer between 1 and 5000 bps.');
-  }
-
-  return {
-    kind: mode,
-    inputToken: inputToken.symbol,
-    outputToken: outputToken.symbol,
-    inputMint: inputToken.mint,
-    outputMint: outputToken.mint,
-    amountUi,
-    amountAtomic: amountAtomic.toString(),
-    slippageBps,
-  };
-}
-
 function parseMetaSwapArgs(args: string[], kind: 'swap' | 'quote'): SwapPrefillCommand | QuotePrefillCommand {
   if (args.length < 3 || args.length > 4) {
     throw new Error(`Usage: /${kind} <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]`);
@@ -272,10 +213,6 @@ export function parseCommand(raw: string): ParsedCommand {
     return { kind: 'help' };
   }
 
-  if (command === '/confirm') {
-    return { kind: 'confirm' };
-  }
-
   if (command === '/idl-list') {
     return { kind: 'idl-list' };
   }
@@ -319,10 +256,6 @@ export function parseCommand(raw: string): ParsedCommand {
 
   if (command === '/quote') {
     return { kind: 'quote', value: parseMetaSwapArgs(args, 'quote') as QuotePrefillCommand };
-  }
-
-  if (command === '/swap-old') {
-    return { kind: 'swap-old', value: parseTokenSwapArgs(args, 'swap-old') };
   }
 
   throw new Error(`Unknown command: ${command}. Try /help.`);
