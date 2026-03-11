@@ -59,17 +59,6 @@
             "resolver": "pda",
             "program_id": "$protocol.programId",
             "seeds": ["utf8:oracle", "$selected_pool.whirlpool"]
-          },
-          {
-            "name": "tick_arrays",
-            "resolver": "clmm_tick_arrays_contiguous",
-            "program_id": "$protocol.programId",
-            "whirlpool": "$selected_pool.whirlpool",
-            "tick_current_index": "$whirlpool_data.tick_current_index",
-            "tick_spacing": "$whirlpool_data.tick_spacing",
-            "a_to_b": "$selected_pool.aToB",
-            "ticks_per_array": 88,
-            "count": 3
           }
         ],
         "args": {
@@ -87,9 +76,9 @@
           "token_vault_a": "$whirlpool_data.token_vault_a",
           "token_owner_account_b": "$token_owner_account_b",
           "token_vault_b": "$whirlpool_data.token_vault_b",
-          "tick_array_0": "$tick_arrays.tick_array_0",
-          "tick_array_1": "$tick_arrays.tick_array_1",
-          "tick_array_2": "$tick_arrays.tick_array_2",
+          "tick_array_0": "$selected_pool.tickArray0",
+          "tick_array_1": "$selected_pool.tickArray1",
+          "tick_array_2": "$selected_pool.tickArray2",
           "oracle": "$oracle"
         },
         "post": [

@@ -65,31 +65,9 @@ Meta IDL v0.3 resolver primitives currently implemented in runtime:
 - `pda`
 - `lookup` (query indexed relation from local/remote JSON directory)
 - `unix_timestamp`
-- `clmm_tick_arrays_contiguous` (derive contiguous CLMM tick array PDAs)
 
 Meta IDL v0.3 compute primitives currently implemented in runtime:
 - none in active swap flow (`/swap` and `/quote` are simulation-first)
-
-`clmm_tick_arrays_contiguous` pattern:
-
-```json
-{
-  "name": "tick_arrays",
-  "resolver": "clmm_tick_arrays_contiguous",
-  "program_id": "$protocol.programId",
-  "whirlpool": "$selected_pool.whirlpool",
-  "tick_current_index": "$whirlpool_data.tick_current_index",
-  "tick_spacing": "$whirlpool_data.tick_spacing",
-  "a_to_b": "$selected_pool.aToB"
-}
-```
-
-```json
-{
-  "name": "tick_arrays",
-  "resolver": "clmm_tick_arrays_contiguous"
-}
-```
 
 Meta IDL v0.3 supports macro expansion:
 - `macros.<name>.expand` defines reusable declarative blocks.
@@ -132,5 +110,5 @@ npm run build
 - The app targets `mainnet-beta` by default.
 - Swap execution requires a connected Phantom wallet.
 - `/swap` and `/quote` are strict declarative wrappers: derive resolvers fetch account state, then app uses RPC simulation to estimate output and compute slippage threshold before send.
-- Meta execution pipeline is split into phases: `derive` (data gather) -> `compute` (quote/evaluation) -> IDL build -> `simulate` or `send`.
+- Meta execution pipeline is split into phases: `derive` (data gather) -> IDL build -> `simulate` or `send`.
 - SOL output is auto-unwrapped by default via declarative meta `post` step (`spl_token_close_account`).

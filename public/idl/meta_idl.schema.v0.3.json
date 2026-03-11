@@ -79,8 +79,7 @@
             "ata",
             "pda",
             "lookup",
-            "unix_timestamp",
-            "clmm_tick_arrays_contiguous"
+            "unix_timestamp"
           ]
         },
         "address": {},
@@ -92,13 +91,7 @@
         "source": { "type": "string" },
         "where": {},
         "select": {},
-        "mode": { "enum": ["first", "all"] },
-        "tick_current_index": {},
-        "tick_spacing": {},
-        "a_to_b": {},
-        "whirlpool": {},
-        "ticks_per_array": {},
-        "count": {}
+        "mode": { "enum": ["first", "all"] }
       },
       "additionalProperties": false
     },
@@ -114,8 +107,7 @@
             "ata",
             "pda",
             "lookup",
-            "unix_timestamp",
-            "clmm_tick_arrays_contiguous"
+            "unix_timestamp"
           ]
         },
         "address": {},
@@ -128,12 +120,6 @@
         "where": {},
         "select": {},
         "mode": { "enum": ["first", "all"] },
-        "tick_current_index": {},
-        "tick_spacing": {},
-        "a_to_b": {},
-        "whirlpool": {},
-        "ticks_per_array": {},
-        "count": {},
         "fallback": { "$ref": "#/$defs/resolverBase" }
       },
       "additionalProperties": false

@@ -42,7 +42,6 @@ In this MVP:
 - `ata`
 - `pda`
 - `unix_timestamp`
-- `clmm_tick_arrays_contiguous`
 
 ### Implemented compute steps
 - none in current swap flow
@@ -112,16 +111,12 @@ From `macros.orca.swap_exact_in.v1.expand.derive`:
 5. `oracle` (`pda`)
 - Derives Orca oracle PDA with seeds.
 
-6. `tick_arrays` (`clmm_tick_arrays_contiguous`)
-- Derives deterministic 3 contiguous tick-array PDAs from:
-  - program id
-  - whirlpool pubkey
-  - tick current index
-  - tick spacing
-  - direction (`a_to_b`)
-
-7. `tick_array_data_0/1/2` (`decode_account`)
-- Decodes all 3 derived tick-array accounts.
+6. Tick arrays
+- In current v0.3 macro, tick arrays are provided by directory lookup fields:
+  - `tickArray0`
+  - `tickArray1`
+  - `tickArray2`
+- There is no runtime CLMM tick-array derivation step in active flow.
 
 ## 6) Quote/Swap Threshold Flow (No Kernel)
 
@@ -188,8 +183,8 @@ If `/quote` or `/swap` fails:
 1. Check command input mint order and amount.
 2. Verify pool exists in `orca_whirlpool.directory.db.json`.
 3. Verify resolved Whirlpool account decodes correctly.
-4. Check tick-array/oracle decode errors in derive steps.
-5. Check compute/quote errors (tick array availability, math preconditions, slippage constraints).
+4. Check directory-provided tick arrays and oracle derive output.
+5. Check simulation/quote errors (slippage constraints, account setup, liquidity conditions).
 6. Validate final args/accounts preview.
 
 ---
