@@ -42,6 +42,7 @@ Supported token aliases for `/swap` and `/quote`:
 - Base IDL: `public/idl/orca_whirlpool.json`
 - Meta IDL: `public/idl/orca_whirlpool.meta.json`
 - Meta IDL schema: `public/idl/meta_idl.schema.v0.2.json`
+- Tutorial: `docs/meta-idl-tutorial.md`
 - Local pool directory DB: `public/idl/orca_whirlpool.directory.db.json`
 - Registry: `public/idl/registry.json`
 
