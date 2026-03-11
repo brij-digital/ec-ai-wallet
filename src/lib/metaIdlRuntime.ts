@@ -5,6 +5,7 @@ import type { Idl } from '@coral-xyz/anchor';
 import { getProtocolById } from './idlRegistry';
 import { previewIdlInstruction } from './idlDeclarativeRuntime';
 import { runRegisteredComputeStep } from './metaComputeRegistry';
+import { runRegisteredContextStep } from './metaContextRegistry';
 
 const SUPPORTED_META_IDL_SCHEMAS = new Set(['meta-idl.v0.1', 'meta-idl.v0.2', 'meta-idl.v0.3']);
 const DEFAULT_SPL_TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
@@ -48,6 +49,12 @@ type ComputeStep = {
   [key: string]: unknown;
 };
 
+type ContextStep = {
+  name: string;
+  context: string;
+  [key: string]: unknown;
+};
+
 type ActionInputSpec = {
   type: string;
   required?: boolean;
@@ -57,6 +64,7 @@ type ActionInputSpec = {
 type ActionSpec = {
   instruction?: string;
   inputs?: Record<string, ActionInputSpec>;
+  context?: ContextStep[];
   derive?: DeriveStep[];
   compute?: ComputeStep[];
   args?: Record<string, unknown>;
@@ -68,6 +76,7 @@ type ActionSpec = {
 type MaterializedActionSpec = {
   instruction: string;
   inputs: Record<string, ActionInputSpec>;
+  context: ContextStep[];
   derive: DeriveStep[];
   compute: ComputeStep[];
   args: Record<string, unknown>;
@@ -481,6 +490,10 @@ function mergeActionFragment(target: MaterializedActionSpec, fragment: Omit<Acti
     target.derive.push(...cloneJsonLike(fragment.derive));
   }
 
+  if (fragment.context) {
+    target.context.push(...cloneJsonLike(fragment.context));
+  }
+
   if (fragment.compute) {
     target.compute.push(...cloneJsonLike(fragment.compute));
   }
@@ -508,6 +521,7 @@ function materializeAction(actionId: string, action: ActionSpec, meta: MetaIdlSp
   const materialized: MaterializedActionSpec = {
     instruction: '',
     inputs: {},
+    context: [],
     derive: [],
     compute: [],
     args: {},
@@ -536,6 +550,7 @@ function materializeAction(actionId: string, action: ActionSpec, meta: MetaIdlSp
   const actionDirectFragment = cloneJsonLike({
     instruction: action.instruction,
     inputs: action.inputs,
+    context: action.context,
     derive: action.derive,
     compute: action.compute,
     args: action.args,
@@ -799,6 +814,25 @@ async function runComputeStep(step: ComputeStep, ctx: ResolverContext): Promise<
   );
 }
 
+async function runContextStep(step: ContextStep, ctx: ResolverContext): Promise<unknown> {
+  const resolvedStep = asRecord(normalizeRuntimeValue(resolveTemplateValue(step, ctx.scope)), `context:${step.name}`);
+  const context = asString(resolvedStep.context, `context:${step.name}:context`);
+  return runRegisteredContextStep(
+    {
+      ...resolvedStep,
+      name: step.name,
+      context,
+    },
+    {
+      protocolId: ctx.protocol.id,
+      programId: ctx.protocol.programId,
+      connection: ctx.connection,
+      walletPublicKey: ctx.walletPublicKey,
+      scope: ctx.scope,
+    },
+  );
+}
+
 export async function prepareMetaInstruction(options: {
   protocolId: string;
   actionId: string;
@@ -857,6 +891,16 @@ export async function prepareMetaInstruction(options: {
     walletPublicKey: options.walletPublicKey,
     scope,
   };
+
+  for (const step of action.context ?? []) {
+    if (!step.name) {
+      throw new Error(`Action ${options.actionId} has context step without name.`);
+    }
+
+    const value = await runContextStep(step, resolverCtx);
+    derived[step.name] = value;
+    scope[step.name] = value;
+  }
 
   for (const step of action.derive ?? []) {
     if (!step.name) {

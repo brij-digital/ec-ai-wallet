@@ -21,6 +21,7 @@ In this MVP:
 - Meta IDL: `public/idl/orca_whirlpool.meta.json`
 - Meta schema: `public/idl/meta_idl.schema.v0.3.json`
 - Runtime: `src/lib/metaIdlRuntime.ts`
+- Context registry: `src/lib/metaContextRegistry.ts`
 - Compute registry: `src/lib/metaComputeRegistry.ts`
 - App command handling: `src/App.tsx`
 
@@ -32,6 +33,7 @@ In this MVP:
 - **Intent**: high-level operation (`swap_exact_in`).
 - **Action**: protocol-specific implementation of that intent (`actions.swap_exact_in`).
 - **Template**: reusable declarative action template (`templates.orca.swap_exact_in.v1`).
+- **Context step**: one external context-gather step in `context[]`.
 - **Resolver**: one primitive data-derivation step in `derive[]`.
 - **Compute step**: one deterministic compute/evaluate step in `compute[]`.
 
@@ -42,6 +44,11 @@ In this MVP:
 - `ata`
 - `pda`
 - `unix_timestamp`
+
+### Implemented context steps
+- `context.mock`
+- `context.query_http_json`
+- `context.compare_values`
 
 ### Implemented compute steps
 - `math.add`
@@ -54,6 +61,7 @@ In this MVP:
 - `$input.*`: action input values
 - `$param.*`: template params
 - `$protocol.*`: protocol metadata from registry
+- `$<context_step_name>.*`: outputs from previous context steps
 - `$<derive_step_name>.*`: outputs from previous derive steps
 
 ---
@@ -77,9 +85,10 @@ Example command:
    - applies `use` template
    - expands template with `$param.*`
 4. Hydrates missing input defaults (e.g., `slippage_bps: 50`).
-5. Executes `derive[]` resolvers (data only) in order.
-6. Executes `compute[]` steps in order.
-7. Produces final:
+5. Executes `context[]` steps in order.
+6. Executes `derive[]` resolvers (data only) in order.
+7. Executes `compute[]` steps in order.
+8. Produces final:
    - `instructionName`
    - `args`
    - `accounts`
@@ -97,29 +106,36 @@ Both use the **same derived plan**; only execution mode differs.
 
 ---
 
-## 5) What Each Derive Step Does (Orca template)
+## 5) What Each Context + Derive Step Does (Orca template)
+
+From `templates.orca.swap_exact_in.v1.expand.context`:
+
+1. `market_context` (`context.mock`)
+- Current demo placeholder to prove the phase wiring.
+- Stores mock online context (provider/mode/pair metadata).
+- Does not yet modify quote/swap selection logic.
 
 From `templates.orca.swap_exact_in.v1.expand.derive`:
 
-1. `wallet` (`wallet_pubkey`)
+2. `wallet` (`wallet_pubkey`)
 - Output: connected wallet pubkey.
 
-2. `selected_pool` (`lookup`)
+3. `selected_pool` (`lookup`)
 - Source: `orca_whirlpool_directory` (local JSON DB)
 - Filter: `tokenInMint`, `tokenOutMint`
 - Output: one pool row containing `whirlpool`, `aToB`, etc.
 
-3. `whirlpool_data` (`decode_account`)
+4. `whirlpool_data` (`decode_account`)
 - Reads and decodes Whirlpool account data from chain.
 - Needed fields include token mints, vaults, tick spacing/current tick.
 
-4. `token_owner_account_a` + `token_owner_account_b` (`ata`)
+5. `token_owner_account_a` + `token_owner_account_b` (`ata`)
 - Derives user ATAs for pool token mints.
 
-5. `oracle` (`pda`)
+6. `oracle` (`pda`)
 - Derives Orca oracle PDA with seeds.
 
-6. Tick arrays
+7. Tick arrays
 - In current v0.3 template, tick arrays are derived declaratively in `compute[]`:
   - `ticks_per_array = tick_spacing * 88`
   - `direction_step = ticks_per_array * tickArrayDirection`
@@ -189,11 +205,12 @@ Benefits:
 If `/quote` or `/swap` fails:
 
 1. Check command input mint order and amount.
-2. Verify pool exists in `orca_whirlpool.directory.db.json`.
-3. Verify resolved Whirlpool account decodes correctly.
-4. Check compute outputs: `tick_array_starts` and `tick_arrays`.
-5. Check simulation/quote errors (slippage constraints, account setup, liquidity conditions).
-6. Validate final args/accounts preview.
+2. Check context outputs (for now: `market_context` mock exists and is well-formed).
+3. Verify pool exists in `orca_whirlpool.directory.db.json`.
+4. Verify resolved Whirlpool account decodes correctly.
+5. Check compute outputs: `tick_array_starts` and `tick_arrays`.
+6. Check simulation/quote errors (slippage constraints, account setup, liquidity conditions).
+7. Validate final args/accounts preview.
 
 ---
 
@@ -225,7 +242,14 @@ This is the exact flow for:
 - `$param.amount_in = $input.amount_in`
 - `$param.slippage_bps = $input.slippage_bps`
 
-### C) Derive phase (`derive[]`)
+### C) Context phase (`context[]`)
+
+1. `market_context` (`context.mock`)
+- Returns a mocked context payload.
+- Stored in runtime scope as `$market_context`.
+- Current payload is informational (does not alter route selection yet).
+
+### D) Derive phase (`derive[]`)
 
 1. `wallet` (`wallet_pubkey`)
 - Reads connected wallet pubkey.
@@ -240,7 +264,7 @@ This is the exact flow for:
 5. `oracle` (`pda`)
 - Derives oracle PDA from seeds `["oracle", whirlpool]`.
 
-### D) Compute phase (`compute[]`, `src/lib/metaComputeRegistry.ts`)
+### E) Compute phase (`compute[]`, `src/lib/metaComputeRegistry.ts`)
 
 Using one recent run values:
 - `tick_current_index = -24642`
@@ -264,7 +288,7 @@ Resulting PDAs:
 - `8Rs3qKaV...` (start `-24640`)
 - `FhCuVGm1...` (start `-24288`)
 
-### E) Build phase (IDL encode)
+### F) Build phase (IDL encode)
 
 1. Resolve `args` from templates:
 - `amount = "10000"`
@@ -276,7 +300,7 @@ Resulting PDAs:
 - Tick arrays from compute (`$tick_arrays.0/1/2`)
 3. Encode instruction data with base IDL.
 
-### F) Execute path split (`src/App.tsx`)
+### G) Execute path split (`src/App.tsx`)
 
 1. `/quote`:
 - Simulate built transaction
@@ -298,3 +322,19 @@ This is why quote and swap stay aligned: same declarative plan, different final 
 2. Add `/meta-expand <action>` for compiled action JSON.
 3. Add meta linter (unknown refs, missing required fields, unused derives).
 4. Add fixture tests for intent -> derived args/accounts determinism.
+
+---
+
+## 13) Context Roadmap (From Mock to Live)
+
+Current state:
+- `context[]` runs first.
+- Orca uses `context.mock` (`market_context`) as a placeholder.
+
+Target state:
+1. Add provider queries with `context.query_http_json` (multiple providers).
+2. Normalize each provider result to a common candidate shape.
+3. Select winner with `context.compare_values` (e.g. max estimated output).
+4. Feed selected context into derive/build as `$best_quote_context.*`.
+
+This keeps online/provider logic declarative in Meta IDL data, while runtime stays a fixed audited primitive executor.

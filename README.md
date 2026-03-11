@@ -46,6 +46,7 @@ Supported token aliases for `/swap` and `/quote`:
   - Detailed end-to-end walkthrough: section `11) Concrete Walkthrough (USDC -> SOL)`
 - Local pool directory DB: `public/idl/orca_whirlpool.directory.db.json`
 - Registry: `public/idl/registry.json`
+- Context registry: `src/lib/metaContextRegistry.ts`
 - Compute registry (plugin dispatch): `src/lib/metaComputeRegistry.ts`
 - Shared SDK coercion helpers: `src/lib/sdk/coerce.ts`
 - Shared runtime value normalizer: `src/lib/sdk/runtimeValue.ts`
@@ -68,6 +69,11 @@ Meta IDL v0.3 resolver primitives currently implemented in runtime:
 - `pda`
 - `lookup` (query indexed relation from local/remote JSON directory)
 - `unix_timestamp`
+
+Meta IDL v0.3 context primitives currently implemented in runtime:
+- `context.mock`
+- `context.query_http_json`
+- `context.compare_values`
 
 Meta IDL v0.3 compute primitives currently implemented in runtime:
 - `math.add`
@@ -117,5 +123,6 @@ npm run build
 - The app targets `mainnet-beta` by default.
 - Swap execution requires a connected Phantom wallet.
 - `/swap` and `/quote` are strict declarative wrappers: derive resolvers fetch account state, then app uses RPC simulation to estimate output and compute slippage threshold before send.
-- Meta execution pipeline is split into phases: `derive` (data gather) -> `compute` (deterministic pure transforms) -> IDL build -> `simulate` or `send`.
+- Meta execution pipeline is split into phases: `context` (external/online context gather) -> `derive` (on-chain/account gather) -> `compute` (deterministic pure transforms) -> IDL build -> `simulate` or `send`.
+- Current Orca template includes a mocked context step (`market_context`) as a placeholder for future provider compare logic.
 - SOL output is auto-unwrapped by default via declarative meta `post` step (`spl_token_close_account`).

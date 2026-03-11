@@ -21,6 +21,21 @@
       },
       "expand": {
         "instruction": "swap_v2",
+        "context": [
+          {
+            "name": "market_context",
+            "context": "context.mock",
+            "value": {
+              "mode": "mock",
+              "provider": "local-demo",
+              "pair": {
+                "token_in_mint": "$param.token_in_mint",
+                "token_out_mint": "$param.token_out_mint"
+              },
+              "note": "Replace with online provider comparison in a future context step."
+            }
+          }
+        ],
         "derive": [
           {
             "name": "wallet",

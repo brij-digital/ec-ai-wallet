@@ -240,6 +240,53 @@
         }
       ]
     },
+    "contextStep": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["name", "context", "value"],
+          "properties": {
+            "name": { "type": "string" },
+            "context": { "const": "context.mock" },
+            "value": {}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["name", "context", "url"],
+          "properties": {
+            "name": { "type": "string" },
+            "context": { "const": "context.query_http_json" },
+            "url": { "type": "string" },
+            "query": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "items_path": { "type": "string" },
+            "select_path": { "type": "string" },
+            "max_age_ms": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["name", "context", "items"],
+          "properties": {
+            "name": { "type": "string" },
+            "context": { "const": "context.compare_values" },
+            "items": {
+              "type": "array",
+              "items": {},
+              "minItems": 1
+            },
+            "mode": { "enum": ["first", "max", "min"] },
+            "metric_path": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "metaCondition": {
       "oneOf": [
         {
@@ -354,6 +401,10 @@
           "type": "array",
           "items": { "$ref": "#/$defs/deriveStep" }
         },
+        "context": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/contextStep" }
+        },
         "compute": {
           "type": "array",
           "items": { "$ref": "#/$defs/computeStep" }
@@ -384,6 +435,10 @@
         "derive": {
           "type": "array",
           "items": { "$ref": "#/$defs/deriveStep" }
+        },
+        "context": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/contextStep" }
         },
         "compute": {
           "type": "array",
