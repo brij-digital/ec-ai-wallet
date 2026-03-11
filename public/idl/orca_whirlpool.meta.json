@@ -59,10 +59,12 @@
             "resolver": "pda",
             "program_id": "$protocol.programId",
             "seeds": ["utf8:oracle", "$selected_pool.whirlpool"]
-          },
+          }
+        ],
+        "compute": [
           {
             "name": "quote",
-            "resolver": "orca_swap_quote",
+            "compute": "orca_swap_quote",
             "whirlpool": "$selected_pool.whirlpool",
             "amount": "$param.amount_in",
             "a_to_b": "$selected_pool.aToB",

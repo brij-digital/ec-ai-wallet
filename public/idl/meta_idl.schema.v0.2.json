@@ -78,7 +78,6 @@
             "decode_account",
             "ata",
             "pda",
-            "orca_swap_quote",
             "lookup"
           ]
         },
@@ -88,11 +87,6 @@
         "mint": {},
         "program_id": {},
         "seeds": { "type": "array", "items": {} },
-        "whirlpool": {},
-        "amount": {},
-        "a_to_b": {},
-        "slippage_bps": {},
-        "tick_arrays": { "$ref": "#/$defs/tickArrayStrategy" },
         "source": { "type": "string" },
         "where": {},
         "select": {},
@@ -111,7 +105,6 @@
             "decode_account",
             "ata",
             "pda",
-            "orca_swap_quote",
             "lookup"
           ]
         },
@@ -121,16 +114,27 @@
         "mint": {},
         "program_id": {},
         "seeds": { "type": "array", "items": {} },
-        "whirlpool": {},
-        "amount": {},
-        "a_to_b": {},
-        "slippage_bps": {},
-        "tick_arrays": { "$ref": "#/$defs/tickArrayStrategy" },
         "source": { "type": "string" },
         "where": {},
         "select": {},
         "mode": { "enum": ["first", "all"] },
         "fallback": { "$ref": "#/$defs/resolverBase" }
+      },
+      "additionalProperties": false
+    },
+    "computeStep": {
+      "type": "object",
+      "required": ["name", "compute"],
+      "properties": {
+        "name": { "type": "string" },
+        "compute": {
+          "enum": ["orca_swap_quote"]
+        },
+        "whirlpool": {},
+        "amount": {},
+        "a_to_b": {},
+        "slippage_bps": {},
+        "tick_arrays": { "$ref": "#/$defs/tickArrayStrategy" }
       },
       "additionalProperties": false
     },
@@ -261,6 +265,10 @@
           "type": "array",
           "items": { "$ref": "#/$defs/deriveStep" }
         },
+        "compute": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/computeStep" }
+        },
         "args": {
           "type": "object",
           "additionalProperties": {}
@@ -287,6 +295,10 @@
         "derive": {
           "type": "array",
           "items": { "$ref": "#/$defs/deriveStep" }
+        },
+        "compute": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/computeStep" }
         },
         "args": {
           "type": "object",

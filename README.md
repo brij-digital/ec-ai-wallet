@@ -45,6 +45,8 @@ Supported token aliases for `/swap` and `/quote`:
 - Tutorial: `docs/meta-idl-tutorial.md`
 - Local pool directory DB: `public/idl/orca_whirlpool.directory.db.json`
 - Registry: `public/idl/registry.json`
+- Compute registry (plugin dispatch): `src/lib/metaComputeRegistry.ts`
+- Orca compute plugin: `src/lib/protocols/orca/compute.ts`
 
 Directory DB rows are directional for fast lookup:
 - `tokenInMint`
@@ -60,15 +62,17 @@ Meta IDL v0.2 resolver primitives currently implemented in runtime:
 - `decode_account`
 - `ata`
 - `pda`
-- `orca_swap_quote`
 - `lookup` (query indexed relation from local/remote JSON directory)
 
-`orca_swap_quote` supports declarative tick-array strategy:
+Meta IDL v0.2 compute primitives currently implemented in runtime:
+- `orca_swap_quote` (simulation-based quote compute)
+
+`orca_swap_quote` compute supports declarative tick-array strategy:
 
 ```json
 {
   "name": "quote",
-  "resolver": "orca_swap_quote",
+  "compute": "orca_swap_quote",
   "tick_arrays": {
     "search_start_offsets": [0, -1, 1, -2, 2, -3, 3],
     "window_size": 3,
@@ -118,4 +122,5 @@ npm run build
 - The app targets `mainnet-beta` by default.
 - Swap execution requires a connected Phantom wallet.
 - `/swap` and `/quote` are strict declarative wrappers: they resolve accounts/PDAs/tick arrays from meta IDL, derive quotes with RPC simulation, then call `write-raw/read-raw` under the hood.
+- Meta execution pipeline is split into phases: `derive` (data gather) -> `compute` (quote/evaluation) -> IDL build -> `simulate` or `send`.
 - SOL output is auto-unwrapped by default via declarative meta `post` step (`spl_token_close_account`).

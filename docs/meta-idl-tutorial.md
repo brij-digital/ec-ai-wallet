@@ -21,6 +21,8 @@ In this MVP:
 - Meta IDL: `public/idl/orca_whirlpool.meta.json`
 - Meta schema: `public/idl/meta_idl.schema.v0.2.json`
 - Runtime: `src/lib/metaIdlRuntime.ts`
+- Compute registry: `src/lib/metaComputeRegistry.ts`
+- Orca compute plugin: `src/lib/protocols/orca/compute.ts`
 - App command handling: `src/App.tsx`
 
 ---
@@ -31,7 +33,8 @@ In this MVP:
 - **Intent**: high-level operation (`swap_exact_in`).
 - **Action**: protocol-specific implementation of that intent (`actions.swap_exact_in`).
 - **Macro**: reusable declarative template (`macros.orca.swap_exact_in.v1`).
-- **Resolver**: one primitive derivation step in `derive[]`.
+- **Resolver**: one primitive data-derivation step in `derive[]`.
+- **Compute step**: one deterministic compute/evaluate step in `compute[]`.
 
 ### Implemented resolvers
 - `wallet_pubkey`
@@ -39,6 +42,8 @@ In this MVP:
 - `decode_account`
 - `ata`
 - `pda`
+
+### Implemented compute steps
 - `orca_swap_quote`
 
 ### Template variables
@@ -68,8 +73,9 @@ Example command:
    - applies `use` macro
    - expands macro with `$param.*`
 4. Hydrates missing input defaults (e.g., `slippage_bps: 50`).
-5. Executes `derive[]` resolvers in order.
-6. Produces final:
+5. Executes `derive[]` resolvers (data only) in order.
+6. Executes `compute[]` steps (quote/evaluate) in order.
+7. Produces final:
    - `instructionName`
    - `args`
    - `accounts`
@@ -105,7 +111,11 @@ From `macros.orca.swap_exact_in.v1.expand.derive`:
 5. `oracle` (`pda`)
 - Derives Orca oracle PDA with seeds.
 
-6. `quote` (`orca_swap_quote`)
+## 6) What Compute Step Does (Orca macro)
+
+From `macros.orca.swap_exact_in.v1.expand.compute`:
+
+1. `quote` (`orca_swap_quote`)
 - Builds candidate swap instruction(s)
 - Tries tick-array candidates (from declarative tick strategy)
 - Simulates transaction
@@ -115,18 +125,18 @@ From `macros.orca.swap_exact_in.v1.expand.derive`:
 
 ---
 
-## 6) Why `orca_swap_quote` Exists
+## 7) Why `orca_swap_quote` Exists
 
 For Whirlpool swap, you still need runtime values that are not directly user inputs:
 - `tick_array_0/1/2`
 - `sqrt_price_limit`
 - `other_amount_threshold`
 
-The resolver computes these deterministically via chain state + simulation.
+The compute step derives these deterministically via chain state + simulation.
 
 ---
 
-## 7) Macro System (v0.2)
+## 8) Macro System (v0.2)
 
 In Meta IDL v0.2:
 - `macros.<name>.expand` stores reusable action fragments.
@@ -134,7 +144,7 @@ In Meta IDL v0.2:
 
 Current action:
 - `actions.swap_exact_in` only defines input shape + macro call.
-- Full derive/args/accounts are in macro `orca.swap_exact_in.v1`.
+- Full derive/compute/args/accounts are in macro `orca.swap_exact_in.v1`.
 
 Benefits:
 - Less duplication
@@ -143,11 +153,11 @@ Benefits:
 
 ---
 
-## 8) Common Questions
+## 9) Common Questions
 
 ### Is this code or declarative?
 - Meta IDL itself is declarative JSON.
-- Runtime has code, but executes only known resolver primitives.
+- Runtime has code, but executes only known resolver/compute primitives.
 - Macro is template expansion, not arbitrary script execution.
 
 ### Why not derive everything in parallel?
@@ -161,7 +171,7 @@ Benefits:
 
 ---
 
-## 9) Practical Debug Checklist
+## 10) Practical Debug Checklist
 
 If `/quote` or `/swap` fails:
 
@@ -174,10 +184,9 @@ If `/quote` or `/swap` fails:
 
 ---
 
-## 10) Recommended Next Improvements
+## 11) Recommended Next Improvements
 
 1. Add `/meta-plan <action>` for human-readable expanded steps.
 2. Add `/meta-expand <action>` for compiled action JSON.
 3. Add meta linter (unknown refs, missing required fields, unused derives).
 4. Add fixture tests for intent -> derived args/accounts determinism.
-
