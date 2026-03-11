@@ -62,7 +62,7 @@ type ActionSpec = {
   args?: Record<string, unknown>;
   accounts?: Record<string, unknown>;
   post?: PostInstructionSpec[];
-  use?: MacroUseSpec[];
+  use?: TemplateUseSpec[];
 };
 
 type MaterializedActionSpec = {
@@ -75,7 +75,7 @@ type MaterializedActionSpec = {
   post?: PostInstructionSpec[];
 };
 
-type MacroParamSpec =
+type TemplateParamSpec =
   | string
   | {
       type?: string;
@@ -83,13 +83,15 @@ type MacroParamSpec =
       default?: unknown;
     };
 
-type MacroSpec = {
-  params?: Record<string, MacroParamSpec>;
+type TemplateSpec = {
+  params?: Record<string, TemplateParamSpec>;
   expand: Omit<ActionSpec, 'use'>;
 };
 
-type MacroUseSpec = {
-  macro: string;
+type TemplateUseSpec = {
+  template?: string;
+  // Backward compatibility with old schema/metadata.
+  macro?: string;
   with?: Record<string, unknown>;
 };
 
@@ -117,7 +119,9 @@ type MetaIdlSpec = {
   version: string;
   protocolId: string;
   sources?: Record<string, LookupSourceSpec>;
-  macros?: Record<string, MacroSpec>;
+  templates?: Record<string, TemplateSpec>;
+  // Backward compatibility with old schema/metadata.
+  macros?: Record<string, TemplateSpec>;
   actions: Record<string, ActionSpec>;
 };
 
@@ -400,20 +404,20 @@ function cloneJsonLike<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function resolveMacroTemplateValue(value: unknown, paramScope: Record<string, unknown>): unknown {
+function resolveTemplateExpansionValue(value: unknown, paramScope: Record<string, unknown>): unknown {
   if (typeof value === 'string' && value.startsWith('$param.')) {
     return resolvePath(paramScope, value);
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => resolveMacroTemplateValue(item, paramScope));
+    return value.map((item) => resolveTemplateExpansionValue(item, paramScope));
   }
 
   if (value && typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
         key,
-        resolveMacroTemplateValue(nested, paramScope),
+        resolveTemplateExpansionValue(nested, paramScope),
       ]),
     );
   }
@@ -421,15 +425,15 @@ function resolveMacroTemplateValue(value: unknown, paramScope: Record<string, un
   return value;
 }
 
-function resolveMacroParams(macroName: string, macro: MacroSpec, use: MacroUseSpec): Record<string, unknown> {
+function resolveTemplateParams(templateName: string, template: TemplateSpec, use: TemplateUseSpec): Record<string, unknown> {
   const provided = use.with ?? {};
-  if (macro.params && typeof macro.params !== 'object') {
-    throw new Error(`Macro ${macroName} params must be an object.`);
+  if (template.params && typeof template.params !== 'object') {
+    throw new Error(`Template ${templateName} params must be an object.`);
   }
 
   const resolved: Record<string, unknown> = {};
-  if (macro.params) {
-    for (const [name, rawSpec] of Object.entries(macro.params)) {
+  if (template.params) {
+    for (const [name, rawSpec] of Object.entries(template.params)) {
       const spec = typeof rawSpec === 'string' ? { type: rawSpec } : rawSpec;
       if (provided[name] !== undefined) {
         resolved[name] = provided[name];
@@ -440,13 +444,13 @@ function resolveMacroParams(macroName: string, macro: MacroSpec, use: MacroUseSp
         continue;
       }
       if (spec.required !== false) {
-        throw new Error(`Macro ${macroName} missing required param ${name}.`);
+        throw new Error(`Template ${templateName} missing required param ${name}.`);
       }
     }
 
     for (const key of Object.keys(provided)) {
-      if (!(key in macro.params)) {
-        throw new Error(`Macro ${macroName} received unknown param ${key}.`);
+      if (!(key in template.params)) {
+        throw new Error(`Template ${templateName} received unknown param ${key}.`);
       }
     }
   } else {
@@ -512,18 +516,21 @@ function materializeAction(actionId: string, action: ActionSpec, meta: MetaIdlSp
   };
 
   for (const use of action.use ?? []) {
-    if (!use.macro) {
-      throw new Error(`Action ${actionId} contains macro use without macro name.`);
+    const templateName = use.template ?? use.macro;
+    if (!templateName) {
+      throw new Error(`Action ${actionId} contains use item without template name.`);
     }
 
-    const macro = meta.macros?.[use.macro];
-    if (!macro) {
-      throw new Error(`Action ${actionId} references unknown macro ${use.macro}.`);
+    const template = meta.templates?.[templateName] ?? meta.macros?.[templateName];
+    if (!template) {
+      throw new Error(`Action ${actionId} references unknown template ${templateName}.`);
     }
 
-    const params = resolveMacroParams(use.macro, macro, use);
-    const expanded = resolveMacroTemplateValue(cloneJsonLike(macro.expand), { param: params }) as Omit<ActionSpec, 'use'>;
-    mergeActionFragment(materialized, expanded, `macro ${use.macro}`);
+    const params = resolveTemplateParams(templateName, template, use);
+    const expanded = resolveTemplateExpansionValue(cloneJsonLike(template.expand), {
+      param: params,
+    }) as Omit<ActionSpec, 'use'>;
+    mergeActionFragment(materialized, expanded, `template ${templateName}`);
   }
 
   const actionDirectFragment = cloneJsonLike({
@@ -538,11 +545,11 @@ function materializeAction(actionId: string, action: ActionSpec, meta: MetaIdlSp
   mergeActionFragment(materialized, actionDirectFragment, `action ${actionId}`);
 
   if (!materialized.instruction) {
-    throw new Error(`Action ${actionId} has no instruction after macro expansion.`);
+    throw new Error(`Action ${actionId} has no instruction after template expansion.`);
   }
 
   if (!materialized.accounts || Object.keys(materialized.accounts).length === 0) {
-    throw new Error(`Action ${actionId} has no accounts mapping after macro expansion.`);
+    throw new Error(`Action ${actionId} has no accounts mapping after template expansion.`);
   }
 
   return materialized;

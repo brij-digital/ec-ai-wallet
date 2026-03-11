@@ -76,9 +76,9 @@ Meta IDL v0.3 compute primitives currently implemented in runtime:
 - `list.range_map`
 - `pda(seed_spec)`
 
-Meta IDL v0.3 supports macro expansion:
-- `macros.<name>.expand` defines reusable declarative blocks.
-- `actions.<action>.use[]` applies macros with parameter mapping via `$param.*`.
+Meta IDL v0.3 supports template expansion:
+- `templates.<name>.expand` defines reusable declarative blocks.
+- `actions.<action>.use[]` applies templates with parameter mapping via `$param.*`.
 
 Meta IDL execution supports optional declarative `post` steps:
 - current built-in: `spl_token_close_account`

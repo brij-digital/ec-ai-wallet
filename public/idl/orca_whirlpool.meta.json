@@ -11,7 +11,7 @@
       "ttl_ms": 15000
     }
   },
-  "macros": {
+  "templates": {
     "orca.swap_exact_in.v1": {
       "params": {
         "token_in_mint": { "type": "pubkey" },
@@ -169,7 +169,7 @@
       },
       "use": [
         {
-          "macro": "orca.swap_exact_in.v1",
+          "template": "orca.swap_exact_in.v1",
           "with": {
             "token_in_mint": "$input.token_in_mint",
             "token_out_mint": "$input.token_out_mint",

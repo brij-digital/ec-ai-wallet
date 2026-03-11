@@ -31,7 +31,7 @@ In this MVP:
 ### Core objects
 - **Intent**: high-level operation (`swap_exact_in`).
 - **Action**: protocol-specific implementation of that intent (`actions.swap_exact_in`).
-- **Macro**: reusable declarative template (`macros.orca.swap_exact_in.v1`).
+- **Template**: reusable declarative action template (`templates.orca.swap_exact_in.v1`).
 - **Resolver**: one primitive data-derivation step in `derive[]`.
 - **Compute step**: one deterministic compute/evaluate step in `compute[]`.
 
@@ -52,7 +52,7 @@ In this MVP:
 
 ### Template variables
 - `$input.*`: action input values
-- `$param.*`: macro params
+- `$param.*`: template params
 - `$protocol.*`: protocol metadata from registry
 - `$<derive_step_name>.*`: outputs from previous derive steps
 
@@ -74,8 +74,8 @@ Example command:
 1. Loads protocol metadata from registry.
 2. Loads Meta IDL (`orca_whirlpool.meta.json`).
 3. Materializes action `swap_exact_in`:
-   - applies `use` macro
-   - expands macro with `$param.*`
+   - applies `use` template
+   - expands template with `$param.*`
 4. Hydrates missing input defaults (e.g., `slippage_bps: 50`).
 5. Executes `derive[]` resolvers (data only) in order.
 6. Executes `compute[]` steps in order.
@@ -85,7 +85,7 @@ Example command:
    - `accounts`
    - optional `postInstructions`
 
-For current Orca macro:
+For current Orca template:
 - `instructionName = swap_v2`
 - `remaining_accounts_info = null` (no supplemental arrays in this MVP)
 
@@ -97,9 +97,9 @@ Both use the **same derived plan**; only execution mode differs.
 
 ---
 
-## 5) What Each Derive Step Does (Orca macro)
+## 5) What Each Derive Step Does (Orca template)
 
-From `macros.orca.swap_exact_in.v1.expand.derive`:
+From `templates.orca.swap_exact_in.v1.expand.derive`:
 
 1. `wallet` (`wallet_pubkey`)
 - Output: connected wallet pubkey.
@@ -120,7 +120,7 @@ From `macros.orca.swap_exact_in.v1.expand.derive`:
 - Derives Orca oracle PDA with seeds.
 
 6. Tick arrays
-- In current v0.3 macro, tick arrays are derived declaratively in `compute[]`:
+- In current v0.3 template, tick arrays are derived declaratively in `compute[]`:
   - `ticks_per_array = tick_spacing * 88`
   - `direction_step = ticks_per_array * tickArrayDirection`
   - `current_start_index = floor_div(tick_current_index, ticks_per_array) * ticks_per_array`
@@ -149,19 +149,19 @@ Simulation gives a protocol-agnostic output estimate and lets the app compute sl
 
 ---
 
-## 8) Macro System (v0.3)
+## 8) Template System (v0.3)
 
 In Meta IDL v0.3:
-- `macros.<name>.expand` stores reusable action fragments.
-- `actions.<id>.use[]` applies those macros.
+- `templates.<name>.expand` stores reusable action fragments.
+- `actions.<id>.use[]` applies those templates.
 
 Current action:
-- `actions.swap_exact_in` only defines input shape + macro call.
-- Full derive/compute/args/accounts are in macro `orca.swap_exact_in.v1`.
+- `actions.swap_exact_in` only defines input shape + template call.
+- Full derive/compute/args/accounts are in template `orca.swap_exact_in.v1`.
 
 Benefits:
 - Less duplication
-- Easier protocol upgrades (new macro versions)
+- Easier protocol upgrades (new template versions)
 - Cleaner intent layer
 
 ---
@@ -171,7 +171,7 @@ Benefits:
 ### Is this code or declarative?
 - Meta IDL itself is declarative JSON.
 - Runtime has code, but executes only known resolver/compute primitives.
-- Macro is template expansion, not arbitrary script execution.
+- Template expansion is data expansion, not arbitrary script execution.
 
 ### Why not derive everything in parallel?
 - Some steps are parallelizable.
@@ -218,8 +218,8 @@ This is the exact flow for:
 ### B) Materialize action (`src/lib/metaIdlRuntime.ts`)
 
 1. Load action `swap_exact_in` from `actions`.
-2. Expand macro `orca.swap_exact_in.v1` from `macros`.
-3. Bind macro params:
+2. Expand template `orca.swap_exact_in.v1` from `templates`.
+3. Bind template params:
 - `$param.token_in_mint = $input.token_in_mint`
 - `$param.token_out_mint = $input.token_out_mint`
 - `$param.amount_in = $input.amount_in`
