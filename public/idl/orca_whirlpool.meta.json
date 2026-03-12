@@ -228,6 +228,11 @@
         "amount_in": { "type": "u64", "required": true },
         "slippage_bps": { "type": "u16", "required": false, "default": 50 },
         "pool_index": { "type": "u16", "required": false, "default": 0 },
+        "selected_whirlpool": {
+          "type": "pubkey",
+          "required": false,
+          "discover_from": "$selected_pool.whirlpool"
+        },
         "unwrap_sol_output": { "type": "bool", "required": false, "default": true }
       },
       "use": [

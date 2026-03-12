@@ -48,8 +48,8 @@ type PendingPoolSelection = {
 
 const HELP_TEXT = [
   'Commands:',
-  '/swap <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]',
-  '/quote <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]',
+  '/swap <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS] [POOL_INDEX]',
+  '/quote <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS] [POOL_INDEX]',
   '/write-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
   '/read-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
   '/idl-list',
@@ -61,10 +61,12 @@ const HELP_TEXT = [
   'Notes:',
   'AMOUNT is UI amount (e.g. 0.1 for SOL).',
   'Pool discovery is on-chain via Orca program account scan.',
+  'POOL_INDEX is optional and 1-based (1 = first discovered pool).',
   'If multiple pools match a pair, the app asks you to pick one.',
   '',
   'Examples:',
   '/quote SOL USDC 0.1 50',
+  '/quote SOL USDC 0.1 50 1',
   '/swap SOL USDC 0.1 50',
   '/meta-explain orca-whirlpool-mainnet swap_exact_in',
 ].join('\n');
@@ -107,6 +109,19 @@ function App() {
     return value;
   }
 
+  function asIntegerLikeString(value: unknown, label: string): string {
+    if (typeof value === 'string' && /^-?\d+$/.test(value)) {
+      return value;
+    }
+    if (typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value)) {
+      return String(value);
+    }
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+    throw new Error(`${label} must be an integer-like value.`);
+  }
+
   function asBoolean(value: unknown, label: string): boolean {
     if (typeof value !== 'boolean') {
       throw new Error(`${label} must be a boolean.`);
@@ -125,8 +140,8 @@ function App() {
         whirlpool: asString(candidate.whirlpool, `pool_candidates[${index}].whirlpool`),
         tokenMintA: asString(candidate.tokenMintA, `pool_candidates[${index}].tokenMintA`),
         tokenMintB: asString(candidate.tokenMintB, `pool_candidates[${index}].tokenMintB`),
-        tickSpacing: asString(candidate.tickSpacing, `pool_candidates[${index}].tickSpacing`),
-        liquidity: asString(candidate.liquidity, `pool_candidates[${index}].liquidity`),
+        tickSpacing: asIntegerLikeString(candidate.tickSpacing, `pool_candidates[${index}].tickSpacing`),
+        liquidity: asIntegerLikeString(candidate.liquidity, `pool_candidates[${index}].liquidity`),
       };
     });
   }
@@ -139,7 +154,9 @@ function App() {
     const formatRequired = (spec: Record<string, unknown>): string => {
       const required = spec.required === false ? 'optional' : 'required';
       const defaultText = spec.default !== undefined ? `, default=${JSON.stringify(spec.default)}` : '';
-      return `${required}${defaultText}`;
+      const discoverFromText =
+        typeof spec.discover_from === 'string' ? `, discover_from=${spec.discover_from}` : '';
+      return `${required}${defaultText}${discoverFromText}`;
     };
 
     const discoverLines = explanation.discover.map((step, index) => {
@@ -295,6 +312,7 @@ function App() {
       throw new Error('Connect wallet first to derive owner token accounts.');
     }
     const walletPublicKey = wallet.publicKey;
+    const effectivePoolIndex = options.poolIndex ?? options.value.poolIndex;
 
     const prepared = await prepareMetaInstruction({
       protocolId: ORCA_PROTOCOL_ID,
@@ -304,14 +322,14 @@ function App() {
         token_out_mint: options.value.outputMint,
         amount_in: options.value.amountAtomic,
         slippage_bps: options.value.slippageBps,
-        ...(options.poolIndex !== undefined ? { pool_index: options.poolIndex } : {}),
+        ...(effectivePoolIndex !== undefined ? { pool_index: effectivePoolIndex } : {}),
       },
       connection,
       walletPublicKey,
     });
 
     const poolCandidates = normalizePoolCandidates(prepared.derived.pool_candidates);
-    if (poolCandidates.length > 1 && options.poolIndex === undefined) {
+    if (poolCandidates.length > 1 && effectivePoolIndex === undefined) {
       setPendingPoolSelection({
         kind: options.kind,
         command: options.value,

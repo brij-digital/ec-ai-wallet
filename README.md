@@ -11,8 +11,8 @@ Current scope:
 ## Commands
 
 - `/help`
-- `/swap <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]`
-- `/quote <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]`
+- `/swap <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS] [POOL_INDEX]`
+- `/quote <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS] [POOL_INDEX]`
 - `/write-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>`
 - `/read-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>`
 - `/idl-list`
@@ -24,6 +24,7 @@ Examples:
 
 ```text
 /quote SOL USDC 0.1 50
+/quote SOL USDC 0.1 50 1
 /swap SOL USDC 0.1 50
 /meta-explain orca-whirlpool-mainnet swap_exact_in
 ```
@@ -83,6 +84,10 @@ Meta IDL v0.3 compute primitives currently implemented in runtime:
 Meta IDL v0.3 supports template expansion:
 - `templates.<name>.expand` defines reusable declarative blocks.
 - `operations.<operation>.use[]` applies templates with parameter mapping via `$param.*`.
+
+Meta inputs support discover-backed optionality:
+- `discover_from` can auto-fill a missing input from runtime scope.
+- Precedence is: user input -> default -> discover_from -> required-error.
 
 Meta IDL execution supports optional declarative `post` steps:
 - current built-in: `spl_token_close_account`

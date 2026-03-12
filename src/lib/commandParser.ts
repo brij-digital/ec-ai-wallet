@@ -9,6 +9,7 @@ export type SwapPrefillCommand = {
   inputMint: string;
   outputMint: string;
   slippageBps: number;
+  poolIndex?: number;
 };
 
 export type QuotePrefillCommand = {
@@ -20,6 +21,7 @@ export type QuotePrefillCommand = {
   inputMint: string;
   outputMint: string;
   slippageBps: number;
+  poolIndex?: number;
 };
 
 export type IdlSendCommand = {
@@ -148,11 +150,11 @@ function parseRawCommand(trimmed: string, commandName: '/write-raw' | '/read-raw
 }
 
 function parseMetaSwapArgs(args: string[], kind: 'swap' | 'quote'): SwapPrefillCommand | QuotePrefillCommand {
-  if (args.length < 3 || args.length > 4) {
-    throw new Error(`Usage: /${kind} <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> [SLIPPAGE_BPS]`);
+  if (args.length < 4 || args.length > 5) {
+    throw new Error(`Usage: /${kind} <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> <SLIPPAGE_BPS> [POOL_INDEX]`);
   }
 
-  const [inputRaw, outputRaw, amountUi, slippageRaw] = args;
+  const [inputRaw, outputRaw, amountUi, slippageRaw, poolIndexRaw] = args;
   const inputToken = resolveToken(inputRaw);
   const outputToken = resolveToken(outputRaw);
 
@@ -173,9 +175,18 @@ function parseMetaSwapArgs(args: string[], kind: 'swap' | 'quote'): SwapPrefillC
     throw new Error('Amount must be greater than zero.');
   }
 
-  const slippageBps = slippageRaw ? Number(slippageRaw) : 50;
+  const slippageBps = Number(slippageRaw);
   if (!Number.isInteger(slippageBps) || slippageBps < 1 || slippageBps > 5000) {
     throw new Error('SLIPPAGE_BPS must be an integer between 1 and 5000.');
+  }
+
+  let poolIndex: number | undefined;
+  if (poolIndexRaw !== undefined) {
+    const oneBased = Number(poolIndexRaw);
+    if (!Number.isInteger(oneBased) || oneBased < 1) {
+      throw new Error('POOL_INDEX must be an integer >= 1 (1 = first pool candidate).');
+    }
+    poolIndex = oneBased - 1;
   }
 
   const payload = {
@@ -187,6 +198,7 @@ function parseMetaSwapArgs(args: string[], kind: 'swap' | 'quote'): SwapPrefillC
     inputMint: inputToken.mint,
     outputMint: outputToken.mint,
     slippageBps,
+    ...(poolIndex !== undefined ? { poolIndex } : {}),
   };
 
   if (kind === 'swap') {

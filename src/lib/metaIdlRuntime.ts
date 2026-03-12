@@ -59,6 +59,7 @@ type ActionInputSpec = {
   type: string;
   required?: boolean;
   default?: unknown;
+  discover_from?: string;
 };
 
 type ActionSpec = {
@@ -882,6 +883,7 @@ export async function prepareMetaInstruction(options: {
   const operation = materializeOperation(options.operationId, operationSpec, meta);
 
   const hydratedInput: Record<string, unknown> = {};
+  const discoverableInputs: Array<{ key: string; spec: ActionInputSpec }> = [];
   for (const [key, spec] of Object.entries(operation.inputs ?? {})) {
     if (options.input[key] !== undefined) {
       hydratedInput[key] = options.input[key];
@@ -890,6 +892,11 @@ export async function prepareMetaInstruction(options: {
 
     if (spec.default !== undefined) {
       hydratedInput[key] = spec.default;
+      continue;
+    }
+
+    if (spec.discover_from !== undefined) {
+      discoverableInputs.push({ key, spec });
       continue;
     }
 
@@ -951,6 +958,23 @@ export async function prepareMetaInstruction(options: {
     const value = await runComputeStep(step, resolverCtx);
     derived[step.name] = value;
     scope[step.name] = value;
+  }
+
+  for (const { key, spec } of discoverableInputs) {
+    if (hydratedInput[key] !== undefined) {
+      continue;
+    }
+
+    try {
+      hydratedInput[key] = normalizeRuntimeValue(resolvePath(scope, spec.discover_from!));
+      scope.input = hydratedInput;
+      scope[key] = hydratedInput[key];
+    } catch (error) {
+      if (spec.required !== false) {
+        const reason = error instanceof Error ? error.message : String(error);
+        throw new Error(`Missing required meta input: ${key} (discover_from ${spec.discover_from} failed: ${reason})`);
+      }
+    }
   }
 
   const resolvedArgs = normalizeRuntimeValue(resolveTemplateValue(operation.args ?? {}, scope));

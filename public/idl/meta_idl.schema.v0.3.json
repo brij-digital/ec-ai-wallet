@@ -80,7 +80,8 @@
       "properties": {
         "type": { "type": "string" },
         "required": { "type": "boolean" },
-        "default": {}
+        "default": {},
+        "discover_from": { "type": "string" }
       },
       "additionalProperties": false
     },

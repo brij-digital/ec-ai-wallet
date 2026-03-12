@@ -10,7 +10,7 @@ This document reflects the current implementation in this repo.
 
 Current protocol/operation:
 - Protocol: Orca Whirlpools mainnet
-- User commands: `/quote`, `/swap`
+- User commands: `/quote`, `/swap` (both support optional `[POOL_INDEX]`)
 - Operation: `swap_exact_in` -> instruction `swap_v2`
 
 ## 2) Key Files
@@ -28,7 +28,8 @@ Operation pipeline phases:
 1. `discover[]`
 2. `derive[]`
 3. `compute[]`
-4. Build IDL instruction
+4. Fill optional inputs declared with `discover_from` (if missing)
+5. Build IDL instruction
 5. Simulate (`/quote`) or send (`/swap`)
 
 Current discover steps used by Orca operation:
@@ -143,3 +144,16 @@ Current split is:
 - Protocol specifics in Meta IDL data (`discover.query` + derive/compute config)
 
 To scale, keep adding generic discover/compute primitives and keep protocol files data-only.
+
+## 11) Optional Inputs via Discovery
+
+Meta input specs can use:
+- `discover_from: "$path.to.value"`
+
+Resolution precedence is:
+1. user input
+2. input default
+3. `discover_from`
+4. required error
+
+This keeps one command surface while letting operations fill additional values deterministically from discovered state.
