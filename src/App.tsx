@@ -34,12 +34,8 @@ type Message = {
 
 type OrcaPoolCandidate = {
   whirlpool: string;
-  tokenInMint: string;
-  tokenOutMint: string;
   tokenMintA: string;
   tokenMintB: string;
-  aToB: boolean;
-  tickArrayDirection: number;
   tickSpacing: string;
   liquidity: string;
 };
@@ -118,19 +114,6 @@ function App() {
     return value;
   }
 
-  function asSafeNumber(value: unknown, label: string): number {
-    if (typeof value === 'number' && Number.isSafeInteger(value)) {
-      return value;
-    }
-    if (typeof value === 'string' && /^-?\d+$/.test(value)) {
-      const parsed = Number(value);
-      if (Number.isSafeInteger(parsed)) {
-        return parsed;
-      }
-    }
-    throw new Error(`${label} must be an integer.`);
-  }
-
   function normalizePoolCandidates(raw: unknown): OrcaPoolCandidate[] {
     if (!Array.isArray(raw)) {
       return [];
@@ -140,15 +123,8 @@ function App() {
       const candidate = asRecord(entry, `pool_candidates[${index}]`);
       return {
         whirlpool: asString(candidate.whirlpool, `pool_candidates[${index}].whirlpool`),
-        tokenInMint: asString(candidate.tokenInMint, `pool_candidates[${index}].tokenInMint`),
-        tokenOutMint: asString(candidate.tokenOutMint, `pool_candidates[${index}].tokenOutMint`),
         tokenMintA: asString(candidate.tokenMintA, `pool_candidates[${index}].tokenMintA`),
         tokenMintB: asString(candidate.tokenMintB, `pool_candidates[${index}].tokenMintB`),
-        aToB: asBoolean(candidate.aToB, `pool_candidates[${index}].aToB`),
-        tickArrayDirection: asSafeNumber(
-          candidate.tickArrayDirection,
-          `pool_candidates[${index}].tickArrayDirection`,
-        ),
         tickSpacing: asString(candidate.tickSpacing, `pool_candidates[${index}].tickSpacing`),
         liquidity: asString(candidate.liquidity, `pool_candidates[${index}].liquidity`),
       };
@@ -382,7 +358,7 @@ function App() {
     });
     const postInstructions = buildMetaPostInstructions(prepared.postInstructions);
 
-    const aToB = asBoolean(selectedPool.aToB, 'selected_pool.aToB');
+    const aToB = asBoolean(prepared.derived.a_to_b, 'a_to_b');
     const inputAta = aToB ? prepared.accounts.token_owner_account_a : prepared.accounts.token_owner_account_b;
     const outputAta = aToB ? prepared.accounts.token_owner_account_b : prepared.accounts.token_owner_account_a;
     let inputBalanceAtomic = '0';

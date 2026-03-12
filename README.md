@@ -48,7 +48,6 @@ Supported token aliases for `/swap` and `/quote`:
   - Detailed end-to-end walkthrough of current `/quote` and `/swap` flow
 - Registry: `public/idl/registry.json`
 - Discover registry: `src/lib/metaDiscoverRegistry.ts`
-- Orca discover adapter: `src/protocols/orca/discoverResolvers.ts`
 - Compute registry (plugin dispatch): `src/lib/metaComputeRegistry.ts`
 - Shared SDK coercion helpers: `src/lib/sdk/coerce.ts`
 - Shared runtime value normalizer: `src/lib/sdk/runtimeValue.ts`
@@ -69,7 +68,7 @@ Meta IDL v0.3 discover primitives currently implemented in runtime:
 - `discover.mock` (generic)
 - `discover.query_http_json` (generic)
 - `discover.compare_values` (generic)
-- `discover.orca_whirlpool_pools_for_pair` (on-chain Orca pool discovery)
+- `discover.query` (generic on-chain RPC discovery)
 - `discover.pick_list_item`
 
 Meta IDL v0.3 compute primitives currently implemented in runtime:
@@ -78,6 +77,8 @@ Meta IDL v0.3 compute primitives currently implemented in runtime:
 - `math.floor_div`
 - `list.range_map`
 - `pda(seed_spec)`
+- `compare.equals`
+- `logic.if`
 
 Meta IDL v0.3 supports template expansion:
 - `templates.<name>.expand` defines reusable declarative blocks.
@@ -107,6 +108,6 @@ npm run build
 - The app targets `mainnet-beta` by default.
 - Swap execution requires a connected Phantom wallet.
 - `/swap` and `/quote` are strict declarative wrappers: discover + derive gather on-chain state, then app uses RPC simulation to estimate output and compute slippage threshold before send.
-- Pool discovery currently uses `getProgramAccounts` on Orca with account discriminator filtering and local decode/filter by mint pair.
+- Pool discovery uses declarative `discover.query` with on-chain `getProgramAccounts` filters plus deterministic decode/filter/sort/select.
 - Meta execution pipeline is split into phases: `discover` (pool discovery + selection) -> `derive` (on-chain/account gather) -> `compute` (deterministic pure transforms) -> IDL build -> `simulate` or `send`.
 - SOL output is auto-unwrapped by default via declarative meta `post` step (`spl_token_close_account`).

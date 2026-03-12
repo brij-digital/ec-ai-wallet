@@ -844,8 +844,12 @@ async function runComputeStep(step: ComputeStep, ctx: ResolverContext): Promise<
 }
 
 async function runDiscoverStep(step: DiscoverStep, ctx: ResolverContext): Promise<unknown> {
-  const resolvedStep = asRecord(normalizeRuntimeValue(resolveTemplateValue(step, ctx.scope)), `discover:${step.name}`);
-  const discover = asString(resolvedStep.discover, `discover:${step.name}:discover`);
+  const rawStep = asRecord(normalizeRuntimeValue(step), `discover:${step.name}`);
+  const discover = asString(rawStep.discover, `discover:${step.name}:discover`);
+  const resolvedStep =
+    discover === 'discover.query'
+      ? rawStep
+      : asRecord(normalizeRuntimeValue(resolveTemplateValue(step, ctx.scope)), `discover:${step.name}`);
   return runRegisteredDiscoverStep(
     {
       ...resolvedStep,

@@ -16,11 +16,62 @@
         "discover": [
           {
             "name": "pool_candidates",
-            "discover": "discover.orca_whirlpool_pools_for_pair",
-            "token_in_mint": "$param.token_in_mint",
-            "token_out_mint": "$param.token_out_mint",
+            "discover": "discover.query",
+            "source": "rpc.getProgramAccounts",
+            "program_id": "$protocol.programId",
             "account_type": "Whirlpool",
-            "commitment": "confirmed"
+            "commitment": "confirmed",
+            "or_filters": [
+              [
+                {
+                  "memcmp": {
+                    "offset": 101,
+                    "bytesFrom": "$param.token_in_mint"
+                  }
+                },
+                {
+                  "memcmp": {
+                    "offset": 181,
+                    "bytesFrom": "$param.token_out_mint"
+                  }
+                }
+              ],
+              [
+                {
+                  "memcmp": {
+                    "offset": 101,
+                    "bytesFrom": "$param.token_out_mint"
+                  }
+                },
+                {
+                  "memcmp": {
+                    "offset": 181,
+                    "bytesFrom": "$param.token_in_mint"
+                  }
+                }
+              ]
+            ],
+            "where": [
+              {
+                "path": "decoded.liquidity",
+                "op": ">",
+                "value": "0"
+              }
+            ],
+            "sort": [
+              {
+                "path": "decoded.liquidity",
+                "dir": "desc"
+              }
+            ],
+            "limit": 20,
+            "select": {
+              "whirlpool": "$account.pubkey",
+              "tokenMintA": "$decoded.token_mint_a",
+              "tokenMintB": "$decoded.token_mint_b",
+              "tickSpacing": "$decoded.tick_spacing",
+              "liquidity": "$decoded.liquidity"
+            }
           },
           {
             "name": "selected_pool",
@@ -61,6 +112,19 @@
         ],
         "compute": [
           {
+            "name": "a_to_b",
+            "compute": "compare.equals",
+            "left": "$selected_pool.tokenMintA",
+            "right": "$input.token_in_mint"
+          },
+          {
+            "name": "tick_array_direction",
+            "compute": "logic.if",
+            "condition": "$a_to_b",
+            "then": -1,
+            "else": 1
+          },
+          {
             "name": "ticks_per_array",
             "compute": "math.mul",
             "values": ["$whirlpool_data.tick_spacing", 88]
@@ -68,7 +132,7 @@
           {
             "name": "direction_step",
             "compute": "math.mul",
-            "values": ["$ticks_per_array", "$selected_pool.tickArrayDirection"]
+            "values": ["$ticks_per_array", "$tick_array_direction"]
           },
           {
             "name": "current_array_index",
@@ -105,7 +169,7 @@
           "other_amount_threshold": "1",
           "sqrt_price_limit": "0",
           "amount_specified_is_input": true,
-          "a_to_b": "$selected_pool.aToB",
+          "a_to_b": "$a_to_b",
           "remaining_accounts_info": null
         },
         "accounts": {
@@ -134,8 +198,8 @@
             "when": {
               "all": [
                 { "equals": ["$input.unwrap_sol_output", true] },
-                { "equals": ["$selected_pool.aToB", false] },
-                { "equals": ["$selected_pool.tokenOutMint", "So11111111111111111111111111111111111111112"] }
+                { "equals": ["$a_to_b", false] },
+                { "equals": ["$input.token_out_mint", "So11111111111111111111111111111111111111112"] }
               ]
             }
           },
@@ -147,8 +211,8 @@
             "when": {
               "all": [
                 { "equals": ["$input.unwrap_sol_output", true] },
-                { "equals": ["$selected_pool.aToB", true] },
-                { "equals": ["$selected_pool.tokenOutMint", "So11111111111111111111111111111111111111112"] }
+                { "equals": ["$a_to_b", true] },
+                { "equals": ["$input.token_out_mint", "So11111111111111111111111111111111111111112"] }
               ]
             }
           }

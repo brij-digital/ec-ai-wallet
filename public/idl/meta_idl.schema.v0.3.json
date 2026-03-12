@@ -247,6 +247,29 @@
             }
           },
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["name", "compute", "left", "right"],
+          "properties": {
+            "name": { "type": "string" },
+            "compute": { "const": "compare.equals" },
+            "left": {},
+            "right": {}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["name", "compute", "condition", "then", "else"],
+          "properties": {
+            "name": { "type": "string" },
+            "compute": { "const": "logic.if" },
+            "condition": {},
+            "then": {},
+            "else": {}
+          },
+          "additionalProperties": false
         }
       ]
     },
@@ -297,15 +320,35 @@
         },
         {
           "type": "object",
-          "required": ["name", "discover", "token_in_mint", "token_out_mint"],
+          "required": ["name", "discover", "source"],
           "properties": {
             "name": { "type": "string" },
-            "discover": { "const": "discover.orca_whirlpool_pools_for_pair" },
+            "discover": { "const": "discover.query" },
+            "source": { "const": "rpc.getProgramAccounts" },
             "program_id": {},
             "account_type": { "type": "string" },
             "commitment": { "enum": ["processed", "confirmed", "finalized"] },
-            "token_in_mint": {},
-            "token_out_mint": {}
+            "filters": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/programAccountFilter" }
+            },
+            "or_filters": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/programAccountFilter" }
+              }
+            },
+            "where": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/queryWhereClause" }
+            },
+            "sort": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/querySortClause" }
+            },
+            "limit": { "type": "integer", "minimum": 0 },
+            "select": {}
           },
           "additionalProperties": false
         },
@@ -321,6 +364,64 @@
           "additionalProperties": false
         }
       ]
+    },
+    "programAccountFilter": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["memcmp"],
+          "properties": {
+            "memcmp": {
+              "type": "object",
+              "required": ["offset"],
+              "properties": {
+                "offset": { "type": "integer", "minimum": 0 },
+                "bytes": {},
+                "bytesFrom": {}
+              },
+              "additionalProperties": false,
+              "oneOf": [
+                { "required": ["bytes"] },
+                { "required": ["bytesFrom"] }
+              ],
+              "not": {
+                "allOf": [
+                  { "required": ["bytes"] },
+                  { "required": ["bytesFrom"] }
+                ]
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["dataSize"],
+          "properties": {
+            "dataSize": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "queryWhereClause": {
+      "type": "object",
+      "required": ["path", "value"],
+      "properties": {
+        "path": { "type": "string" },
+        "op": { "enum": ["==", "=", "!=", ">", ">=", "<", "<="] },
+        "value": {}
+      },
+      "additionalProperties": false
+    },
+    "querySortClause": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string" },
+        "dir": { "enum": ["asc", "desc"] }
+      },
+      "additionalProperties": false
     },
     "metaCondition": {
       "oneOf": [

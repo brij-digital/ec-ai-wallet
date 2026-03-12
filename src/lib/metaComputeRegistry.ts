@@ -50,6 +50,25 @@ function asArray(value: unknown, label: string): unknown[] {
   return value;
 }
 
+function normalizeComparable(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeComparable);
+  }
+
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, nested]) => [key, normalizeComparable(nested)] as const);
+    return Object.fromEntries(entries);
+  }
+
+  return value;
+}
+
+function valuesEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(normalizeComparable(left)) === JSON.stringify(normalizeComparable(right));
+}
+
 function asInteger(value: unknown, label: string): number {
   if (typeof value === 'number' && Number.isSafeInteger(value)) {
     return value;
@@ -197,12 +216,26 @@ async function runPdaSeedSpec(step: ComputeStepResolved, ctx: ComputeRuntimeCont
   });
 }
 
+async function runCompareEquals(step: ComputeStepResolved): Promise<boolean> {
+  return valuesEqual(step.left, step.right);
+}
+
+async function runLogicIf(step: ComputeStepResolved): Promise<unknown> {
+  const condition = step.condition;
+  if (typeof condition !== 'boolean') {
+    throw new Error(`compute:${step.name}:condition must be boolean.`);
+  }
+  return condition ? step.then : step.else;
+}
+
 const COMPUTE_EXECUTORS: Record<string, ComputeExecutor> = {
   'math.add': runMathAdd,
   'math.mul': runMathMul,
   'math.floor_div': runMathFloorDiv,
   'list.range_map': runListRangeMap,
   'pda(seed_spec)': runPdaSeedSpec,
+  'compare.equals': runCompareEquals,
+  'logic.if': runLogicIf,
 };
 
 export async function runRegisteredComputeStep(step: ComputeStepResolved, ctx: ComputeRuntimeContext): Promise<unknown> {

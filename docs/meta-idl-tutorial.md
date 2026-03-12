@@ -17,7 +17,6 @@ Current protocol/operation:
 
 - Meta runtime: `src/lib/metaIdlRuntime.ts`
 - Discover runtime (generic): `src/lib/metaDiscoverRegistry.ts`
-- Orca discover adapter (protocol-specific): `src/protocols/orca/discoverResolvers.ts`
 - Compute runtime: `src/lib/metaComputeRegistry.ts`
 - App command flow: `src/App.tsx`
 - Meta spec: `public/idl/orca_whirlpool.meta.json`
@@ -33,7 +32,7 @@ Operation pipeline phases:
 5. Simulate (`/quote`) or send (`/swap`)
 
 Current discover steps used by Orca operation:
-- `discover.orca_whirlpool_pools_for_pair`
+- `discover.query`
 - `discover.pick_list_item`
 
 Current derive steps used by Orca operation:
@@ -47,18 +46,20 @@ Current compute steps used by Orca operation:
 - `math.floor_div`
 - `list.range_map`
 - `pda(seed_spec)`
+- `compare.equals`
+- `logic.if`
 
 ## 4) What `discover[]` Does Now
 
 In `templates.orca.swap_exact_in.v1.expand.discover`:
 
-1. `pool_candidates` (`discover.orca_whirlpool_pools_for_pair`)
+1. `pool_candidates` (`discover.query`)
 - Runs on-chain discovery via RPC `getProgramAccounts` against Orca program.
-- Filters by Whirlpool account discriminator at RPC level.
-- Decodes accounts and keeps only pair matches `(token_in_mint, token_out_mint)` (order-insensitive).
-- Produces normalized candidates with:
-  - `whirlpool`, `tokenMintA`, `tokenMintB`, `aToB`, `tickArrayDirection`, `tickSpacing`, `liquidity`.
-- Sort order: liquidity desc, then pubkey asc.
+- Uses declarative OR memcmp filters for `(mintA,mintB)` and `(mintB,mintA)`.
+- Auto-adds account discriminator filter from IDL `account_type`.
+- Decodes Whirlpool accounts, applies declarative `where/sort/limit/select`.
+- Produces candidates with:
+  - `whirlpool`, `tokenMintA`, `tokenMintB`, `tickSpacing`, `liquidity`.
 
 2. `selected_pool` (`discover.pick_list_item`)
 - Picks `pool_candidates[input.pool_index]`.
@@ -89,8 +90,10 @@ Derive:
 - `oracle` PDA
 
 Compute tick arrays:
+- `a_to_b = compare.equals(selected_pool.tokenMintA, input.token_in_mint)`
+- `tick_array_direction = logic.if(a_to_b, -1, 1)`
 - `ticks_per_array = tick_spacing * 88`
-- `direction_step = ticks_per_array * tickArrayDirection`
+- `direction_step = ticks_per_array * tick_array_direction`
 - `current_array_index = floor_div(tick_current_index, ticks_per_array)`
 - `current_start_index = current_array_index * ticks_per_array`
 - `tick_array_starts = range_map(current_start_index, direction_step, 3)`
@@ -100,7 +103,7 @@ Build args/accounts:
 - `amount = input.amount_in`
 - `other_amount_threshold = "1"` provisional
 - `sqrt_price_limit = "0"`
-- `a_to_b = selected_pool.aToB`
+- `a_to_b = a_to_b`
 - accounts wired from derive/compute outputs
 
 ## 7) Quote vs Swap
@@ -119,7 +122,7 @@ Both paths share the same prepared plan.
 
 ## 8) Why It Feels Slow
 
-Pool discovery currently scans Orca program accounts (with discriminator filter), then decodes/filter locally. This is trust-minimized and cacheless, but slower than using an index.
+Pool discovery runs on-chain via `getProgramAccounts`. It is trust-minimized and cacheless, but slower than using an index.
 
 ## 9) Debug Checklist
 
@@ -137,6 +140,6 @@ If `/quote` or `/swap` fails:
 
 Current split is:
 - Generic runtime in `metaDiscoverRegistry`
-- Protocol logic in `src/protocols/orca/discoverResolvers.ts`
+- Protocol specifics in Meta IDL data (`discover.query` + derive/compute config)
 
-To scale, add a protocol adapter registry so each protocol registers discover/compute extensions explicitly by namespace/version.
+To scale, keep adding generic discover/compute primitives and keep protocol files data-only.
