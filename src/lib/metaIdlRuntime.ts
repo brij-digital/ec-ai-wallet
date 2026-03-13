@@ -73,6 +73,7 @@ type ActionSpec = {
   compute?: ComputeStep[];
   args?: Record<string, unknown>;
   accounts?: Record<string, unknown>;
+  remaining_accounts?: Array<Record<string, unknown>>;
   post?: PostInstructionSpec[];
   use?: TemplateUseSpec[];
 };
@@ -85,6 +86,7 @@ type MaterializedActionSpec = {
   compute: ComputeStep[];
   args: Record<string, unknown>;
   accounts: Record<string, unknown>;
+  remainingAccounts: Array<Record<string, unknown>>;
   post?: PostInstructionSpec[];
 };
 
@@ -162,6 +164,7 @@ type PreparedMetaInstruction = {
   instructionName: string;
   args: Record<string, unknown>;
   accounts: Record<string, string>;
+  remainingAccounts: Array<{ pubkey: string; isSigner: boolean; isWritable: boolean }>;
   derived: Record<string, unknown>;
   postInstructions: PreparedPostInstruction[];
 };
@@ -172,6 +175,7 @@ type PreparedMetaOperation = {
   instructionName: string | null;
   args: Record<string, unknown>;
   accounts: Record<string, string>;
+  remainingAccounts: Array<{ pubkey: string; isSigner: boolean; isWritable: boolean }>;
   derived: Record<string, unknown>;
   postInstructions: PreparedPostInstruction[];
 };
@@ -197,6 +201,7 @@ export type MetaOperationExplain = {
   compute: Array<Record<string, unknown>>;
   args: Record<string, unknown>;
   accounts: Record<string, unknown>;
+  remainingAccounts: Array<Record<string, unknown>>;
   post: Array<Record<string, unknown>>;
 };
 
@@ -339,6 +344,29 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
   }
 
   return value as Record<string, unknown>;
+}
+
+function assertRemainingAccounts(
+  value: unknown,
+  label: string,
+): Array<{ pubkey: string; isSigner: boolean; isWritable: boolean }> {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} must resolve to an array.`);
+  }
+
+  return value.map((entry, index) => {
+    const item = asRecord(entry, `${label}[${index}]`);
+    const pubkey = normalizeRuntimeValue(item.pubkey);
+    if (typeof pubkey !== 'string') {
+      throw new Error(`${label}[${index}].pubkey must resolve to string.`);
+    }
+
+    return {
+      pubkey,
+      isSigner: Boolean(item.isSigner),
+      isWritable: Boolean(item.isWritable),
+    };
+  });
 }
 
 function resolveWhereFilter(where: unknown, scope: Record<string, unknown>, label: string): Record<string, unknown> {
@@ -555,6 +583,10 @@ function mergeActionFragment(target: MaterializedActionSpec, fragment: Omit<Acti
     };
   }
 
+  if (fragment.remaining_accounts && fragment.remaining_accounts.length > 0) {
+    target.remainingAccounts.push(...cloneJsonLike(fragment.remaining_accounts));
+  }
+
   if (fragment.post && fragment.post.length > 0) {
     target.post = [...(target.post ?? []), ...cloneJsonLike(fragment.post)];
   }
@@ -569,6 +601,7 @@ function materializeOperation(operationId: string, operation: ActionSpec, meta: 
     compute: [],
     args: {},
     accounts: {},
+    remainingAccounts: [],
     post: [],
   };
 
@@ -598,6 +631,7 @@ function materializeOperation(operationId: string, operation: ActionSpec, meta: 
     compute: operation.compute,
     args: operation.args,
     accounts: operation.accounts,
+    remaining_accounts: operation.remaining_accounts,
     post: operation.post,
   });
   mergeActionFragment(materialized, actionDirectFragment, `operation ${operationId}`);
@@ -1004,6 +1038,9 @@ async function prepareMetaOperationInternal(options: {
 
   const resolvedArgs = normalizeRuntimeValue(resolveTemplateValue(operation.args ?? {}, scope));
   const resolvedAccounts = normalizeRuntimeValue(resolveTemplateValue(operation.accounts ?? {}, scope));
+  const resolvedRemainingAccounts = normalizeRuntimeValue(
+    resolveTemplateValue(operation.remainingAccounts ?? [], scope),
+  );
   const postInstructions = resolvePostInstructions(operation.post, scope);
 
   return {
@@ -1012,6 +1049,7 @@ async function prepareMetaOperationInternal(options: {
     instructionName: operation.instruction ? operation.instruction : null,
     args: resolvedArgs as Record<string, unknown>,
     accounts: assertStringRecord(resolvedAccounts, 'accounts'),
+    remainingAccounts: assertRemainingAccounts(resolvedRemainingAccounts, 'remaining_accounts'),
     derived,
     postInstructions,
   };
@@ -1047,6 +1085,7 @@ export async function prepareMetaInstruction(options: {
     instructionName: prepared.instructionName,
     args: prepared.args,
     accounts: prepared.accounts,
+    remainingAccounts: prepared.remainingAccounts,
     derived: prepared.derived,
     postInstructions: prepared.postInstructions,
   };
@@ -1073,6 +1112,7 @@ export async function explainMetaOperation(options: {
     compute: cloneJsonLike(materialized.compute),
     args: cloneJsonLike(materialized.args),
     accounts: cloneJsonLike(materialized.accounts),
+    remainingAccounts: cloneJsonLike(materialized.remainingAccounts),
     post: cloneJsonLike(materialized.post ?? []),
   };
 }

@@ -93,6 +93,7 @@
           "enum": [
             "wallet_pubkey",
             "decode_account",
+            "account_owner",
             "ata",
             "pda",
             "lookup",
@@ -122,6 +123,7 @@
           "enum": [
             "wallet_pubkey",
             "decode_account",
+            "account_owner",
             "ata",
             "pda",
             "lookup",
@@ -511,6 +513,16 @@
       },
       "additionalProperties": false
     },
+    "remainingAccountSpec": {
+      "type": "object",
+      "required": ["pubkey"],
+      "properties": {
+        "pubkey": {},
+        "isSigner": { "type": "boolean" },
+        "isWritable": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
     "templateParamSpec": {
       "oneOf": [
         { "type": "string" },
@@ -581,6 +593,10 @@
           "type": "object",
           "additionalProperties": {}
         },
+        "remaining_accounts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/remainingAccountSpec" }
+        },
         "post": {
           "type": "array",
           "items": { "$ref": "#/$defs/postStep" }
@@ -615,6 +631,10 @@
         "accounts": {
           "type": "object",
           "additionalProperties": {}
+        },
+        "remaining_accounts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/remainingAccountSpec" }
         },
         "post": {
           "type": "array",

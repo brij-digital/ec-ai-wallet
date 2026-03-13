@@ -80,6 +80,12 @@ type IdlTypeDef = {
   };
 };
 
+type RemainingAccountMetaInput = {
+  pubkey: string;
+  isSigner?: boolean;
+  isWritable?: boolean;
+};
+
 const idlCache = new Map<string, Idl>();
 const INTEGER_TYPES = new Set([
   'u8',
@@ -269,8 +275,32 @@ function normalizeValueByIdlType(idl: Idl, type: IdlTypeRef | unknown, value: un
           (field) => typeof field === 'object' && field !== null && 'name' in field && 'type' in field,
         );
         if (!hasNamedFields) {
-          // Tuple/unnamed-field structs are passed through so the Anchor coder can normalize them.
-          return value;
+          // Tuple/unnamed-field structs are represented as arrays in Anchor coder input.
+          // Convenience normalization: if a single field tuple receives a scalar, wrap it.
+          if (!Array.isArray(value) && fields.length === 1) {
+            const single = fields[0];
+            if (typeof single === 'string') {
+              return [normalizeValueByIdlType(idl, single, value)];
+            }
+            if (single && typeof single === 'object' && 'type' in single) {
+              return [normalizeValueByIdlType(idl, (single as { type: IdlTypeRef }).type, value)];
+            }
+          }
+
+          if (!Array.isArray(value)) {
+            return value;
+          }
+
+          return value.map((item, index) => {
+            const field = fields[index];
+            if (typeof field === 'string') {
+              return normalizeValueByIdlType(idl, field, item);
+            }
+            if (field && typeof field === 'object' && 'type' in field) {
+              return normalizeValueByIdlType(idl, (field as { type: IdlTypeRef }).type, item);
+            }
+            return item;
+          });
         }
 
         if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -391,6 +421,23 @@ function buildInstructionArgs(
   });
 
   return Object.fromEntries(normalized);
+}
+
+function buildRemainingAccountMetas(
+  remaining: RemainingAccountMetaInput[] | undefined,
+): AccountMeta[] {
+  if (!remaining || remaining.length === 0) {
+    return [];
+  }
+
+  return remaining.map((entry) => {
+    const pubkey = new PublicKey(entry.pubkey);
+    return {
+      pubkey,
+      isSigner: Boolean(entry.isSigner),
+      isWritable: Boolean(entry.isWritable),
+    } as AccountMeta;
+  });
 }
 
 function sampleValueForType(idl: Idl, type: IdlTypeRef | unknown): unknown {
@@ -573,6 +620,7 @@ async function prepareSignedIdlTransaction(options: {
   instructionName: string;
   args: Record<string, unknown>;
   accounts: Record<string, string>;
+  remainingAccounts?: RemainingAccountMetaInput[];
   preInstructions?: TransactionInstruction[];
   postInstructions?: TransactionInstruction[];
   connection: Connection;
@@ -600,10 +648,11 @@ async function prepareSignedIdlTransaction(options: {
     accountsInput: options.accounts,
     walletPublicKey: options.wallet.publicKey,
   });
+  const remainingMetas = buildRemainingAccountMetas(options.remainingAccounts);
 
   const txInstruction = new TransactionInstruction({
     programId: new PublicKey(protocol.programId),
-    keys: accountMetas,
+    keys: [...accountMetas, ...remainingMetas],
     data: encodedData,
   });
 
@@ -633,6 +682,7 @@ export async function sendIdlInstruction(options: {
   instructionName: string;
   args: Record<string, unknown>;
   accounts: Record<string, string>;
+  remainingAccounts?: RemainingAccountMetaInput[];
   preInstructions?: TransactionInstruction[];
   postInstructions?: TransactionInstruction[];
   connection: Connection;
@@ -676,6 +726,7 @@ export async function simulateIdlInstruction(options: {
   instructionName: string;
   args: Record<string, unknown>;
   accounts: Record<string, string>;
+  remainingAccounts?: RemainingAccountMetaInput[];
   preInstructions?: TransactionInstruction[];
   postInstructions?: TransactionInstruction[];
   includeAccounts?: string[];
@@ -718,6 +769,7 @@ export async function previewIdlInstruction(options: {
   instructionName: string;
   args: Record<string, unknown>;
   accounts: Record<string, string>;
+  remainingAccounts?: RemainingAccountMetaInput[];
   walletPublicKey: PublicKey;
 }): Promise<{
   protocolId: string;
@@ -743,13 +795,15 @@ export async function previewIdlInstruction(options: {
     accountsInput: options.accounts,
     walletPublicKey: options.walletPublicKey,
   });
+  const remainingMetas = buildRemainingAccountMetas(options.remainingAccounts);
+  const allMetas = [...accountMetas, ...remainingMetas];
 
   return {
     protocolId: options.protocolId,
     instructionName: instruction.name,
     programId: protocol.programId,
     dataBase64: toBase64(encodedData),
-    keys: accountMetas.map((meta) => ({
+    keys: allMetas.map((meta) => ({
       pubkey: meta.pubkey.toBase58(),
       isSigner: meta.isSigner,
       isWritable: meta.isWritable,

@@ -125,6 +125,14 @@
             "seeds": ["utf8:user_volume_accumulator", "$wallet"]
           },
           {
+            "name": "user_volume_accumulator_wsol_ata",
+            "resolver": "ata",
+            "owner": "$user_volume_accumulator",
+            "mint": "$pool_data.quote_mint",
+            "token_program": "$quote_token_program",
+            "allow_owner_off_curve": true
+          },
+          {
             "name": "event_authority",
             "resolver": "pda",
             "program_id": "$protocol.programId",
@@ -184,7 +192,14 @@
           "user_volume_accumulator": "$user_volume_accumulator",
           "fee_config": "$fee_config",
           "fee_program": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"
-        }
+        },
+        "remaining_accounts": [
+          {
+            "pubkey": "$user_volume_accumulator_wsol_ata",
+            "isSigner": false,
+            "isWritable": true
+          }
+        ]
       }
     }
   },
@@ -197,9 +212,9 @@
           "required": false,
           "default": "So11111111111111111111111111111111111111112"
         },
-        "base_amount_out": { "type": "u64", "required": false, "default": "1" },
+        "base_amount_out": { "type": "u64", "required": false, "discover_from": "$input.max_quote_amount_in" },
         "max_quote_amount_in": { "type": "u64", "required": true },
-        "track_volume": { "type": "bool", "required": false, "default": false },
+        "track_volume": { "type": "bool", "required": false, "default": true },
         "pool": { "type": "pubkey", "required": false },
         "slippage_bps": { "type": "u16", "required": true }
       },
