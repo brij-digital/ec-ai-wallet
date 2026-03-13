@@ -30,6 +30,12 @@
       "additionalProperties": {
         "$ref": "#/$defs/actionSpec"
       }
+    },
+    "user_forms": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/userFormSpec"
+      }
     }
   },
   "required": [
@@ -97,6 +103,24 @@
         },
         "default": {},
         "discover_from": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "userFormSpec": {
+      "type": "object",
+      "required": [
+        "operation"
+      ],
+      "properties": {
+        "operation": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
           "type": "string"
         }
       },

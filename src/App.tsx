@@ -30,14 +30,17 @@ import {
 } from './lib/idlDeclarativeRuntime';
 import {
   explainMetaOperation,
+  listMetaUserForms,
   listMetaOperations,
   prepareMetaOperation,
   prepareMetaInstruction,
   type MetaOperationExplain,
   type MetaOperationSummary,
+  type MetaUserFormSummary,
 } from './lib/metaIdlRuntime';
 
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
+const ORCA_LIST_POOLS_OPERATION_ID = 'list_pools';
 const ORCA_OPERATION_ID = 'swap_exact_in';
 const PUMP_AMM_PROTOCOL_ID = 'pump-amm-mainnet';
 const PUMP_AMM_OPERATION_ID = 'buy';
@@ -57,6 +60,10 @@ const QUICK_PREFILL_PUMP_CURVE_COMMAND =
 const QUICK_PREFILL_KAMINO_DEPOSIT_COMMAND =
   '/kamino-deposit 8J5NcJX4RScwC9hWfW2MtgQ8v4D6vQkYvA4K4GcCbn8J EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v 0.1 --simulate';
 const BUILDER_EXAMPLE_INPUTS: Record<string, Record<string, string>> = {
+  [`${ORCA_PROTOCOL_ID}/${ORCA_LIST_POOLS_OPERATION_ID}`]: {
+    token_in_mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    token_out_mint: 'So11111111111111111111111111111111111111112',
+  },
   [`${ORCA_PROTOCOL_ID}/${ORCA_OPERATION_ID}`]: {
     token_in_mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
     token_out_mint: 'So11111111111111111111111111111111111111112',
@@ -102,6 +109,8 @@ type BuilderProtocol = {
 };
 
 type BuilderViewMode = 'enduser' | 'geek';
+
+type BuilderUserForm = MetaUserFormSummary;
 
 type PendingPoolSelection = {
   command: OrcaCommand;
@@ -150,6 +159,7 @@ const HELP_TEXT = [
   '/kamino-withdraw <RESERVE_OR_VAULT> EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v 5 --simulate',
   '/kamino-view-position <RESERVE_OR_VAULT> EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
   '/meta-explain orca-whirlpool-mainnet swap_exact_in',
+  '/meta-explain orca-whirlpool-mainnet list_pools',
   '/meta-explain pump-amm-mainnet buy',
   '/meta-explain pump-core-mainnet buy_exact_sol_in',
   '/meta-explain kamino-klend-mainnet deposit_reserve_liquidity',
@@ -173,6 +183,8 @@ function App() {
   const [pendingPoolSelection, setPendingPoolSelection] = useState<PendingPoolSelection | null>(null);
   const [builderProtocols, setBuilderProtocols] = useState<BuilderProtocol[]>([]);
   const [builderProtocolId, setBuilderProtocolId] = useState('');
+  const [builderForms, setBuilderForms] = useState<BuilderUserForm[]>([]);
+  const [builderFormId, setBuilderFormId] = useState('');
   const [builderOperations, setBuilderOperations] = useState<MetaOperationSummary[]>([]);
   const [builderOperationId, setBuilderOperationId] = useState('');
   const [builderViewMode, setBuilderViewMode] = useState<BuilderViewMode>('enduser');
@@ -186,9 +198,17 @@ function App() {
     () => listSupportedTokens().map((token) => `${token.symbol} (${token.mint})`).join(', '),
     [],
   );
+  const selectedBuilderForm = useMemo(
+    () => builderForms.find((entry) => entry.formId === builderFormId) ?? null,
+    [builderForms, builderFormId],
+  );
+  const effectiveBuilderOperationId = useMemo(
+    () => (builderViewMode === 'enduser' ? selectedBuilderForm?.operationId ?? builderOperationId : builderOperationId),
+    [builderViewMode, selectedBuilderForm, builderOperationId],
+  );
   const selectedBuilderOperation = useMemo(
-    () => builderOperations.find((entry) => entry.operationId === builderOperationId) ?? null,
-    [builderOperations, builderOperationId],
+    () => builderOperations.find((entry) => entry.operationId === effectiveBuilderOperationId) ?? null,
+    [builderOperations, effectiveBuilderOperationId],
   );
   const visibleBuilderInputs = useMemo(() => {
     if (!selectedBuilderOperation) {
@@ -251,6 +271,8 @@ function App() {
 
   useEffect(() => {
     if (!builderProtocolId) {
+      setBuilderForms([]);
+      setBuilderFormId('');
       setBuilderOperations([]);
       setBuilderOperationId('');
       return;
@@ -258,15 +280,31 @@ function App() {
 
     let cancelled = false;
     void (async () => {
-      const operationsView = await listMetaOperations({
-        protocolId: builderProtocolId,
-      });
+      const [operationsView, formsView] = await Promise.all([
+        listMetaOperations({
+          protocolId: builderProtocolId,
+        }),
+        listMetaUserForms({
+          protocolId: builderProtocolId,
+        }),
+      ]);
       if (cancelled) {
         return;
       }
 
+      setBuilderForms(formsView.forms);
+      setBuilderFormId((current) => {
+        if (current && formsView.forms.some((entry) => entry.formId === current)) {
+          return current;
+        }
+        return formsView.forms[0]?.formId ?? '';
+      });
       setBuilderOperations(operationsView.operations);
       setBuilderOperationId((current) => {
+        const formOperationId = formsView.forms[0]?.operationId;
+        if (builderViewMode === 'enduser' && formOperationId) {
+          return formOperationId;
+        }
         if (current && operationsView.operations.some((entry) => entry.operationId === current)) {
           return current;
         }
@@ -274,9 +312,11 @@ function App() {
       });
     })().catch((error) => {
       if (!cancelled) {
-        const message = error instanceof Error ? error.message : 'Failed to load meta operations.';
+        const message = error instanceof Error ? error.message : 'Failed to load meta operations/forms.';
         setBuilderStatusText(`Error: ${message}`);
         setBuilderRawDetails(null);
+        setBuilderForms([]);
+        setBuilderFormId('');
         setBuilderOperations([]);
         setBuilderOperationId('');
       }
@@ -285,7 +325,26 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [builderProtocolId]);
+  }, [builderProtocolId, builderViewMode]);
+
+  useEffect(() => {
+    if (builderViewMode !== 'enduser') {
+      return;
+    }
+    if (!builderForms.length) {
+      return;
+    }
+    const selected = builderForms.find((entry) => entry.formId === builderFormId) ?? builderForms[0];
+    if (!selected) {
+      return;
+    }
+    if (builderFormId !== selected.formId) {
+      setBuilderFormId(selected.formId);
+    }
+    if (builderOperationId !== selected.operationId) {
+      setBuilderOperationId(selected.operationId);
+    }
+  }, [builderViewMode, builderForms, builderFormId, builderOperationId]);
 
   useEffect(() => {
     if (!selectedBuilderOperation) {
@@ -449,6 +508,19 @@ function App() {
     setBuilderShowRawDetails(false);
   }
 
+  function handleBuilderModeEndUser() {
+    setBuilderViewMode('enduser');
+    const firstForm = builderForms[0];
+    if (firstForm) {
+      setBuilderFormId(firstForm.formId);
+      setBuilderOperationId(firstForm.operationId);
+    }
+  }
+
+  function handleBuilderModeGeek() {
+    setBuilderViewMode('geek');
+  }
+
   function asRecord(value: unknown, label: string): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       throw new Error(`${label} must be an object.`);
@@ -521,6 +593,16 @@ function App() {
       return value;
     }
     return `${value.slice(0, 6)}...${value.slice(-4)}`;
+  }
+
+  function formatIntegerFull(value: string): string {
+    const trimmed = value.trim();
+    if (!/^-?\d+$/.test(trimmed)) {
+      return value;
+    }
+    const sign = trimmed.startsWith('-') ? '-' : '';
+    const digits = sign ? trimmed.slice(1) : trimmed;
+    return `${sign}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   }
 
   function formatOrcaPoolChoiceLine(pool: OrcaPoolCandidate, index: number): string {
@@ -745,21 +827,22 @@ function App() {
       throw new Error('Connect wallet first to derive owner token accounts.');
     }
     const walletPublicKey = wallet.publicKey;
-    const resolvedPool = await prepareMetaOperation({
+    const poolsLookup = await prepareMetaOperation({
       protocolId: ORCA_PROTOCOL_ID,
-      operationId: ORCA_OPERATION_ID,
+      operationId: ORCA_LIST_POOLS_OPERATION_ID,
       input: {
         token_in_mint: options.value.inputMint,
         token_out_mint: options.value.outputMint,
-        amount_in: options.value.amountAtomic,
-        slippage_bps: options.value.slippageBps,
-        ...(options.whirlpool !== undefined ? { whirlpool: options.whirlpool } : {}),
       },
       connection,
       walletPublicKey,
     });
 
-    const poolCandidates = normalizeOrcaPoolCandidates(resolvedPool.derived.pool_candidates);
+    const poolCandidates = normalizeOrcaPoolCandidates(poolsLookup.derived.pool_candidates);
+    if (poolCandidates.length === 0) {
+      throw new Error(`No Orca Whirlpool pool found for ${options.value.inputToken}/${options.value.outputToken}.`);
+    }
+
     if (poolCandidates.length > 1 && options.whirlpool === undefined) {
       setPendingPoolSelection({
         command: options.value,
@@ -777,13 +860,13 @@ function App() {
     }
 
     setPendingPoolSelection(null);
-
-    const selectedPoolRaw = resolvedPool.derived.selected_pool;
-    if (!selectedPoolRaw || typeof selectedPoolRaw !== 'object') {
-      throw new Error('Missing derived selected_pool from meta runtime.');
+    if (options.whirlpool && !poolCandidates.some((pool) => pool.whirlpool === options.whirlpool)) {
+      throw new Error(`Selected whirlpool ${options.whirlpool} is not in discovered candidates for this pair.`);
     }
-    const selectedPool = asRecord(selectedPoolRaw, 'selected_pool');
-    const selectedWhirlpool = asString(selectedPool.whirlpool, 'selected_pool.whirlpool');
+    const selectedWhirlpool =
+      options.whirlpool !== undefined
+        ? options.whirlpool
+        : asString(poolCandidates[0]?.whirlpool, 'pool_candidates[0].whirlpool');
 
     const preparedInitial = await prepareMetaInstruction({
       protocolId: ORCA_PROTOCOL_ID,
@@ -2113,9 +2196,46 @@ function App() {
       }
 
       if (!prepared.instructionName) {
+        const readOnlyHighlights: string[] = [];
+        const maybePoolCandidates = prepared.derived.pool_candidates;
+        if (Array.isArray(maybePoolCandidates)) {
+          const pools = normalizeOrcaPoolCandidates(maybePoolCandidates);
+          if (pools.length > 0) {
+            if (
+              builderProtocolId === ORCA_PROTOCOL_ID &&
+              selectedBuilderOperation.operationId === ORCA_LIST_POOLS_OPERATION_ID &&
+              typeof executionInput.token_in_mint === 'string' &&
+              typeof executionInput.token_out_mint === 'string'
+            ) {
+              const inMint = executionInput.token_in_mint;
+              const outMint = executionInput.token_out_mint;
+              const inLabel = getMintDisplay(inMint).label;
+              const outLabel = getMintDisplay(outMint).label;
+              readOnlyHighlights.push(`pair: ${inLabel}/${outLabel}`);
+              readOnlyHighlights.push('sorted by liquidity: highest first');
+            }
+            const previewCount = Math.min(pools.length, 5);
+            readOnlyHighlights.push(`pools found: ${pools.length}`);
+            readOnlyHighlights.push(
+              ...pools.slice(0, previewCount).map(
+                (pool, index) =>
+                  `${index + 1}. whirlpool ${pool.whirlpool} | tickSpacing ${pool.tickSpacing} | liquidity ${formatIntegerFull(pool.liquidity)}`,
+              ),
+            );
+            if (pools.length > previewCount) {
+              readOnlyHighlights.push(`...and ${pools.length - previewCount} more (open raw details below).`);
+            }
+            if (builderProtocolId === ORCA_PROTOCOL_ID && selectedBuilderOperation.operationId === ORCA_LIST_POOLS_OPERATION_ID) {
+              readOnlyHighlights.push('next: open "Swap By Pool" form and paste one whirlpool pubkey.');
+            }
+          } else {
+            readOnlyHighlights.push('pools found: 0');
+          }
+        }
         const resultLines = [
           `Builder result (${builderProtocolId}/${selectedBuilderOperation.operationId}):`,
           'Read-only operation (no instruction to execute).',
+          ...(readOnlyHighlights.length > 0 ? readOnlyHighlights : []),
         ];
         setBuilderResult(resultLines, {
           input: executionInput,
@@ -2462,6 +2582,27 @@ function App() {
           </button>
         </div>
 
+        {activeTab === 'builder' ? (
+          <div className="builder-mode-switch builder-mode-switch-global" role="tablist" aria-label="Builder audience mode">
+            <button
+              type="button"
+              className={builderViewMode === 'enduser' ? 'active' : ''}
+              onClick={handleBuilderModeEndUser}
+              disabled={isWorking}
+            >
+              End User
+            </button>
+            <button
+              type="button"
+              className={builderViewMode === 'geek' ? 'active' : ''}
+              onClick={handleBuilderModeGeek}
+              disabled={isWorking}
+            >
+              Geek
+            </button>
+          </div>
+        ) : null}
+
         {activeTab === 'command' ? (
           <div className="chat-log" aria-live="polite">
             {messages.map((message) => (
@@ -2563,20 +2704,36 @@ function App() {
               </aside>
 
               <aside className="builder-list">
-                <h3>Actions</h3>
+                <h3>{builderViewMode === 'enduser' ? 'User Forms' : 'Actions'}</h3>
                 <div className="builder-items">
-                  {builderOperations.map((operation) => (
-                    <button
-                      key={operation.operationId}
-                      type="button"
-                      className={builderOperationId === operation.operationId ? 'active' : ''}
-                      onClick={() => setBuilderOperationId(operation.operationId)}
-                      disabled={isWorking}
-                    >
-                      {operation.operationId}
-                      <small>{operation.instruction || 'read-only'}</small>
-                    </button>
-                  ))}
+                  {builderViewMode === 'enduser'
+                    ? builderForms.map((form) => (
+                        <button
+                          key={form.formId}
+                          type="button"
+                          className={builderFormId === form.formId ? 'active' : ''}
+                          onClick={() => {
+                            setBuilderFormId(form.formId);
+                            setBuilderOperationId(form.operationId);
+                          }}
+                          disabled={isWorking}
+                        >
+                          {form.title}
+                          <small>{form.operationId}</small>
+                        </button>
+                      ))
+                    : builderOperations.map((operation) => (
+                        <button
+                          key={operation.operationId}
+                          type="button"
+                          className={builderOperationId === operation.operationId ? 'active' : ''}
+                          onClick={() => setBuilderOperationId(operation.operationId)}
+                          disabled={isWorking}
+                        >
+                          {operation.operationId}
+                          <small>{operation.instruction || 'read-only'}</small>
+                        </button>
+                      ))}
                 </div>
               </aside>
             </div>
@@ -2586,28 +2743,16 @@ function App() {
                 <h3>
                   {builderProtocolId}/{selectedBuilderOperation.operationId}
                 </h3>
+                {builderViewMode === 'enduser' && selectedBuilderForm ? (
+                  <p>
+                    form: <strong>{selectedBuilderForm.title}</strong>
+                    {selectedBuilderForm.description ? ` — ${selectedBuilderForm.description}` : ''}
+                  </p>
+                ) : null}
                 <p>
                   instruction: <code>{selectedBuilderOperation.instruction || 'read-only'}</code>
                 </p>
 
-                <div className="builder-mode-switch">
-                  <button
-                    type="button"
-                    className={builderViewMode === 'enduser' ? 'active' : ''}
-                    onClick={() => setBuilderViewMode('enduser')}
-                    disabled={isWorking}
-                  >
-                    End User
-                  </button>
-                  <button
-                    type="button"
-                    className={builderViewMode === 'geek' ? 'active' : ''}
-                    onClick={() => setBuilderViewMode('geek')}
-                    disabled={isWorking}
-                  >
-                    Geek
-                  </button>
-                </div>
                 {hiddenBuilderInputsCount > 0 && builderViewMode === 'enduser' ? (
                   <p className="builder-note">
                     {hiddenBuilderInputsCount} field(s) auto-resolved (default/derived/computed). Switch to Geek mode to view them.

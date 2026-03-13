@@ -257,6 +257,10 @@
   overflow: hidden;
 }
 
+.builder-mode-switch-global {
+  margin-bottom: 0.8rem;
+}
+
 .builder-mode-switch button {
   border: 0;
   background: #f5f8ff;

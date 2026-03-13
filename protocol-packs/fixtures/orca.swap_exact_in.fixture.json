@@ -6,7 +6,7 @@
     "instruction": "swap_v2",
     "requiredArgs": ["amount", "other_amount_threshold", "sqrt_price_limit"],
     "requiredAccounts": ["whirlpool", "token_authority", "oracle", "tick_array_0", "tick_array_1", "tick_array_2"],
-    "requiredDiscoverSteps": ["pool_candidates", "selected_pool"],
+    "requiredDiscoverSteps": [],
     "requiredDeriveSteps": ["wallet", "whirlpool_data", "token_owner_account_a", "token_owner_account_b", "oracle"],
     "requiredComputeSteps": ["a_to_b", "tick_arrays", "other_amount_threshold"]
   }

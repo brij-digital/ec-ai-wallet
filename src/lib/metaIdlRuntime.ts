@@ -84,6 +84,12 @@ type ActionSpec = {
   use?: TemplateUseSpec[];
 };
 
+type UserFormSpec = {
+  operation: string;
+  title?: string;
+  description?: string;
+};
+
 type MaterializedActionSpec = {
   instruction: string;
   inputs: Record<string, ActionInputSpec>;
@@ -140,6 +146,7 @@ type MetaIdlSpec = {
   sources?: Record<string, LookupSourceSpec>;
   templates?: Record<string, TemplateSpec>;
   operations?: Record<string, ActionSpec>;
+  user_forms?: Record<string, UserFormSpec>;
 };
 
 type ResolverContext = {
@@ -220,6 +227,13 @@ export type MetaOperationSummary = {
       ui_editable?: boolean;
     }
   >;
+};
+
+export type MetaUserFormSummary = {
+  formId: string;
+  operationId: string;
+  title: string;
+  description?: string;
 };
 
 function resolveDiscoverStage(path: string, operation: MaterializedActionSpec): 'discover' | 'derive' | 'compute' | 'input' | 'unknown' {
@@ -1242,5 +1256,51 @@ export async function listMetaOperations(options: {
     schema: meta.schema ?? null,
     version: meta.version,
     operations: summaries,
+  };
+}
+
+export async function listMetaUserForms(options: {
+  protocolId: string;
+}): Promise<{
+  protocolId: string;
+  schema: string | null;
+  version: string;
+  forms: MetaUserFormSummary[];
+}> {
+  const meta = await loadMetaSpec(options.protocolId);
+  const operations = meta.operations ?? {};
+  const formsSpec = meta.user_forms ?? {};
+
+  const formsFromSpec = Object.entries(formsSpec)
+    .map(([formId, form]) => {
+      const operationId = form.operation;
+      if (!operations[operationId]) {
+        return null;
+      }
+      return {
+        formId,
+        operationId,
+        title: form.title ?? formId,
+        ...(form.description ? { description: form.description } : {}),
+      } as MetaUserFormSummary;
+    })
+    .filter((entry): entry is MetaUserFormSummary => entry !== null);
+
+  const forms =
+    formsFromSpec.length > 0
+      ? formsFromSpec
+      : Object.keys(operations)
+          .sort((a, b) => a.localeCompare(b))
+          .map((operationId) => ({
+            formId: operationId,
+            operationId,
+            title: operationId,
+          }));
+
+  return {
+    protocolId: options.protocolId,
+    schema: meta.schema ?? null,
+    version: meta.version,
+    forms,
   };
 }
