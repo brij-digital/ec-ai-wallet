@@ -37,7 +37,6 @@ import {
 
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
 const ORCA_OPERATION_ID = 'swap_exact_in';
-const ORCA_RESOLVE_POOL_OPERATION_ID = 'resolve_pool';
 const PUMP_AMM_PROTOCOL_ID = 'pump-amm-mainnet';
 const PUMP_AMM_OPERATION_ID = 'buy';
 const PUMP_AMM_RESOLVE_POOL_OPERATION_ID = 'resolve_pool';
@@ -380,10 +379,12 @@ function App() {
     const walletPublicKey = wallet.publicKey;
     const resolvedPool = await prepareMetaOperation({
       protocolId: ORCA_PROTOCOL_ID,
-      operationId: ORCA_RESOLVE_POOL_OPERATION_ID,
+      operationId: ORCA_OPERATION_ID,
       input: {
         token_in_mint: options.value.inputMint,
         token_out_mint: options.value.outputMint,
+        amount_in: options.value.amountAtomic,
+        slippage_bps: options.value.slippageBps,
         ...(options.whirlpool !== undefined ? { whirlpool: options.whirlpool } : {}),
       },
       connection,
