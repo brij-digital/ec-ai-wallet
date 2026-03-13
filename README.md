@@ -162,6 +162,18 @@ Run the same pack checks sequence used in CI:
 npm run ci:protocol-packs
 ```
 
+Run optional RPC-backed simulation/parity checks:
+
+```bash
+npm run pack:rpc-check
+```
+
+Or run full protocol-pack CI + RPC checks together:
+
+```bash
+npm run ci:protocol-packs:rpc
+```
+
 ## Notes
 
 - The app targets `mainnet-beta` by default.

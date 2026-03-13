@@ -44,3 +44,9 @@ jobs:
 
       - name: Run Protocol Pack Checks
         run: npm run pack:check
+
+      - name: Run RPC Simulation + Parity Checks
+        if: ${{ secrets.SOLANA_RPC_URL != '' }}
+        env:
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+        run: npm run pack:rpc-check

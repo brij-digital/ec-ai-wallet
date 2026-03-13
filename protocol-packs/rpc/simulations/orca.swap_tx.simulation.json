@@ -1,0 +1,8 @@
+{
+  "name": "Replay Orca historical swap transaction",
+  "source": "replay_tx",
+  "signature": "3bZkTUzN7ECAoCUjVssRtmBPU8BD3nrE21o4HfTbc8DrPWT9VfJB6VF5AgiaAh1yNiTUR95Y6KuTga149WgEK9oz",
+  "expect": {
+    "allowError": true
+  }
+}
