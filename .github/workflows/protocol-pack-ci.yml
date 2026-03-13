@@ -26,6 +26,8 @@ on:
 jobs:
   protocol-pack-checks:
     runs-on: ubuntu-latest
+    env:
+      SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,7 +48,5 @@ jobs:
         run: npm run pack:check
 
       - name: Run RPC Simulation + Parity Checks
-        if: ${{ secrets.SOLANA_RPC_URL != '' }}
-        env:
-          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+        if: ${{ env.SOLANA_RPC_URL != '' }}
         run: npm run pack:rpc-check
