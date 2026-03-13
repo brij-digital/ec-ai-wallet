@@ -1,0 +1,9 @@
+{
+  "name": "Replay Pump core historical buy transaction",
+  "protocolId": "pump-core-mainnet",
+  "source": "replay_tx",
+  "signature": "PaAM1rU8gcUw9V5y73cNVEccWCtHJjpBLwJyAMHw4yUsh9p24iuqSP6FzPERcMVer3e3BSGHNZt8CTrDigN8a2a",
+  "expect": {
+    "allowError": true
+  }
+}

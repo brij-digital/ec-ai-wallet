@@ -1,5 +1,6 @@
 {
   "name": "Pump AMM negative tx parity: exceeded slippage",
+  "protocolId": "pump-amm-mainnet",
   "signature": "56MhgzpSVproZpr3UVAknq7JbJkfpMeiHyQsFA5DoBx1m94qpwrWv5Qzo6x3GUU8q227CujSazCLYwhVhDEdFqy",
   "expect": {
     "programIdsContains": ["pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"],

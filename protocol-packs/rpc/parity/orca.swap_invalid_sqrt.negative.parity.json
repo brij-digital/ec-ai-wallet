@@ -1,0 +1,10 @@
+{
+  "name": "Orca negative tx parity: invalid sqrt price limit direction",
+  "protocolId": "orca-whirlpool-mainnet",
+  "signature": "7xbrGfpw6iDpne86urFv2UBJv1GNKsUHsJEdxDY4BoqQsVe8W6wb5JUh14tff1C5JUMpFRrcdZdiaAs2gBuUo89",
+  "expect": {
+    "programIdsContains": ["whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"],
+    "logsInclude": ["Instruction: Swap"],
+    "errorIncludes": ["6034"]
+  }
+}

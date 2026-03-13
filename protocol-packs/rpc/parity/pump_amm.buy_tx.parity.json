@@ -1,5 +1,6 @@
 {
   "name": "Pump AMM historical buy transaction parity",
+  "protocolId": "pump-amm-mainnet",
   "signature": "NmgLiRPtvWqhSGxoGKY4MG8zoE16YuZKaRASnS2QRzvdPoYzkDLbFrNqMzbz7u8kr3nH8guNoRRxuwsLPN1Yi6c",
   "expect": {
     "programIdsContains": ["pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"],

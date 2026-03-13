@@ -7,6 +7,8 @@ const PUBLIC_DIR = path.join(ROOT, 'public');
 const IDL_DIR = path.join(PUBLIC_DIR, 'idl');
 const REGISTRY_PATH = path.join(IDL_DIR, 'registry.json');
 const FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'fixtures');
+const RPC_SIM_FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'rpc', 'simulations');
+const RPC_PARITY_FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'rpc', 'parity');
 
 const REQUIRED_META_IDL_SCHEMA = 'meta-idl.v0.5';
 
@@ -365,6 +367,13 @@ function validateFixtureShape(fixture, filename) {
   return { name, protocolId, operationId, expect };
 }
 
+function asOptionalStringArray(value, label) {
+  if (value === undefined) {
+    return [];
+  }
+  return asStringArray(value, label);
+}
+
 function checkRequiredKeys(container, keys, label) {
   for (const key of keys) {
     if (!(key in container)) {
@@ -549,8 +558,90 @@ async function run() {
     }
   }
 
+  const coverageByProtocol = new Map();
+  for (const [protocolId] of results) {
+    coverageByProtocol.set(protocolId, {
+      parityPositive: 0,
+      parityNegative: 0,
+      simulationPositive: 0,
+      simulationNegative: 0,
+    });
+  }
+
+  const rpcParityFiles = (await pathExists(RPC_PARITY_FIXTURE_DIR))
+    ? (await fs.readdir(RPC_PARITY_FIXTURE_DIR)).filter((entry) => entry.endsWith('.json')).sort()
+    : [];
+  for (const filename of rpcParityFiles) {
+    const fixturePath = path.join(RPC_PARITY_FIXTURE_DIR, filename);
+    const fixture = asObject(await readJsonFile(fixturePath, `RPC parity fixture ${filename}`), filename);
+    const protocolId = asString(fixture.protocolId, `${filename}.protocolId`);
+    const expect = asObject(fixture.expect ?? {}, `${filename}.expect`);
+    const bucket = coverageByProtocol.get(protocolId);
+    if (!bucket) {
+      fail(`${filename}: unknown protocolId ${protocolId}.`);
+    }
+    const isNegative =
+      filename.includes('.negative.') ||
+      filename.endsWith('.negative.json') ||
+      asOptionalStringArray(expect.errorIncludes, `${filename}.expect.errorIncludes`).length > 0;
+    if (isNegative) {
+      bucket.parityNegative += 1;
+    } else {
+      bucket.parityPositive += 1;
+    }
+  }
+
+  const rpcSimulationFiles = (await pathExists(RPC_SIM_FIXTURE_DIR))
+    ? (await fs.readdir(RPC_SIM_FIXTURE_DIR)).filter((entry) => entry.endsWith('.json')).sort()
+    : [];
+  for (const filename of rpcSimulationFiles) {
+    const fixturePath = path.join(RPC_SIM_FIXTURE_DIR, filename);
+    const fixture = asObject(await readJsonFile(fixturePath, `RPC simulation fixture ${filename}`), filename);
+    const protocolId = asString(fixture.protocolId, `${filename}.protocolId`);
+    const expect = asObject(fixture.expect ?? {}, `${filename}.expect`);
+    const bucket = coverageByProtocol.get(protocolId);
+    if (!bucket) {
+      fail(`${filename}: unknown protocolId ${protocolId}.`);
+    }
+    const isNegative =
+      filename.includes('.negative.') ||
+      filename.endsWith('.negative.json') ||
+      expect.ok === false ||
+      asOptionalStringArray(expect.errorIncludes, `${filename}.expect.errorIncludes`).length > 0;
+    if (isNegative) {
+      bucket.simulationNegative += 1;
+    } else {
+      bucket.simulationPositive += 1;
+    }
+  }
+
+  const missingCoverageErrors = [];
+  for (const [protocolId, bucket] of coverageByProtocol) {
+    const missing = [];
+    if (bucket.parityPositive < 1) {
+      missing.push('parityPositive');
+    }
+    if (bucket.parityNegative < 1) {
+      missing.push('parityNegative');
+    }
+    if (bucket.simulationPositive < 1) {
+      missing.push('simulationPositive');
+    }
+    if (bucket.simulationNegative < 1) {
+      missing.push('simulationNegative');
+    }
+    if (missing.length > 0) {
+      missingCoverageErrors.push(
+        `${protocolId} missing RPC coverage: ${missing.join(', ')} (found parity+ ${bucket.parityPositive}, parity- ${bucket.parityNegative}, sim+ ${bucket.simulationPositive}, sim- ${bucket.simulationNegative})`,
+      );
+    }
+  }
+  if (missingCoverageErrors.length > 0) {
+    fail(`RPC fixture coverage gate failed:\n${missingCoverageErrors.join('\n')}`);
+  }
+
   console.log(
-    `Protocol pack checks passed: protocols=${results.size}, operations=${totalOperations}, fixtures=${fixtureChecks}.`,
+    `Protocol pack checks passed: protocols=${results.size}, operations=${totalOperations}, fixtures=${fixtureChecks}, rpcParityFixtures=${rpcParityFiles.length}, rpcSimulationFixtures=${rpcSimulationFiles.length}.`,
   );
 }
 

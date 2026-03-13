@@ -129,6 +129,7 @@ async function runSimulationFixture(rpcUrl, filename) {
   const fixture = asObject(await readJsonFile(fixturePath, `simulation fixture ${filename}`), filename);
 
   const name = asString(fixture.name, `${filename}.name`);
+  const protocolId = asString(fixture.protocolId, `${filename}.protocolId`);
   const source = asString(fixture.source, `${filename}.source`);
   if (source !== 'replay_tx') {
     fail(`${filename}.source must be replay_tx.`);
@@ -193,7 +194,7 @@ async function runSimulationFixture(rpcUrl, filename) {
     }
   }
 
-  return { name, signature, ok, err, logsCount: logs.length };
+  return { name, protocolId, signature, ok, err, logsCount: logs.length };
 }
 
 function collectProgramIdsFromTransactionJson(txResult) {
@@ -238,6 +239,7 @@ async function runParityFixture(rpcUrl, filename) {
   const fixture = asObject(await readJsonFile(fixturePath, `parity fixture ${filename}`), filename);
 
   const name = asString(fixture.name, `${filename}.name`);
+  const protocolId = asString(fixture.protocolId, `${filename}.protocolId`);
   const signature = asString(fixture.signature, `${filename}.signature`);
   const expect = asObject(fixture.expect ?? {}, `${filename}.expect`);
 
@@ -284,7 +286,7 @@ async function runParityFixture(rpcUrl, filename) {
     }
   }
 
-  return { name, signature, programIdsCount: programIds.length, logsCount: logMessages.length };
+  return { name, protocolId, signature, programIdsCount: programIds.length, logsCount: logMessages.length };
 }
 
 async function run() {

@@ -1,5 +1,6 @@
 {
   "name": "Replay Pump AMM historical buy transaction",
+  "protocolId": "pump-amm-mainnet",
   "source": "replay_tx",
   "signature": "NmgLiRPtvWqhSGxoGKY4MG8zoE16YuZKaRASnS2QRzvdPoYzkDLbFrNqMzbz7u8kr3nH8guNoRRxuwsLPN1Yi6c",
   "expect": {

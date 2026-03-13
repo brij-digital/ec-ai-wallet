@@ -1,0 +1,9 @@
+{
+  "name": "Replay Kamino historical transaction",
+  "protocolId": "kamino-klend-mainnet",
+  "source": "replay_tx",
+  "signature": "4zeQJyySKTXBDGscGXXdYeiKqNrxq7cWYLQrwzirzjt1swLC4zWH5uWapLqUBDACpT4K389tg6SRWJuaTvbRZcU2",
+  "expect": {
+    "allowError": true
+  }
+}

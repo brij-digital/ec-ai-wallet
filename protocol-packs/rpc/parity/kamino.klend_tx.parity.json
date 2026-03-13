@@ -1,0 +1,8 @@
+{
+  "name": "Kamino historical transaction parity",
+  "protocolId": "kamino-klend-mainnet",
+  "signature": "4zeQJyySKTXBDGscGXXdYeiKqNrxq7cWYLQrwzirzjt1swLC4zWH5uWapLqUBDACpT4K389tg6SRWJuaTvbRZcU2",
+  "expect": {
+    "programIdsContains": ["KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD"]
+  }
+}

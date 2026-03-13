@@ -1,5 +1,6 @@
 {
   "name": "Pump core negative replay: overflow custom error",
+  "protocolId": "pump-core-mainnet",
   "source": "replay_tx",
   "signature": "59uWNCPtHADPPGee2TPzqzUJgaafaKxBRZz8xpKeLB24CKJsjsaGYUV2fdTYsHq91QqQXWL2rXbNUpgKrgk7McGH",
   "expect": {

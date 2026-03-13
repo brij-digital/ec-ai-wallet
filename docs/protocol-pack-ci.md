@@ -50,7 +50,16 @@ RPC env var resolution order:
 - fixtures in `protocol-packs/fixtures/*.json`
 - assert expected instruction and required args/accounts/steps
 
-6. RPC simulation/parity checks (optional)
+6. RPC fixture coverage gate
+- enforced inside `pack:check`
+- every active protocol must have all 4 fixture classes:
+  - positive parity
+  - negative parity
+  - positive simulation
+  - negative simulation
+- fixture class is inferred from filename suffix (`.negative.`) and/or `expect` (`ok:false`, `errorIncludes`)
+
+7. RPC simulation/parity checks (optional execution)
 - replay and simulate historical transactions via RPC `simulateTransaction`
 - verify known historical tx parity via RPC `getTransaction`
 - these checks are skipped when no RPC URL env is set
@@ -82,6 +91,7 @@ Simulation fixture (`protocol-packs/rpc/simulations/*.json`):
 ```json
 {
   "name": "Replay Orca tx",
+  "protocolId": "orca-whirlpool-mainnet",
   "source": "replay_tx",
   "signature": "<TX_SIGNATURE>",
   "expect": {
@@ -98,6 +108,7 @@ Parity fixture (`protocol-packs/rpc/parity/*.json`):
 ```json
 {
   "name": "Orca tx parity",
+  "protocolId": "orca-whirlpool-mainnet",
   "signature": "<TX_SIGNATURE>",
   "expect": {
     "programIdsContains": ["whirL..."],
