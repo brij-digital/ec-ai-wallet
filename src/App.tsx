@@ -34,7 +34,7 @@ import {
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
 const ORCA_OPERATION_ID = 'swap_exact_in';
 const PUMP_AMM_PROTOCOL_ID = 'pump-amm-mainnet';
-const PUMP_AMM_OPERATION_ID = 'buy_exact_quote_in';
+const PUMP_AMM_OPERATION_ID = 'buy';
 const PUMP_CURVE_PROTOCOL_ID = 'pump-core-mainnet';
 const PUMP_CURVE_OPERATION_ID = 'buy_exact_sol_in';
 const QUICK_PREFILL_SWAP_COMMAND =
@@ -97,7 +97,7 @@ const HELP_TEXT = [
   '/pump-curve <TOKEN_MINT> 0.01 100 --simulate',
   '/pump-curve <TOKEN_MINT> 0.01 100',
   '/meta-explain orca-whirlpool-mainnet swap_exact_in',
-  '/meta-explain pump-amm-mainnet buy_exact_quote_in',
+  '/meta-explain pump-amm-mainnet buy',
   '/meta-explain pump-core-mainnet buy_exact_sol_in',
 ].join('\n');
 
@@ -618,8 +618,8 @@ function App() {
         operationId: PUMP_AMM_OPERATION_ID,
         input: {
           base_mint: options.value.tokenMint,
-          spendable_quote_in: options.value.amountAtomic,
-          min_base_amount_out: '1',
+          base_amount_out: '1',
+          max_quote_amount_in: options.value.amountAtomic,
           slippage_bps: options.value.slippageBps,
           ...(options.value.pool ? { pool: options.value.pool } : {}),
         },
@@ -697,12 +697,19 @@ function App() {
 
     const postInstructions = buildMetaPostInstructions(prepared.postInstructions);
 
-    let preBaseAtomic = '0';
+    let preBaseAtomic = 0n;
     try {
       const balance = await connection.getTokenAccountBalance(new PublicKey(userBaseAta), 'confirmed');
-      preBaseAtomic = balance.value.amount;
+      preBaseAtomic = BigInt(balance.value.amount);
     } catch {
-      preBaseAtomic = '0';
+      preBaseAtomic = 0n;
+    }
+    let preQuoteAtomic = 0n;
+    try {
+      const balance = await connection.getTokenAccountBalance(new PublicKey(userQuoteAta), 'confirmed');
+      preQuoteAtomic = BigInt(balance.value.amount);
+    } catch {
+      preQuoteAtomic = 0n;
     }
     const rawPreviewByArgs = new Map<string, Record<string, unknown>>();
     const getRawPreview = async (args: Record<string, unknown>): Promise<Record<string, unknown>> => {
@@ -743,13 +750,13 @@ function App() {
       return preview;
     };
 
-    const provisionalArgs = prepared.args as Record<string, unknown>;
+    const finalArgs = prepared.args as Record<string, unknown>;
     let simulation: Awaited<ReturnType<typeof simulateIdlInstruction>>;
     try {
       simulation = await simulateIdlInstruction({
         protocolId: prepared.protocolId,
         instructionName: prepared.instructionName,
-        args: provisionalArgs,
+        args: finalArgs,
         accounts: prepared.accounts,
         preInstructions,
         postInstructions: [],
@@ -759,12 +766,12 @@ function App() {
       });
     } catch (error) {
       const base = error instanceof Error ? error.message : 'Unknown simulation error.';
-      const rawPreview = await getRawPreview(provisionalArgs);
+      const rawPreview = await getRawPreview(finalArgs);
       throw new Error(`${base}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
     }
 
     if (!simulation.ok) {
-      const rawPreview = await getRawPreview(provisionalArgs);
+      const rawPreview = await getRawPreview(finalArgs);
       const simError = simulation.error ?? 'unknown';
       const logs = simulation.logs.join('\n');
       throw new Error(`Simulation failed: ${simError}\n${logs}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
@@ -774,18 +781,14 @@ function App() {
     const simQuote = simulation.accounts.find((entry) => entry.address === userQuoteAta);
     const postBaseAtomic = readSplTokenAmountFromSimAccount(simBase?.dataBase64 ?? null);
     const postQuoteAtomic = readSplTokenAmountFromSimAccount(simQuote?.dataBase64 ?? null);
-
-    const estimatedOutAtomicBigint = postBaseAtomic > BigInt(preBaseAtomic) ? postBaseAtomic - BigInt(preBaseAtomic) : 0n;
+    const estimatedOutAtomicBigint = postBaseAtomic > preBaseAtomic ? postBaseAtomic - preBaseAtomic : 0n;
+    const totalQuoteBeforeSwap = preQuoteAtomic + BigInt(options.value.amountAtomic);
+    const estimatedQuoteSpentAtomicBigint = totalQuoteBeforeSwap > postQuoteAtomic ? totalQuoteBeforeSwap - postQuoteAtomic : 0n;
     if (estimatedOutAtomicBigint <= 0n) {
       throw new Error('Could not estimate Pump output from simulation (estimated output is zero).');
     }
-
-    const minOutAtomicBigint = (estimatedOutAtomicBigint * BigInt(10_000 - options.value.slippageBps)) / 10_000n;
-    const minOutAtomic = (minOutAtomicBigint > 0n ? minOutAtomicBigint : 1n).toString();
-    const finalArgs = {
-      ...provisionalArgs,
-      min_base_amount_out: minOutAtomic,
-    };
+    const requestedBaseOut = asIntegerLikeString(finalArgs.base_amount_out, 'args.base_amount_out');
+    const maxQuoteIn = asIntegerLikeString(finalArgs.max_quote_amount_in, 'args.max_quote_amount_in');
 
     if (options.value.simulate) {
       pushMessage(
@@ -795,9 +798,10 @@ function App() {
           `token: ${options.value.tokenMint}`,
           `pool: ${selectedPoolAddress}`,
           `input: ${options.value.amountUiSol} SOL (${options.value.amountAtomic} lamports)`,
+          `requested base out: ${requestedBaseOut} base atomic`,
+          `max quote in: ${maxQuoteIn} lamports`,
           `estimated output: ${estimatedOutAtomicBigint.toString()} base atomic`,
-          `min output @ ${options.value.slippageBps} bps: ${minOutAtomic} base atomic`,
-          `quote ATA post-sim amount: ${postQuoteAtomic.toString()} lamports`,
+          `estimated quote spent: ${estimatedQuoteSpentAtomicBigint.toString()} lamports`,
           `simulation: ok${simulation.unitsConsumed ? ` (${simulation.unitsConsumed} CU)` : ''}`,
           'Run same command without --simulate to execute.',
         ].join('\n'),
@@ -824,12 +828,13 @@ function App() {
     }
 
     pushMessage(
-        'assistant',
-        [
-          'Pump AMM tx sent (meta IDL -> write-raw).',
-          `token: ${options.value.tokenMint}`,
-          `pool: ${selectedPoolAddress}`,
-          `minBaseOut: ${minOutAtomic}`,
+      'assistant',
+      [
+        'Pump AMM tx sent (meta IDL -> write-raw).',
+        `token: ${options.value.tokenMint}`,
+        `pool: ${selectedPoolAddress}`,
+        `baseAmountOut: ${requestedBaseOut}`,
+        `maxQuoteIn: ${maxQuoteIn}`,
         result.signature,
         result.explorerUrl,
       ].join('\n'),

@@ -32,7 +32,7 @@ Examples:
 /pump-quote <TOKEN_MINT> 0.01 100
 /pump-buy <TOKEN_MINT> 0.01 100
 /meta-explain orca-whirlpool-mainnet swap_exact_in
-/meta-explain pump-amm-mainnet buy_exact_quote_in
+/meta-explain pump-amm-mainnet buy
 ```
 
 Raw examples:

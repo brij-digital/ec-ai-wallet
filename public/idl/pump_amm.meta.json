@@ -4,16 +4,16 @@
   "version": "0.1.0",
   "protocolId": "pump-amm-mainnet",
   "templates": {
-    "pump.buy_exact_quote_in.v1": {
+    "pump.buy.v1": {
       "params": {
         "base_mint": { "type": "pubkey" },
         "quote_mint": { "type": "pubkey" },
-        "spendable_quote_in": { "type": "u64" },
-        "min_base_amount_out": { "type": "u64" },
+        "base_amount_out": { "type": "u64" },
+        "max_quote_amount_in": { "type": "u64" },
         "track_volume": { "type": "bool" }
       },
       "expand": {
-        "instruction": "buy_exact_quote_in",
+        "instruction": "buy",
         "discover": [
           {
             "name": "pool_candidates",
@@ -156,8 +156,8 @@
           }
         ],
         "args": {
-          "spendable_quote_in": "$param.spendable_quote_in",
-          "min_base_amount_out": "$param.min_base_amount_out",
+          "base_amount_out": "$param.base_amount_out",
+          "max_quote_amount_in": "$param.max_quote_amount_in",
           "track_volume": "$param.track_volume"
         },
         "accounts": {
@@ -189,7 +189,7 @@
     }
   },
   "operations": {
-    "buy_exact_quote_in": {
+    "buy": {
       "inputs": {
         "base_mint": { "type": "pubkey", "required": true },
         "quote_mint": {
@@ -197,20 +197,20 @@
           "required": false,
           "default": "So11111111111111111111111111111111111111112"
         },
-        "spendable_quote_in": { "type": "u64", "required": true },
-        "min_base_amount_out": { "type": "u64", "required": false, "default": "1" },
+        "base_amount_out": { "type": "u64", "required": false, "default": "1" },
+        "max_quote_amount_in": { "type": "u64", "required": true },
         "track_volume": { "type": "bool", "required": false, "default": false },
         "pool": { "type": "pubkey", "required": false },
         "slippage_bps": { "type": "u16", "required": true }
       },
       "use": [
         {
-          "template": "pump.buy_exact_quote_in.v1",
+          "template": "pump.buy.v1",
           "with": {
             "base_mint": "$input.base_mint",
             "quote_mint": "$input.quote_mint",
-            "spendable_quote_in": "$input.spendable_quote_in",
-            "min_base_amount_out": "$input.min_base_amount_out",
+            "base_amount_out": "$input.base_amount_out",
+            "max_quote_amount_in": "$input.max_quote_amount_in",
             "track_volume": "$input.track_volume"
           }
         }
