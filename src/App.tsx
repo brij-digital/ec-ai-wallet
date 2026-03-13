@@ -28,14 +28,15 @@ import {
 import {
   explainMetaOperation,
   prepareMetaInstruction,
-  prepareMetaOperation,
   type MetaOperationExplain,
 } from './lib/metaIdlRuntime';
 
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
 const ORCA_OPERATION_ID = 'swap_exact_in';
-const PUMP_PROTOCOL_ID = 'pump-amm-mainnet';
-const PUMP_OPERATION_ID = 'buy_exact_quote_in';
+const PUMP_AMM_PROTOCOL_ID = 'pump-amm-mainnet';
+const PUMP_AMM_OPERATION_ID = 'buy_exact_quote_in';
+const PUMP_CURVE_PROTOCOL_ID = 'pump-core-mainnet';
+const PUMP_CURVE_OPERATION_ID = 'buy_exact_sol_in';
 const QUICK_PREFILL_SWAP_COMMAND =
   '/orca EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v So11111111111111111111111111111111111111112 0.01 50 --simulate';
 const QUICK_PREFILL_PUMP_QUOTE_COMMAND =
@@ -97,6 +98,7 @@ const HELP_TEXT = [
   '/pump-curve <TOKEN_MINT> 0.01 100',
   '/meta-explain orca-whirlpool-mainnet swap_exact_in',
   '/meta-explain pump-amm-mainnet buy_exact_quote_in',
+  '/meta-explain pump-core-mainnet buy_exact_sol_in',
 ].join('\n');
 
 function App() {
@@ -612,8 +614,8 @@ function App() {
     let prepared: Awaited<ReturnType<typeof prepareMetaInstruction>>;
     try {
       prepared = await prepareMetaInstruction({
-        protocolId: PUMP_PROTOCOL_ID,
-        operationId: PUMP_OPERATION_ID,
+        protocolId: PUMP_AMM_PROTOCOL_ID,
+        operationId: PUMP_AMM_OPERATION_ID,
         input: {
           base_mint: options.value.tokenMint,
           spendable_quote_in: options.value.amountAtomic,
@@ -838,42 +840,116 @@ function App() {
     if (!wallet.publicKey) {
       throw new Error('Connect wallet first to run Pump curve simulation.');
     }
+    const walletPublicKey = wallet.publicKey;
 
-    const prepared = await prepareMetaOperation({
-      protocolId: PUMP_PROTOCOL_ID,
-      operationId: 'curve_simulate',
+    const prepared = await prepareMetaInstruction({
+      protocolId: PUMP_CURVE_PROTOCOL_ID,
+      operationId: PUMP_CURVE_OPERATION_ID,
       input: {
         base_mint: options.value.tokenMint,
-        spendable_quote_in: options.value.amountAtomic,
+        spendable_sol_in: options.value.amountAtomic,
+        min_tokens_out: '1',
+        track_volume: false,
         slippage_bps: options.value.slippageBps,
       },
       connection,
-      walletPublicKey: wallet.publicKey,
+      walletPublicKey,
     });
     const mint = new PublicKey(options.value.tokenMint);
-    const bondingCurve = asString(prepared.derived.bonding_curve, 'bonding_curve');
-    const data = asRecord(prepared.derived.bonding_curve_data, 'bonding_curve_data');
-    const virtualTokenReserves = BigInt(
-      asIntegerLikeString(data.virtual_token_reserves, 'bonding_curve.virtual_token_reserves'),
-    );
-    const virtualSolReserves = BigInt(
-      asIntegerLikeString(data.virtual_sol_reserves, 'bonding_curve.virtual_sol_reserves'),
-    );
-    const realTokenReserves = BigInt(asIntegerLikeString(data.real_token_reserves, 'bonding_curve.real_token_reserves'));
-    const realSolReserves = BigInt(asIntegerLikeString(data.real_sol_reserves, 'bonding_curve.real_sol_reserves'));
-    const complete = asBoolean(data.complete, 'bonding_curve.complete');
+    const bondingCurve = asString(prepared.accounts.bonding_curve, 'bonding_curve');
+    const associatedUser = asString(prepared.accounts.associated_user, 'associated_user');
+    const tokenProgram = asString(prepared.accounts.token_program, 'token_program');
 
-    const solIn = BigInt(options.value.amountAtomic);
-    let estimatedOut = 0n;
-    if (!complete && realTokenReserves > 0n && virtualTokenReserves > 0n && virtualSolReserves > 0n && solIn > 0n) {
-      const k = virtualTokenReserves * virtualSolReserves;
-      const newVirtualSol = virtualSolReserves + solIn;
-      const newVirtualToken = k / newVirtualSol;
-      const grossOut = virtualTokenReserves > newVirtualToken ? virtualTokenReserves - newVirtualToken : 0n;
-      estimatedOut = grossOut > realTokenReserves ? realTokenReserves : grossOut;
+    const preInstructions: TransactionInstruction[] = [
+      createAssociatedTokenAccountIdempotentInstruction(
+        walletPublicKey,
+        new PublicKey(associatedUser),
+        walletPublicKey,
+        mint,
+        new PublicKey(tokenProgram),
+      ),
+    ];
+
+    let preUserAtomic = '0';
+    try {
+      const balance = await connection.getTokenAccountBalance(new PublicKey(associatedUser), 'confirmed');
+      preUserAtomic = balance.value.amount;
+    } catch {
+      preUserAtomic = '0';
+    }
+
+    const rawPreviewByArgs = new Map<string, Record<string, unknown>>();
+    const getRawPreview = async (args: Record<string, unknown>): Promise<Record<string, unknown>> => {
+      const cacheKey = JSON.stringify(args);
+      const cached = rawPreviewByArgs.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      const preview = {
+        preInstructions: preInstructions.map((ix) => ({
+          programId: ix.programId.toBase58(),
+          keys: ix.keys.map((key) => ({
+            pubkey: key.pubkey.toBase58(),
+            isSigner: key.isSigner,
+            isWritable: key.isWritable,
+          })),
+          dataBase64: encodeIxDataBase64(ix.data),
+        })),
+        mainInstruction: await previewIdlInstruction({
+          protocolId: prepared.protocolId,
+          instructionName: prepared.instructionName,
+          args,
+          accounts: prepared.accounts,
+          walletPublicKey,
+        }),
+      };
+      rawPreviewByArgs.set(cacheKey, preview);
+      return preview;
+    };
+
+    const provisionalArgs = prepared.args as Record<string, unknown>;
+    let simulation: Awaited<ReturnType<typeof simulateIdlInstruction>>;
+    try {
+      simulation = await simulateIdlInstruction({
+        protocolId: prepared.protocolId,
+        instructionName: prepared.instructionName,
+        args: provisionalArgs,
+        accounts: prepared.accounts,
+        preInstructions,
+        postInstructions: [],
+        includeAccounts: [associatedUser],
+        connection,
+        wallet,
+      });
+    } catch (error) {
+      const base = error instanceof Error ? error.message : 'Unknown simulation error.';
+      const rawPreview = await getRawPreview(provisionalArgs);
+      throw new Error(`${base}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
+    }
+
+    if (!simulation.ok) {
+      const rawPreview = await getRawPreview(provisionalArgs);
+      const simError = simulation.error ?? 'unknown';
+      const logs = simulation.logs.join('\n');
+      throw new Error(`Simulation failed: ${simError}\n${logs}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
+    }
+
+    const simUser = simulation.accounts.find((entry) => entry.address === associatedUser);
+    const postUserAtomic = readSplTokenAmountFromSimAccount(simUser?.dataBase64 ?? null);
+    const estimatedOut = postUserAtomic > BigInt(preUserAtomic) ? postUserAtomic - BigInt(preUserAtomic) : 0n;
+    if (estimatedOut <= 0n) {
+      throw new Error('Could not estimate Pump curve output from simulation (estimated output is zero).');
     }
 
     const minOut = (estimatedOut * BigInt(10_000 - options.value.slippageBps)) / 10_000n;
+    const minOutAtomic = (minOut > 0n ? minOut : 1n).toString();
+
+    const finalArgs = {
+      ...provisionalArgs,
+      min_tokens_out: minOutAtomic,
+    };
+
     let tokenDecimals = 6;
     try {
       const tokenSupply = await connection.getTokenSupply(mint, 'confirmed');
@@ -883,18 +959,56 @@ function App() {
     }
 
     const estimatedOutUi = formatTokenAmount(estimatedOut.toString(), tokenDecimals);
-    const minOutUi = formatTokenAmount(minOut.toString(), tokenDecimals);
+    const minOutUi = formatTokenAmount(minOutAtomic, tokenDecimals);
+    const curveData = asRecord(prepared.derived.bonding_curve_data, 'bonding_curve_data');
+    const complete = asBoolean(curveData.complete, 'bonding_curve_data.complete');
+    const realTokenReserves = asIntegerLikeString(curveData.real_token_reserves, 'bonding_curve_data.real_token_reserves');
+    const realSolReserves = asIntegerLikeString(curveData.real_sol_reserves, 'bonding_curve_data.real_sol_reserves');
+
+    if (options.value.simulate) {
+      pushMessage(
+        'assistant',
+        [
+          'Pump bonding-curve simulate (meta IDL + simulation):',
+          `token: ${options.value.tokenMint}`,
+          `bondingCurve: ${bondingCurve}`,
+          `input: ${options.value.amountUiSol} SOL (${options.value.amountAtomic} lamports)`,
+          `estimated output: ${estimatedOutUi} tokens (${estimatedOut.toString()} atomic)`,
+          `min output @ ${options.value.slippageBps} bps: ${minOutUi} tokens (${minOutAtomic} atomic)`,
+          `curve status: complete=${complete}, real_token_reserves=${realTokenReserves}, real_sol_reserves=${realSolReserves}`,
+          `simulation: ok${simulation.unitsConsumed ? ` (${simulation.unitsConsumed} CU)` : ''}`,
+          'Run same command without --simulate to execute.',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    let result: Awaited<ReturnType<typeof sendIdlInstruction>>;
+    try {
+      result = await sendIdlInstruction({
+        protocolId: prepared.protocolId,
+        instructionName: prepared.instructionName,
+        args: finalArgs,
+        accounts: prepared.accounts,
+        preInstructions,
+        connection,
+        wallet,
+      });
+    } catch (error) {
+      const base = error instanceof Error ? error.message : 'Unknown send error.';
+      const rawPreview = await getRawPreview(finalArgs);
+      throw new Error(`${base}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
+    }
+
     pushMessage(
       'assistant',
       [
-        'Pump bonding-curve simulate:',
+        'Pump curve tx sent (meta IDL -> write-raw).',
         `token: ${options.value.tokenMint}`,
         `bondingCurve: ${bondingCurve}`,
-        `input: ${options.value.amountUiSol} SOL (${options.value.amountAtomic} lamports)`,
-        `estimated output: ${estimatedOutUi} tokens (${estimatedOut.toString()} atomic)`,
-        `min output @ ${options.value.slippageBps} bps: ${minOutUi} tokens (${minOut.toString()} atomic)`,
-        `curve status: complete=${complete}, real_token_reserves=${realTokenReserves.toString()}, real_sol_reserves=${realSolReserves.toString()}`,
-        'note: curve quote uses deterministic reserve math from on-chain bonding-curve account state.',
+        `minTokensOut: ${minOutUi} (${minOutAtomic})`,
+        result.signature,
+        result.explorerUrl,
       ].join('\n'),
     );
   }

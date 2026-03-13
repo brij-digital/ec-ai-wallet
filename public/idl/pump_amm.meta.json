@@ -176,30 +176,6 @@
     }
   },
   "operations": {
-    "curve_simulate": {
-      "inputs": {
-        "base_mint": { "type": "pubkey", "required": true },
-        "spendable_quote_in": { "type": "u64", "required": true },
-        "slippage_bps": { "type": "u16", "required": true }
-      },
-      "derive": [
-        {
-          "name": "bonding_curve",
-          "resolver": "pda",
-          "program_id": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
-          "seeds": [
-            "utf8:bonding-curve",
-            "$input.base_mint"
-          ]
-        },
-        {
-          "name": "bonding_curve_data",
-          "resolver": "decode_account",
-          "address": "$bonding_curve",
-          "account_type": "BondingCurve"
-        }
-      ]
-    },
     "buy_exact_quote_in": {
       "inputs": {
         "base_mint": { "type": "pubkey", "required": true },

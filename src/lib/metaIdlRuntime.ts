@@ -13,6 +13,7 @@ const DEFAULT_SPL_TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 type BuiltinResolverName =
   | 'wallet_pubkey'
   | 'decode_account'
+  | 'account_owner'
   | 'ata'
   | 'pda'
   | 'lookup'
@@ -28,6 +29,7 @@ type ResolverStepFallback = {
   account_type?: string;
   owner?: unknown;
   mint?: unknown;
+  token_program?: unknown;
   allow_owner_off_curve?: unknown;
   program_id?: unknown;
   seeds?: unknown[];
@@ -756,6 +758,18 @@ async function runResolver(step: DeriveStep, ctx: ResolverContext): Promise<unkn
     return normalizeRuntimeValue(decoded);
   }
 
+  if (step.resolver === 'account_owner') {
+    if (!step.address) {
+      throw new Error(`Resolver account_owner for ${step.name} missing address.`);
+    }
+    const address = asPubkey(resolveTemplateValue(step.address, ctx.scope), `account_owner:${step.name}:address`);
+    const info = await ctx.connection.getAccountInfo(address, 'confirmed');
+    if (!info) {
+      throw new Error(`Account not found for account_owner ${step.name}: ${address.toBase58()}`);
+    }
+    return info.owner.toBase58();
+  }
+
   if (step.resolver === 'ata') {
     if (!step.owner || !step.mint) {
       throw new Error(`Resolver ata for ${step.name} missing owner/mint.`);
@@ -763,11 +777,15 @@ async function runResolver(step: DeriveStep, ctx: ResolverContext): Promise<unkn
 
     const owner = asPubkey(resolveTemplateValue(step.owner, ctx.scope), `ata:${step.name}:owner`);
     const mint = asPubkey(resolveTemplateValue(step.mint, ctx.scope), `ata:${step.name}:mint`);
+    const tokenProgram =
+      step.token_program === undefined
+        ? undefined
+        : asPubkey(resolveTemplateValue(step.token_program, ctx.scope), `ata:${step.name}:token_program`);
     const allowOwnerOffCurve =
       step.allow_owner_off_curve === undefined
         ? false
         : Boolean(resolveTemplateValue(step.allow_owner_off_curve, ctx.scope));
-    return getAssociatedTokenAddressSync(mint, owner, allowOwnerOffCurve).toBase58();
+    return getAssociatedTokenAddressSync(mint, owner, allowOwnerOffCurve, tokenProgram).toBase58();
   }
 
   if (step.resolver === 'pda') {

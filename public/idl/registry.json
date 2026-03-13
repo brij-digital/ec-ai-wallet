@@ -30,7 +30,18 @@
       "idlPath": "/idl/pump_amm.json",
       "metaPath": "/idl/pump_amm.meta.json",
       "transport": "local-pump-amm",
-      "supportedCommands": ["/pump-amm", "/pump-curve"],
+      "supportedCommands": ["/pump-amm"],
+      "status": "active"
+    },
+    {
+      "id": "pump-core-mainnet",
+      "name": "Pump Core",
+      "network": "mainnet-beta",
+      "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+      "idlPath": "/idl/pump_core.json",
+      "metaPath": "/idl/pump_core.meta.json",
+      "transport": "local-pump-core",
+      "supportedCommands": ["/pump-curve"],
       "status": "active"
     }
   ]
