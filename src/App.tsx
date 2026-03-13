@@ -19,7 +19,7 @@ import {
   type OrcaCommand,
   type PumpAmmCommand,
   type PumpCurveCommand,
-} from './lib/commandParser';
+} from './app/commandParser';
 import {
   decodeIdlAccount,
   getInstructionTemplate,
