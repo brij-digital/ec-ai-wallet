@@ -28,6 +28,7 @@ type ResolverStepFallback = {
   account_type?: string;
   owner?: unknown;
   mint?: unknown;
+  allow_owner_off_curve?: unknown;
   program_id?: unknown;
   seeds?: unknown[];
   source?: string;
@@ -760,7 +761,11 @@ async function runResolver(step: DeriveStep, ctx: ResolverContext): Promise<unkn
 
     const owner = asPubkey(resolveTemplateValue(step.owner, ctx.scope), `ata:${step.name}:owner`);
     const mint = asPubkey(resolveTemplateValue(step.mint, ctx.scope), `ata:${step.name}:mint`);
-    return getAssociatedTokenAddressSync(mint, owner).toBase58();
+    const allowOwnerOffCurve =
+      step.allow_owner_off_curve === undefined
+        ? false
+        : Boolean(resolveTemplateValue(step.allow_owner_off_curve, ctx.scope));
+    return getAssociatedTokenAddressSync(mint, owner, allowOwnerOffCurve).toBase58();
   }
 
   if (step.resolver === 'pda') {
@@ -848,7 +853,7 @@ async function runDiscoverStep(step: DiscoverStep, ctx: ResolverContext): Promis
   const rawStep = asRecord(normalizeRuntimeValue(step), `discover:${step.name}`);
   const discover = asString(rawStep.discover, `discover:${step.name}:discover`);
   const resolvedStep =
-    discover === 'discover.query'
+    discover === 'discover.query' || discover === 'discover.pick_list_item_by_value'
       ? rawStep
       : asRecord(normalizeRuntimeValue(resolveTemplateValue(step, ctx.scope)), `discover:${step.name}`);
   return runRegisteredDiscoverStep(

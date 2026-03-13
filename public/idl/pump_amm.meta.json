@@ -1,0 +1,207 @@
+{
+  "$schema": "/idl/meta_idl.schema.v0.3.json",
+  "schema": "meta-idl.v0.3",
+  "version": "0.1.0",
+  "protocolId": "pump-amm-mainnet",
+  "templates": {
+    "pump.buy_exact_quote_in.v1": {
+      "params": {
+        "base_mint": { "type": "pubkey" },
+        "quote_mint": { "type": "pubkey" },
+        "spendable_quote_in": { "type": "u64" },
+        "min_base_amount_out": { "type": "u64" },
+        "track_volume": { "type": "bool" }
+      },
+      "expand": {
+        "instruction": "buy_exact_quote_in",
+        "discover": [
+          {
+            "name": "pool_candidates",
+            "discover": "discover.query",
+            "source": "rpc.getProgramAccounts",
+            "program_id": "$protocol.programId",
+            "account_type": "Pool",
+            "commitment": "confirmed",
+            "account_pubkeys": "$input.pool",
+            "filters": [
+              { "dataSize": 245 },
+              { "memcmp": { "offset": 43, "bytesFrom": "$param.base_mint" } },
+              { "memcmp": { "offset": 75, "bytesFrom": "$param.quote_mint" } }
+            ],
+            "where": [
+              { "path": "decoded.base_mint", "op": "=", "value": "$param.base_mint" },
+              { "path": "decoded.quote_mint", "op": "=", "value": "$param.quote_mint" },
+              { "path": "decoded.lp_supply", "op": ">", "value": "0" }
+            ],
+            "sort": [
+              { "path": "decoded.lp_supply", "dir": "desc" }
+            ],
+            "limit": 1,
+            "select": {
+              "pool": "$account.pubkey",
+              "baseMint": "$decoded.base_mint",
+              "quoteMint": "$decoded.quote_mint",
+              "lpSupply": "$decoded.lp_supply",
+              "coinCreator": "$decoded.coin_creator"
+            }
+          },
+          {
+            "name": "selected_pool",
+            "discover": "discover.pick_list_item_by_value",
+            "items": "$pool_candidates",
+            "value_path": "pool",
+            "match_value": "$input.pool",
+            "fallback_index": 0
+          }
+        ],
+        "derive": [
+          { "name": "wallet", "resolver": "wallet_pubkey" },
+          {
+            "name": "pool_data",
+            "resolver": "decode_account",
+            "address": "$selected_pool.pool",
+            "account_type": "Pool"
+          },
+          {
+            "name": "global_config",
+            "resolver": "pda",
+            "program_id": "$protocol.programId",
+            "seeds": ["utf8:global_config"]
+          },
+          {
+            "name": "global_config_data",
+            "resolver": "decode_account",
+            "address": "$global_config",
+            "account_type": "GlobalConfig"
+          },
+          {
+            "name": "user_base_token_account",
+            "resolver": "ata",
+            "owner": "$wallet",
+            "mint": "$pool_data.base_mint"
+          },
+          {
+            "name": "user_quote_token_account",
+            "resolver": "ata",
+            "owner": "$wallet",
+            "mint": "$pool_data.quote_mint"
+          },
+          {
+            "name": "coin_creator_vault_authority",
+            "resolver": "pda",
+            "program_id": "$protocol.programId",
+            "seeds": ["utf8:creator_vault", "$pool_data.coin_creator"]
+          },
+          {
+            "name": "coin_creator_vault_ata",
+            "resolver": "ata",
+            "owner": "$coin_creator_vault_authority",
+            "mint": "$pool_data.quote_mint",
+            "allow_owner_off_curve": true
+          },
+          {
+            "name": "global_volume_accumulator",
+            "resolver": "pda",
+            "program_id": "$protocol.programId",
+            "seeds": ["utf8:global_volume_accumulator"]
+          },
+          {
+            "name": "user_volume_accumulator",
+            "resolver": "pda",
+            "program_id": "$protocol.programId",
+            "seeds": ["utf8:user_volume_accumulator", "$wallet"]
+          },
+          {
+            "name": "event_authority",
+            "resolver": "pda",
+            "program_id": "$protocol.programId",
+            "seeds": ["utf8:__event_authority"]
+          },
+          {
+            "name": "fee_config",
+            "resolver": "pda",
+            "program_id": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+            "seeds": ["utf8:fee_config", "$protocol.programId"]
+          }
+        ],
+        "compute": [
+          {
+            "name": "protocol_fee_recipient",
+            "compute": "list.get",
+            "values": "$global_config_data.protocol_fee_recipients",
+            "index": 0
+          },
+          {
+            "name": "protocol_fee_recipient_token_account",
+            "compute": "pda(seed_spec)",
+            "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+            "seeds": [
+              { "kind": "pubkey", "value": "$protocol_fee_recipient" },
+              { "kind": "pubkey", "value": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+              { "kind": "pubkey", "value": "$pool_data.quote_mint" }
+            ]
+          }
+        ],
+        "args": {
+          "spendable_quote_in": "$param.spendable_quote_in",
+          "min_base_amount_out": "$param.min_base_amount_out",
+          "track_volume": "$param.track_volume"
+        },
+        "accounts": {
+          "pool": "$selected_pool.pool",
+          "user": "$wallet",
+          "global_config": "$global_config",
+          "base_mint": "$pool_data.base_mint",
+          "quote_mint": "$pool_data.quote_mint",
+          "user_base_token_account": "$user_base_token_account",
+          "user_quote_token_account": "$user_quote_token_account",
+          "pool_base_token_account": "$pool_data.pool_base_token_account",
+          "pool_quote_token_account": "$pool_data.pool_quote_token_account",
+          "protocol_fee_recipient": "$protocol_fee_recipient",
+          "protocol_fee_recipient_token_account": "$protocol_fee_recipient_token_account",
+          "base_token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "quote_token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "system_program": "11111111111111111111111111111111",
+          "associated_token_program": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "event_authority": "$event_authority",
+          "program": "$protocol.programId",
+          "coin_creator_vault_ata": "$coin_creator_vault_ata",
+          "coin_creator_vault_authority": "$coin_creator_vault_authority",
+          "global_volume_accumulator": "$global_volume_accumulator",
+          "user_volume_accumulator": "$user_volume_accumulator",
+          "fee_config": "$fee_config",
+          "fee_program": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"
+        }
+      }
+    }
+  },
+  "operations": {
+    "buy_exact_quote_in": {
+      "inputs": {
+        "base_mint": { "type": "pubkey", "required": true },
+        "quote_mint": {
+          "type": "pubkey",
+          "required": false,
+          "default": "So11111111111111111111111111111111111111112"
+        },
+        "spendable_quote_in": { "type": "u64", "required": true },
+        "min_base_amount_out": { "type": "u64", "required": false, "default": "1" },
+        "track_volume": { "type": "bool", "required": false, "default": false },
+        "pool": { "type": "pubkey", "required": false },
+        "slippage_bps": { "type": "u16", "required": true }
+      },
+      "use": [
+        {
+          "template": "pump.buy_exact_quote_in.v1",
+          "with": {
+            "base_mint": "$input.base_mint",
+            "quote_mint": "$input.quote_mint",
+            "spendable_quote_in": "$input.spendable_quote_in",
+            "min_base_amount_out": "$input.min_base_amount_out",
+            "track_volume": "$input.track_volume"
+          }
+        }
+      ]
+    }
+  }
+}

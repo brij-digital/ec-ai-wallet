@@ -5,12 +5,19 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import {
   createAssociatedTokenAccountIdempotentInstruction,
   createCloseAccountInstruction,
+  createSyncNativeInstruction,
 } from '@solana/spl-token';
-import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import Decimal from 'decimal.js';
 import './App.css';
 import { formatTokenAmount, listSupportedTokens, resolveToken } from './constants/tokens';
-import { parseCommand, type QuotePrefillCommand, type SwapPrefillCommand } from './lib/commandParser';
+import {
+  parseCommand,
+  type PumpBuyCommand,
+  type PumpQuoteCommand,
+  type QuotePrefillCommand,
+  type SwapPrefillCommand,
+} from './lib/commandParser';
 import {
   decodeIdlAccount,
   getInstructionTemplate,
@@ -23,8 +30,12 @@ import { explainMetaOperation, prepareMetaInstruction, type MetaOperationExplain
 
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
 const ORCA_OPERATION_ID = 'swap_exact_in';
+const PUMP_PROTOCOL_ID = 'pump-amm-mainnet';
+const PUMP_OPERATION_ID = 'buy_exact_quote_in';
 const QUICK_PREFILL_SWAP_COMMAND =
   '/swap EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v So11111111111111111111111111111111111111112 0.01 50';
+const QUICK_PREFILL_PUMP_QUOTE_COMMAND =
+  '/pump-quote 6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN 0.01 100';
 
 type Message = {
   id: number;
@@ -40,6 +51,13 @@ type OrcaPoolCandidate = {
   liquidity: string;
 };
 
+type PumpPoolCandidate = {
+  pool: string;
+  baseMint: string;
+  quoteMint: string;
+  lpSupply: string;
+};
+
 type PendingPoolSelection = {
   kind: 'swap' | 'quote';
   command: SwapPrefillCommand | QuotePrefillCommand;
@@ -50,6 +68,8 @@ const HELP_TEXT = [
   'Commands:',
   '/swap <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> <SLIPPAGE_BPS>',
   '/quote <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> <SLIPPAGE_BPS>',
+  '/pump-quote <TOKEN_MINT> <AMOUNT_SOL> <SLIPPAGE_BPS> [POOL_PUBKEY]',
+  '/pump-buy <TOKEN_MINT> <AMOUNT_SOL> <SLIPPAGE_BPS> [POOL_PUBKEY]',
   '/write-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
   '/read-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
   '/idl-list',
@@ -61,12 +81,16 @@ const HELP_TEXT = [
   'Notes:',
   'AMOUNT is UI amount (e.g. 0.1 for SOL).',
   'Pool discovery is on-chain via Orca program account scan.',
+  'Pump quote/buy spends wrapped SOL (WSOL) under the hood.',
   'If multiple pools match a pair, you will be asked to pick one (or provide a whirlpool override internally).',
   '',
   'Examples:',
   '/quote SOL USDC 0.1 50',
   '/swap SOL USDC 0.1 50',
+  '/pump-quote <TOKEN_MINT> 0.01 100',
+  '/pump-buy <TOKEN_MINT> 0.01 100',
   '/meta-explain orca-whirlpool-mainnet swap_exact_in',
+  '/meta-explain pump-amm-mainnet buy_exact_quote_in',
 ].join('\n');
 
 function App() {
@@ -140,6 +164,22 @@ function App() {
         tokenMintB: asString(candidate.tokenMintB, `pool_candidates[${index}].tokenMintB`),
         tickSpacing: asIntegerLikeString(candidate.tickSpacing, `pool_candidates[${index}].tickSpacing`),
         liquidity: asIntegerLikeString(candidate.liquidity, `pool_candidates[${index}].liquidity`),
+      };
+    });
+  }
+
+  function normalizePumpPoolCandidates(raw: unknown): PumpPoolCandidate[] {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    return raw.map((entry, index) => {
+      const candidate = asRecord(entry, `pool_candidates[${index}]`);
+      return {
+        pool: asString(candidate.pool, `pool_candidates[${index}].pool`),
+        baseMint: asString(candidate.baseMint, `pool_candidates[${index}].baseMint`),
+        quoteMint: asString(candidate.quoteMint, `pool_candidates[${index}].quoteMint`),
+        lpSupply: asIntegerLikeString(candidate.lpSupply, `pool_candidates[${index}].lpSupply`),
       };
     });
   }
@@ -557,6 +597,210 @@ function App() {
     );
   }
 
+  async function executePumpBuyOrQuote(options: {
+    kind: 'pump-buy' | 'pump-quote';
+    value: PumpBuyCommand | PumpQuoteCommand;
+  }): Promise<void> {
+    if (!wallet.publicKey) {
+      throw new Error('Connect wallet first to execute Pump AMM operations.');
+    }
+    const walletPublicKey = wallet.publicKey;
+
+    const prepared = await prepareMetaInstruction({
+      protocolId: PUMP_PROTOCOL_ID,
+      operationId: PUMP_OPERATION_ID,
+      input: {
+        base_mint: options.value.tokenMint,
+        spendable_quote_in: options.value.amountAtomic,
+        min_base_amount_out: '1',
+        slippage_bps: options.value.slippageBps,
+        ...(options.value.pool ? { pool: options.value.pool } : {}),
+      },
+      connection,
+      walletPublicKey,
+    });
+
+    const candidates = normalizePumpPoolCandidates(prepared.derived.pool_candidates);
+    if (candidates.length === 0) {
+      throw new Error('No Pump AMM pool found for this token mint against SOL.');
+    }
+
+    const selectedPool = asRecord(prepared.derived.selected_pool, 'selected_pool');
+    const selectedPoolAddress = asString(selectedPool.pool, 'selected_pool.pool');
+    const poolData = asRecord(prepared.derived.pool_data, 'pool_data');
+
+    const userBaseAta = prepared.accounts.user_base_token_account;
+    const userQuoteAta = prepared.accounts.user_quote_token_account;
+    const poolBaseMint = asString(poolData.base_mint, 'pool_data.base_mint');
+    const poolQuoteMint = asString(poolData.quote_mint, 'pool_data.quote_mint');
+    if (poolQuoteMint !== 'So11111111111111111111111111111111111111112') {
+      throw new Error(
+        `Unsupported Pump quote mint ${poolQuoteMint}. This command currently supports SOL-quoted pools only.`,
+      );
+    }
+
+    const preInstructions: TransactionInstruction[] = [
+      createAssociatedTokenAccountIdempotentInstruction(
+        walletPublicKey,
+        new PublicKey(userBaseAta),
+        walletPublicKey,
+        new PublicKey(poolBaseMint),
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        walletPublicKey,
+        new PublicKey(userQuoteAta),
+        walletPublicKey,
+        new PublicKey(poolQuoteMint),
+      ),
+      SystemProgram.transfer({
+        fromPubkey: walletPublicKey,
+        toPubkey: new PublicKey(userQuoteAta),
+        lamports: BigInt(options.value.amountAtomic),
+      }),
+      createSyncNativeInstruction(new PublicKey(userQuoteAta)),
+    ];
+
+    const postInstructions = buildMetaPostInstructions(prepared.postInstructions);
+
+    let preBaseAtomic = '0';
+    try {
+      const balance = await connection.getTokenAccountBalance(new PublicKey(userBaseAta), 'confirmed');
+      preBaseAtomic = balance.value.amount;
+    } catch {
+      preBaseAtomic = '0';
+    }
+    const rawPreviewByArgs = new Map<string, Record<string, unknown>>();
+    const getRawPreview = async (args: Record<string, unknown>): Promise<Record<string, unknown>> => {
+      const cacheKey = JSON.stringify(args);
+      const cached = rawPreviewByArgs.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      const preview = {
+        preInstructions: preInstructions.map((ix) => ({
+          programId: ix.programId.toBase58(),
+          keys: ix.keys.map((key) => ({
+            pubkey: key.pubkey.toBase58(),
+            isSigner: key.isSigner,
+            isWritable: key.isWritable,
+          })),
+          dataBase64: encodeIxDataBase64(ix.data),
+        })),
+        postInstructions: postInstructions.map((ix) => ({
+          programId: ix.programId.toBase58(),
+          keys: ix.keys.map((key) => ({
+            pubkey: key.pubkey.toBase58(),
+            isSigner: key.isSigner,
+            isWritable: key.isWritable,
+          })),
+          dataBase64: encodeIxDataBase64(ix.data),
+        })),
+        mainInstruction: await previewIdlInstruction({
+          protocolId: prepared.protocolId,
+          instructionName: prepared.instructionName,
+          args,
+          accounts: prepared.accounts,
+          walletPublicKey,
+        }),
+      };
+      rawPreviewByArgs.set(cacheKey, preview);
+      return preview;
+    };
+
+    const provisionalArgs = prepared.args as Record<string, unknown>;
+    let simulation: Awaited<ReturnType<typeof simulateIdlInstruction>>;
+    try {
+      simulation = await simulateIdlInstruction({
+        protocolId: prepared.protocolId,
+        instructionName: prepared.instructionName,
+        args: provisionalArgs,
+        accounts: prepared.accounts,
+        preInstructions,
+        postInstructions: [],
+        includeAccounts: [userBaseAta, userQuoteAta],
+        connection,
+        wallet,
+      });
+    } catch (error) {
+      const base = error instanceof Error ? error.message : 'Unknown simulation error.';
+      const rawPreview = await getRawPreview(provisionalArgs);
+      throw new Error(`${base}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
+    }
+
+    if (!simulation.ok) {
+      const rawPreview = await getRawPreview(provisionalArgs);
+      const simError = simulation.error ?? 'unknown';
+      const logs = simulation.logs.join('\n');
+      throw new Error(`Simulation failed: ${simError}\n${logs}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
+    }
+
+    const simBase = simulation.accounts.find((entry) => entry.address === userBaseAta);
+    const simQuote = simulation.accounts.find((entry) => entry.address === userQuoteAta);
+    const postBaseAtomic = readSplTokenAmountFromSimAccount(simBase?.dataBase64 ?? null);
+    const postQuoteAtomic = readSplTokenAmountFromSimAccount(simQuote?.dataBase64 ?? null);
+
+    const estimatedOutAtomicBigint = postBaseAtomic > BigInt(preBaseAtomic) ? postBaseAtomic - BigInt(preBaseAtomic) : 0n;
+    if (estimatedOutAtomicBigint <= 0n) {
+      throw new Error('Could not estimate Pump output from simulation (estimated output is zero).');
+    }
+
+    const minOutAtomicBigint = (estimatedOutAtomicBigint * BigInt(10_000 - options.value.slippageBps)) / 10_000n;
+    const minOutAtomic = (minOutAtomicBigint > 0n ? minOutAtomicBigint : 1n).toString();
+    const finalArgs = {
+      ...provisionalArgs,
+      min_base_amount_out: minOutAtomic,
+    };
+
+    if (options.kind === 'pump-quote') {
+      pushMessage(
+        'assistant',
+        [
+          'Pump quote (meta IDL + simulation):',
+          `token: ${options.value.tokenMint}`,
+          `pool: ${selectedPoolAddress}`,
+          `input: ${options.value.amountUiSol} SOL (${options.value.amountAtomic} lamports)`,
+          `estimated output: ${estimatedOutAtomicBigint.toString()} base atomic`,
+          `min output @ ${options.value.slippageBps} bps: ${minOutAtomic} base atomic`,
+          `quote ATA post-sim amount: ${postQuoteAtomic.toString()} lamports`,
+          `simulation: ok${simulation.unitsConsumed ? ` (${simulation.unitsConsumed} CU)` : ''}`,
+          'Run /pump-buy with same params to execute.',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    let result: Awaited<ReturnType<typeof sendIdlInstruction>>;
+    try {
+      result = await sendIdlInstruction({
+        protocolId: prepared.protocolId,
+        instructionName: prepared.instructionName,
+        args: finalArgs,
+        accounts: prepared.accounts,
+        preInstructions,
+        postInstructions,
+        connection,
+        wallet,
+      });
+    } catch (error) {
+      const base = error instanceof Error ? error.message : 'Unknown send error.';
+      const rawPreview = await getRawPreview(finalArgs);
+      throw new Error(`${base}\n\nRaw instruction preview:\n${asPrettyJson(rawPreview)}`);
+    }
+
+    pushMessage(
+      'assistant',
+      [
+        'Pump buy sent (meta IDL -> write-raw).',
+        `token: ${options.value.tokenMint}`,
+        `pool: ${selectedPoolAddress}`,
+        `minBaseOut: ${minOutAtomic}`,
+        result.signature,
+        result.explorerUrl,
+      ].join('\n'),
+    );
+  }
+
   async function handleCommandSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -602,8 +846,25 @@ function App() {
       }
 
       if (parsed.kind === 'idl-list') {
-        const protocols = await listIdlProtocols();
-        pushMessage('assistant', asPrettyJson(protocols));
+        const registryView = await listIdlProtocols();
+        const protocolLines = registryView.protocols.map(
+          (protocol) =>
+            `- ${protocol.id} (${protocol.name}) [${protocol.status}]\\n  native: ${protocol.supportedCommands.join(', ') || 'none'}`,
+        );
+        pushMessage(
+          'assistant',
+          [
+            'IDL Registry:',
+            `version: ${registryView.version ?? 'n/a'}`,
+            `global commands: ${registryView.globalCommands.join(', ') || 'none'}`,
+            '',
+            'Protocols:',
+            ...(protocolLines.length > 0 ? protocolLines : ['- none']),
+            '',
+            'Raw JSON:',
+            asPrettyJson(registryView),
+          ].join('\n'),
+        );
         return;
       }
 
@@ -638,6 +899,14 @@ function App() {
 
       if (parsed.kind === 'swap' || parsed.kind === 'quote') {
         await executeSwapOrQuote({
+          kind: parsed.kind,
+          value: parsed.value,
+        });
+        return;
+      }
+
+      if (parsed.kind === 'pump-buy' || parsed.kind === 'pump-quote') {
+        await executePumpBuyOrQuote({
           kind: parsed.kind,
           value: parsed.value,
         });
@@ -762,6 +1031,13 @@ function App() {
             disabled={isWorking}
           >
             Prefill USDC-&gt;SOL 0.01
+          </button>
+          <button
+            type="button"
+            onClick={() => setCommandInput(QUICK_PREFILL_PUMP_QUOTE_COMMAND)}
+            disabled={isWorking}
+          >
+            Prefill Pump Quote
           </button>
         </div>
       </section>

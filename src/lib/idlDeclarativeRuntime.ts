@@ -20,9 +20,16 @@ type IdlProtocol = {
   network: string;
   programId: string;
   idlPath: string;
+  metaPath?: string;
   transport: string;
   supportedCommands: string[];
   status: 'active' | 'inactive';
+};
+
+type RegistryShape = {
+  version?: string;
+  globalCommands?: string[];
+  protocols: IdlProtocol[];
 };
 
 type IdlInstructionAccount = {
@@ -257,12 +264,21 @@ function normalizeValueByIdlType(idl: Idl, type: IdlTypeRef | unknown, value: un
       }
 
       if (typeDef.type?.kind === 'struct') {
+        const fields = typeDef.type.fields ?? [];
+        const hasNamedFields = fields.every(
+          (field) => typeof field === 'object' && field !== null && 'name' in field && 'type' in field,
+        );
+        if (!hasNamedFields) {
+          // Tuple/unnamed-field structs are passed through so the Anchor coder can normalize them.
+          return value;
+        }
+
         if (!value || typeof value !== 'object' || Array.isArray(value)) {
           throw new Error(`Expected object for defined struct ${definedName}.`);
         }
 
         const obj = value as Record<string, unknown>;
-        const normalizedFields = (typeDef.type.fields ?? []).map((field) => {
+        const normalizedFields = fields.map((field) => {
           const fieldValue = getArgInputValue(obj, field.name);
           if (fieldValue === undefined) {
             throw new Error(`Missing field ${field.name} in defined struct ${definedName}.`);
@@ -448,18 +464,42 @@ function sampleValueForType(idl: Idl, type: IdlTypeRef | unknown): unknown {
   return null;
 }
 
-export async function listIdlProtocols(): Promise<Array<{ id: string; name: string; idlPath: string }>> {
+export async function listIdlProtocols(): Promise<{
+  version: string | null;
+  globalCommands: string[];
+  protocols: Array<{
+    id: string;
+    name: string;
+    network: string;
+    programId: string;
+    idlPath: string;
+    metaPath: string | null;
+    supportedCommands: string[];
+    status: 'active' | 'inactive';
+  }>;
+}> {
   const registryResponse = await fetch('/idl/registry.json');
   if (!registryResponse.ok) {
     throw new Error('Failed to load IDL registry.');
   }
 
-  const registry = (await registryResponse.json()) as { protocols: IdlProtocol[] };
-  return registry.protocols.map((protocol) => ({
-    id: protocol.id,
-    name: protocol.name,
-    idlPath: protocol.idlPath,
-  }));
+  const registry = (await registryResponse.json()) as RegistryShape;
+  return {
+    version: typeof registry.version === 'string' ? registry.version : null,
+    globalCommands: Array.isArray(registry.globalCommands)
+      ? registry.globalCommands.filter((entry): entry is string => typeof entry === 'string')
+      : [],
+    protocols: registry.protocols.map((protocol) => ({
+      id: protocol.id,
+      name: protocol.name,
+      network: protocol.network,
+      programId: protocol.programId,
+      idlPath: protocol.idlPath,
+      metaPath: protocol.metaPath ?? null,
+      supportedCommands: protocol.supportedCommands ?? [],
+      status: protocol.status,
+    })),
+  };
 }
 
 export async function getInstructionTemplate(options: {

@@ -103,6 +103,7 @@
         "account_type": { "type": "string" },
         "owner": {},
         "mint": {},
+        "allow_owner_off_curve": { "type": "boolean" },
         "program_id": {},
         "seeds": { "type": "array", "items": {} },
         "source": { "type": "string" },
@@ -131,6 +132,7 @@
         "account_type": { "type": "string" },
         "owner": {},
         "mint": {},
+        "allow_owner_off_curve": { "type": "boolean" },
         "program_id": {},
         "seeds": { "type": "array", "items": {} },
         "source": { "type": "string" },
@@ -230,6 +232,17 @@
             "base": {},
             "step": {},
             "count": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["name", "compute", "values", "index"],
+          "properties": {
+            "name": { "type": "string" },
+            "compute": { "const": "list.get" },
+            "values": { "type": "array", "items": {}, "minItems": 1 },
+            "index": { "type": "integer", "minimum": 0 }
           },
           "additionalProperties": false
         },

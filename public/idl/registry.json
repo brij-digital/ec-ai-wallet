@@ -1,5 +1,15 @@
 {
   "version": "0.2.0",
+  "globalCommands": [
+    "/help",
+    "/idl-list",
+    "/idl-template",
+    "/meta-explain",
+    "/idl-view",
+    "/idl-send",
+    "/write-raw",
+    "/read-raw"
+  ],
   "protocols": [
     {
       "id": "orca-whirlpool-mainnet",
@@ -9,7 +19,18 @@
       "idlPath": "/idl/orca_whirlpool.json",
       "metaPath": "/idl/orca_whirlpool.meta.json",
       "transport": "local-orca-whirlpool",
-      "supportedCommands": ["/swap", "/swap-old", "/quote", "/write-raw", "/read-raw", "/idl-view", "/idl-send"],
+      "supportedCommands": ["/swap", "/quote"],
+      "status": "active"
+    },
+    {
+      "id": "pump-amm-mainnet",
+      "name": "Pump AMM",
+      "network": "mainnet-beta",
+      "programId": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "idlPath": "/idl/pump_amm.json",
+      "metaPath": "/idl/pump_amm.meta.json",
+      "transport": "local-pump-amm",
+      "supportedCommands": ["/pump-quote", "/pump-buy"],
       "status": "active"
     }
   ]

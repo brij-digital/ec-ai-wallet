@@ -10,22 +10,29 @@ Current scope:
 
 ## Commands
 
+Global tooling commands:
 - `/help`
-- `/swap <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> <SLIPPAGE_BPS>`
-- `/quote <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> <SLIPPAGE_BPS>`
-- `/write-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>`
-- `/read-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>`
 - `/idl-list`
 - `/idl-template <PROTOCOL_ID> <INSTRUCTION_NAME>`
 - `/meta-explain <PROTOCOL_ID> <OPERATION_ID>`
 - `/idl-view <PROTOCOL_ID> <ACCOUNT_TYPE> <ACCOUNT_PUBKEY>`
+- `/idl-send <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>`
+- `/write-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>`
+- `/read-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>`
+
+Protocol-native commands:
+- Orca: `/swap <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> <SLIPPAGE_BPS>`, `/quote <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> <SLIPPAGE_BPS>`
+- Pump AMM: `/pump-quote <TOKEN_MINT> <AMOUNT_SOL> <SLIPPAGE_BPS> [POOL_PUBKEY]`, `/pump-buy <TOKEN_MINT> <AMOUNT_SOL> <SLIPPAGE_BPS> [POOL_PUBKEY]`
 
 Examples:
 
 ```text
 /quote SOL USDC 0.1 50
 /swap SOL USDC 0.1 50
+/pump-quote <TOKEN_MINT> 0.01 100
+/pump-buy <TOKEN_MINT> 0.01 100
 /meta-explain orca-whirlpool-mainnet swap_exact_in
+/meta-explain pump-amm-mainnet buy_exact_quote_in
 ```
 
 Raw examples:
@@ -43,6 +50,8 @@ Supported token aliases for `/swap` and `/quote`:
 
 - Base IDL: `public/idl/orca_whirlpool.json`
 - Meta IDL: `public/idl/orca_whirlpool.meta.json`
+- Pump AMM IDL: `public/idl/pump_amm.json`
+- Pump AMM Meta IDL: `public/idl/pump_amm.meta.json`
 - Meta IDL schema: `public/idl/meta_idl.schema.v0.3.json`
 - Tutorial: `docs/meta-idl-tutorial.md`
   - Detailed end-to-end walkthrough of current `/quote` and `/swap` flow
@@ -77,6 +86,7 @@ Meta IDL v0.3 compute primitives currently implemented in runtime:
 - `math.mul`
 - `math.floor_div`
 - `list.range_map`
+- `list.get`
 - `pda(seed_spec)`
 - `compare.equals`
 - `logic.if`
@@ -112,7 +122,7 @@ npm run build
 
 - The app targets `mainnet-beta` by default.
 - Swap execution requires a connected Phantom wallet.
-- `/swap` and `/quote` are strict declarative wrappers: discover + derive gather on-chain state, then app uses RPC simulation to estimate output and compute slippage threshold before send.
+- `/swap`, `/quote`, `/pump-quote`, and `/pump-buy` are strict declarative wrappers: discover + derive gather on-chain state, then app uses RPC simulation to estimate output and compute slippage threshold before send.
 - Pool discovery uses declarative `discover.query`:
   - if `whirlpool` is provided, runtime fetches that account directly;
   - otherwise runtime scans via `getProgramAccounts` filters.

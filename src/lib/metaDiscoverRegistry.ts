@@ -42,6 +42,13 @@ function asArray(value: unknown, label: string): unknown[] {
   return value;
 }
 
+function asBoolean(value: unknown, label: string): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  throw new Error(`${label} must be a boolean.`);
+}
+
 function asSafeInteger(value: unknown, label: string): number {
   if (typeof value === 'number' && Number.isSafeInteger(value)) {
     return value;
@@ -76,6 +83,19 @@ function asFiniteNumber(value: unknown, label: string): number {
     }
   }
   throw new Error(`${label} must be a finite number.`);
+}
+
+function asNumberLike(value: unknown, label: string): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  throw new Error(`${label} must be number-like.`);
 }
 
 function asCommitment(value: unknown, label: string): Commitment {
@@ -241,6 +261,16 @@ type QuerySortClause = {
   dir?: 'asc' | 'desc';
 };
 
+type ProgramAccountLike = {
+  pubkey: PublicKey;
+  account: {
+    data: Uint8Array;
+    executable: boolean;
+    lamports: number;
+    owner: PublicKey;
+  };
+};
+
 function parseQueryWhereClause(raw: unknown, label: string): QueryWhereClause {
   const clause = asRecord(raw, label);
   return {
@@ -329,6 +359,132 @@ function parseRpcProgramFilter(raw: unknown, label: string): GetProgramAccountsF
   }
 
   throw new Error(`${label} must be a memcmp or dataSize filter.`);
+}
+
+function decodeBase64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    out[i] = binary.charCodeAt(i);
+  }
+  return out;
+}
+
+function isTooManyAccountsError(error: unknown): boolean {
+  const message = String((error as { message?: unknown })?.message ?? error ?? '');
+  return message.includes('Too many accounts requested');
+}
+
+function isMethodNotFoundError(error: unknown): boolean {
+  const message = String((error as { message?: unknown })?.message ?? error ?? '');
+  return message.includes('-32601') || /method not found/i.test(message);
+}
+
+function asProgramAccountLike(entry: unknown, label: string): ProgramAccountLike {
+  const record = asRecord(entry, `${label}`);
+  const pubkey = asPubkey(record.pubkey, `${label}.pubkey`);
+  const accountRaw = asRecord(record.account, `${label}.account`);
+  const owner = asPubkey(accountRaw.owner, `${label}.account.owner`);
+  const lamports = Math.trunc(asNumberLike(accountRaw.lamports, `${label}.account.lamports`));
+  const executable = asBoolean(accountRaw.executable, `${label}.account.executable`);
+  const dataRaw = accountRaw.data;
+
+  let data: Uint8Array;
+  if (Array.isArray(dataRaw) && dataRaw.length >= 1 && typeof dataRaw[0] === 'string') {
+    data = decodeBase64ToBytes(dataRaw[0] as string);
+  } else if (typeof dataRaw === 'string') {
+    data = decodeBase64ToBytes(dataRaw);
+  } else {
+    throw new Error(`${label}.account.data must be base64 string or [base64, encoding].`);
+  }
+
+  return {
+    pubkey,
+    account: {
+      data,
+      executable,
+      lamports,
+      owner,
+    },
+  };
+}
+
+async function fetchProgramAccountsViaV2(options: {
+  endpoint: string;
+  programId: PublicKey;
+  commitment: Commitment;
+  filters: GetProgramAccountsFilter[];
+  maxAccounts?: number;
+}): Promise<ProgramAccountLike[]> {
+  const output: ProgramAccountLike[] = [];
+  const pageLimit = Math.min(1000, Math.max(1, options.maxAccounts ?? 1000));
+  const maxPages = 25;
+  const maxAccounts = options.maxAccounts ?? 25_000;
+  let paginationKey: string | null = null;
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const response = await fetch(options.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: `gpa-v2-${page + 1}`,
+        method: 'getProgramAccountsV2',
+        params: [
+          options.programId.toBase58(),
+          {
+            encoding: 'base64',
+            commitment: options.commitment,
+            filters: options.filters,
+            limit: pageLimit,
+            ...(paginationKey ? { paginationKey } : {}),
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`getProgramAccountsV2 failed: ${response.status} ${response.statusText}`);
+    }
+
+    const body = (await response.json()) as {
+      error?: { message?: string; code?: number };
+      result?: unknown;
+    };
+    if (body.error) {
+      throw new Error(body.error.message ?? 'getProgramAccountsV2 returned error.');
+    }
+
+    const resultObject =
+      body.result && typeof body.result === 'object' && !Array.isArray(body.result)
+        ? (body.result as Record<string, unknown>)
+        : null;
+    const accountsRaw = Array.isArray(body.result)
+      ? body.result
+      : Array.isArray(resultObject?.accounts)
+        ? (resultObject?.accounts as unknown[])
+        : Array.isArray(resultObject?.value)
+          ? (resultObject?.value as unknown[])
+          : [];
+    const accounts = accountsRaw.map((entry, index) =>
+      asProgramAccountLike(entry, `getProgramAccountsV2.accounts[${index}]`),
+    );
+    output.push(...accounts);
+
+    if (output.length >= maxAccounts) {
+      break;
+    }
+
+    paginationKey =
+      (typeof resultObject?.paginationKey === 'string' ? resultObject.paginationKey : null) ??
+      (typeof resultObject?.nextPage === 'string' ? resultObject.nextPage : null) ??
+      null;
+    if (!paginationKey) {
+      break;
+    }
+  }
+
+  return output;
 }
 
 function idlDiscriminatorFilter(idl: Idl, accountType: string, label: string): GetProgramAccountsFilter {
@@ -484,8 +640,30 @@ async function runDiscoverPickListItem(step: DiscoverStepResolved): Promise<unkn
   return items[indexRaw];
 }
 
-async function runDiscoverPickListItemByValue(step: DiscoverStepResolved): Promise<unknown> {
-  const items = asArray(step.items, `discover:${step.name}:items`);
+function resolvePathFromScope(scope: Record<string, unknown>, path: string): unknown {
+  const cleaned = path.startsWith('$') ? path.slice(1) : path;
+  return readPathFromValue(scope, cleaned);
+}
+
+function resolveItemsMaybe(step: DiscoverStepResolved, ctx: DiscoverRuntimeContext): unknown[] {
+  const rawItems = step.items;
+  if (typeof rawItems === 'string' && rawItems.startsWith('$')) {
+    const resolved = resolvePathFromScope(ctx.scope, rawItems);
+    return asArray(resolved, `discover:${step.name}:items`);
+  }
+  return asArray(rawItems, `discover:${step.name}:items`);
+}
+
+function resolveOptionalMatchValue(step: DiscoverStepResolved, ctx: DiscoverRuntimeContext): unknown {
+  const raw = step.match_value;
+  if (typeof raw === 'string' && raw.startsWith('$')) {
+    return resolvePathFromScope(ctx.scope, raw);
+  }
+  return raw;
+}
+
+async function runDiscoverPickListItemByValue(step: DiscoverStepResolved, ctx: DiscoverRuntimeContext): Promise<unknown> {
+  const items = resolveItemsMaybe(step, ctx);
   if (items.length === 0) {
     throw new Error(`discover:${step.name}:items must not be empty.`);
   }
@@ -497,14 +675,19 @@ async function runDiscoverPickListItemByValue(step: DiscoverStepResolved): Promi
     throw new Error(`discover:${step.name}:fallback_index ${fallbackIndex} is out of bounds for ${items.length} item(s).`);
   }
 
-  const hasMatchValue = step.match_value !== undefined && step.match_value !== null && String(step.match_value).length > 0;
+  const resolvedMatchValue = resolveOptionalMatchValue(step, ctx);
+  const isUnresolvedPath = resolvedMatchValue === undefined;
+  const hasMatchValue =
+    !isUnresolvedPath &&
+    resolvedMatchValue !== null &&
+    String(resolvedMatchValue).length > 0;
   if (!hasMatchValue) {
     return items[fallbackIndex];
   }
 
   for (const item of items) {
     const candidate = readPathFromValue(item, valuePath);
-    if (valuesEqual(candidate, step.match_value)) {
+    if (valuesEqual(candidate, resolvedMatchValue)) {
       return item;
     }
   }
@@ -565,6 +748,8 @@ async function runDiscoverQuery(step: DiscoverStepResolved, ctx: DiscoverRuntime
           );
         })
       : [[]];
+  const requestedLimit =
+    resolvedStep.limit === undefined ? null : asSafeInteger(resolvedStep.limit, `discover:${step.name}:limit`);
 
   const discriminator = accountType ? idlDiscriminatorFilter(ctx.idl, accountType, `discover:${step.name}`) : null;
   const finalFilterGroups = filterGroups.map((group) => {
@@ -575,10 +760,7 @@ async function runDiscoverQuery(step: DiscoverStepResolved, ctx: DiscoverRuntime
     return merged;
   });
 
-  const accountMap = new Map<
-    string,
-    { pubkey: PublicKey; account: { data: Uint8Array; executable: boolean; lamports: number; owner: PublicKey } }
-  >();
+  const accountMap = new Map<string, ProgramAccountLike>();
   if (directPubkeys.length > 0) {
     const keys = directPubkeys.map((key) => new PublicKey(key));
     const infos = await ctx.connection.getMultipleAccountsInfo(keys, commitment);
@@ -601,12 +783,55 @@ async function runDiscoverQuery(step: DiscoverStepResolved, ctx: DiscoverRuntime
     });
   } else {
     for (const filters of finalFilterGroups) {
-      const accounts = await ctx.connection.getProgramAccounts(programId, {
-        commitment,
-        filters: filters.length > 0 ? filters : undefined,
-      });
-      for (const account of accounts) {
-        accountMap.set(account.pubkey.toBase58(), account);
+      try {
+        const accountsV2 = await fetchProgramAccountsViaV2({
+          endpoint: ctx.connection.rpcEndpoint,
+          programId,
+          commitment,
+          filters,
+          maxAccounts:
+            requestedLimit === null
+              ? 25_000
+              : Math.max(10, Math.min(2_000, requestedLimit * 10)),
+        });
+        for (const account of accountsV2) {
+          accountMap.set(account.pubkey.toBase58(), account);
+        }
+      } catch (error) {
+        if (!isMethodNotFoundError(error)) {
+          try {
+            const accounts = await ctx.connection.getProgramAccounts(programId, {
+              commitment,
+              filters: filters.length > 0 ? filters : undefined,
+            });
+            for (const account of accounts) {
+              accountMap.set(account.pubkey.toBase58(), account);
+            }
+            continue;
+          } catch (legacyError) {
+            if (!isTooManyAccountsError(legacyError)) {
+              throw legacyError;
+            }
+
+            if (filters.length === 0) {
+              throw new Error(
+                `discover:${step.name}: program account query too large and no filters provided.`,
+              );
+            }
+
+            throw new Error(
+              `discover:${step.name}: RPC requires getProgramAccountsV2 pagination and legacy getProgramAccounts is too large.`,
+            );
+          }
+        }
+        // If V2 itself is not supported, fallback to legacy getProgramAccounts.
+        const accounts = await ctx.connection.getProgramAccounts(programId, {
+          commitment,
+          filters: filters.length > 0 ? filters : undefined,
+        });
+        for (const account of accounts) {
+          accountMap.set(account.pubkey.toBase58(), account);
+        }
       }
     }
   }

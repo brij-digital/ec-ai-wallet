@@ -1,4 +1,5 @@
 import { parseUiAmountToAtomic, resolveToken } from '../constants/tokens';
+import { PublicKey } from '@solana/web3.js';
 
 export type SwapPrefillCommand = {
   kind: 'swap';
@@ -20,6 +21,24 @@ export type QuotePrefillCommand = {
   inputMint: string;
   outputMint: string;
   slippageBps: number;
+};
+
+export type PumpBuyCommand = {
+  kind: 'pump-buy';
+  tokenMint: string;
+  amountUiSol: string;
+  amountAtomic: string;
+  slippageBps: number;
+  pool?: string;
+};
+
+export type PumpQuoteCommand = {
+  kind: 'pump-quote';
+  tokenMint: string;
+  amountUiSol: string;
+  amountAtomic: string;
+  slippageBps: number;
+  pool?: string;
 };
 
 export type IdlSendCommand = {
@@ -52,6 +71,8 @@ export type MetaExplainCommand = {
 export type ParsedCommand =
   | { kind: 'swap'; value: SwapPrefillCommand }
   | { kind: 'quote'; value: QuotePrefillCommand }
+  | { kind: 'pump-buy'; value: PumpBuyCommand }
+  | { kind: 'pump-quote'; value: PumpQuoteCommand }
   | { kind: 'write-raw'; value: IdlSendCommand }
   | { kind: 'read-raw'; value: IdlSendCommand }
   | { kind: 'help' }
@@ -196,6 +217,40 @@ function parseMetaSwapArgs(args: string[], kind: 'swap' | 'quote'): SwapPrefillC
   return payload as QuotePrefillCommand;
 }
 
+function parsePumpArgs(args: string[], kind: 'pump-buy' | 'pump-quote'): PumpBuyCommand | PumpQuoteCommand {
+  if (args.length < 3 || args.length > 4) {
+    throw new Error(`Usage: /${kind} <TOKEN_MINT> <AMOUNT_SOL> <SLIPPAGE_BPS> [POOL_PUBKEY]`);
+  }
+
+  const [tokenMintRaw, amountUiSol, slippageRaw, poolRaw] = args;
+  const tokenMint = new PublicKey(tokenMintRaw).toBase58();
+  const amountAtomic = parseUiAmountToAtomic(amountUiSol, 9);
+  if (amountAtomic <= 0n) {
+    throw new Error('AMOUNT_SOL must be greater than zero.');
+  }
+
+  const slippageBps = Number(slippageRaw);
+  if (!Number.isInteger(slippageBps) || slippageBps < 1 || slippageBps > 5000) {
+    throw new Error('SLIPPAGE_BPS must be an integer between 1 and 5000.');
+  }
+
+  const pool = poolRaw ? new PublicKey(poolRaw).toBase58() : undefined;
+
+  const payload = {
+    kind,
+    tokenMint,
+    amountUiSol,
+    amountAtomic: amountAtomic.toString(),
+    slippageBps,
+    ...(pool ? { pool } : {}),
+  };
+
+  if (kind === 'pump-buy') {
+    return payload as PumpBuyCommand;
+  }
+  return payload as PumpQuoteCommand;
+}
+
 export function parseCommand(raw: string): ParsedCommand {
   const trimmed = raw.trim();
   if (trimmed.length === 0) {
@@ -279,6 +334,14 @@ export function parseCommand(raw: string): ParsedCommand {
 
   if (command === '/quote') {
     return { kind: 'quote', value: parseMetaSwapArgs(args, 'quote') as QuotePrefillCommand };
+  }
+
+  if (command === '/pump-buy') {
+    return { kind: 'pump-buy', value: parsePumpArgs(args, 'pump-buy') as PumpBuyCommand };
+  }
+
+  if (command === '/pump-quote') {
+    return { kind: 'pump-quote', value: parsePumpArgs(args, 'pump-quote') as PumpQuoteCommand };
   }
 
   throw new Error(`Unknown command: ${command}. Try /help.`);

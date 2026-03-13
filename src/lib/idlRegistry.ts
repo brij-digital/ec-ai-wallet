@@ -5,13 +5,14 @@ export type ProtocolManifest = {
   programId: string;
   idlPath: string;
   metaPath?: string;
-  transport: 'local-orca-whirlpool';
+  transport: string;
   supportedCommands: string[];
   status: 'active' | 'inactive';
 };
 
 type RegistryShape = {
   version: string;
+  globalCommands?: string[];
   protocols: ProtocolManifest[];
 };
 

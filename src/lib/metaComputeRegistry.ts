@@ -142,6 +142,20 @@ async function runListRangeMap(step: ComputeStepResolved): Promise<number[]> {
   return Array.from({ length: count }, (_, index) => base + index * stepSize);
 }
 
+async function runListGet(step: ComputeStepResolved): Promise<unknown> {
+  const values = asArray(step.values, `compute:${step.name}:values`);
+  if (values.length === 0) {
+    throw new Error(`compute:${step.name}:values must not be empty.`);
+  }
+
+  const index = asInteger(step.index, `compute:${step.name}:index`);
+  if (index < 0 || index >= values.length) {
+    throw new Error(`compute:${step.name}:index ${index} is out of bounds for ${values.length} item(s).`);
+  }
+
+  return values[index];
+}
+
 function encodePdaSeed(seed: PdaSeedSpec, item: unknown, label: string): Uint8Array {
   if (seed.kind === 'utf8') {
     return new TextEncoder().encode(seed.value);
@@ -233,6 +247,7 @@ const COMPUTE_EXECUTORS: Record<string, ComputeExecutor> = {
   'math.mul': runMathMul,
   'math.floor_div': runMathFloorDiv,
   'list.range_map': runListRangeMap,
+  'list.get': runListGet,
   'pda(seed_spec)': runPdaSeedSpec,
   'compare.equals': runCompareEquals,
   'logic.if': runLogicIf,
