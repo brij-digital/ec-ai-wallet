@@ -8,13 +8,7 @@ import { runRegisteredComputeStep } from './metaComputeRegistry';
 import { runRegisteredDiscoverStep } from './metaDiscoverRegistry';
 import { normalizeIdlForAnchorCoder } from './normalizeIdl';
 
-const SUPPORTED_META_IDL_SCHEMAS = new Set([
-  'meta-idl.v0.1',
-  'meta-idl.v0.2',
-  'meta-idl.v0.3',
-  'meta-idl.v0.4',
-  'meta-idl.v0.5',
-]);
+const META_IDL_SCHEMA = 'meta-idl.v0.5';
 const DEFAULT_SPL_TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 
 type BuiltinResolverName =
@@ -113,9 +107,7 @@ type TemplateSpec = {
 };
 
 type TemplateUseSpec = {
-  template?: string;
-  // Backward compatibility with old schema/metadata.
-  macro?: string;
+  template: string;
   with?: Record<string, unknown>;
 };
 
@@ -139,16 +131,12 @@ type LookupSourceSpec =
   | { kind: 'http_json'; url: string; items_path?: string; ttl_ms?: number };
 
 type MetaIdlSpec = {
-  schema?: string;
+  schema: string;
   version: string;
   protocolId: string;
   sources?: Record<string, LookupSourceSpec>;
   templates?: Record<string, TemplateSpec>;
-  // Backward compatibility with old schema/metadata.
-  macros?: Record<string, TemplateSpec>;
   operations?: Record<string, ActionSpec>;
-  // Backward compatibility with old schema/metadata.
-  actions?: Record<string, ActionSpec>;
 };
 
 type ResolverContext = {
@@ -458,9 +446,9 @@ function readItemsByPath(value: unknown, path?: string): unknown[] {
 }
 
 function assertMetaSpec(meta: MetaIdlSpec, protocolId: string): MetaIdlSpec {
-  if (meta.schema && !SUPPORTED_META_IDL_SCHEMAS.has(meta.schema)) {
+  if (meta.schema !== META_IDL_SCHEMA) {
     throw new Error(
-      `Unsupported meta IDL schema for ${protocolId}: ${meta.schema}. Supported: ${[...SUPPORTED_META_IDL_SCHEMAS].join(', ')}.`,
+      `Unsupported meta IDL schema for ${protocolId}: ${meta.schema}. Required: ${META_IDL_SCHEMA}.`,
     );
   }
 
@@ -469,16 +457,15 @@ function assertMetaSpec(meta: MetaIdlSpec, protocolId: string): MetaIdlSpec {
   }
 
   const hasOperations = !!meta.operations && typeof meta.operations === 'object';
-  const hasActions = !!meta.actions && typeof meta.actions === 'object';
-  if (!hasOperations && !hasActions) {
-    throw new Error(`Meta IDL for ${protocolId} is missing operations (or legacy actions).`);
+  if (!hasOperations) {
+    throw new Error(`Meta IDL for ${protocolId} is missing operations.`);
   }
 
   return meta;
 }
 
 function resolveOperationSpec(meta: MetaIdlSpec, protocolId: string, operationId: string): ActionSpec {
-  const operationSpec = meta.operations?.[operationId] ?? meta.actions?.[operationId];
+  const operationSpec = meta.operations?.[operationId];
   if (!operationSpec) {
     throw new Error(`Operation ${operationId} not found in meta IDL for ${protocolId}.`);
   }
@@ -620,12 +607,12 @@ function materializeOperation(operationId: string, operation: ActionSpec, meta: 
   };
 
   for (const use of operation.use ?? []) {
-    const templateName = use.template ?? use.macro;
+    const templateName = use.template;
     if (!templateName) {
       throw new Error(`Operation ${operationId} contains use item without template name.`);
     }
 
-    const template = meta.templates?.[templateName] ?? meta.macros?.[templateName];
+    const template = meta.templates?.[templateName];
     if (!template) {
       throw new Error(`Operation ${operationId} references unknown template ${templateName}.`);
     }

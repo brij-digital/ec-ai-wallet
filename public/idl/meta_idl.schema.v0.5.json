@@ -3,11 +3,6 @@
   "$id": "https://espressocash.com/schemas/meta-idl.v0.5.json",
   "title": "Espresso Meta IDL v0.5",
   "type": "object",
-  "required": [
-    "schema",
-    "version",
-    "protocolId"
-  ],
   "properties": {
     "schema": {
       "const": "meta-idl.v0.5"
@@ -30,36 +25,18 @@
         "$ref": "#/$defs/templateSpec"
       }
     },
-    "macros": {
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/$defs/templateSpec"
-      }
-    },
     "operations": {
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/$defs/actionSpec"
-      }
-    },
-    "actions": {
       "type": "object",
       "additionalProperties": {
         "$ref": "#/$defs/actionSpec"
       }
     }
   },
-  "anyOf": [
-    {
-      "required": [
-        "operations"
-      ]
-    },
-    {
-      "required": [
-        "actions"
-      ]
-    }
+  "required": [
+    "schema",
+    "version",
+    "protocolId",
+    "operations"
   ],
   "$defs": {
     "sourceSpec": {
@@ -1195,11 +1172,11 @@
     },
     "templateUseSpec": {
       "type": "object",
+      "required": [
+        "template"
+      ],
       "properties": {
         "template": {
-          "type": "string"
-        },
-        "macro": {
           "type": "string"
         },
         "with": {
@@ -1207,19 +1184,7 @@
           "additionalProperties": {}
         }
       },
-      "additionalProperties": false,
-      "anyOf": [
-        {
-          "required": [
-            "template"
-          ]
-        },
-        {
-          "required": [
-            "macro"
-          ]
-        }
-      ]
+      "additionalProperties": false
     },
     "templateSpec": {
       "type": "object",

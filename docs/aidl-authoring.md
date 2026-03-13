@@ -37,8 +37,8 @@ Example:
   "kind": "aidl.v0.1",
   "target": {
     "output": "public/idl/pump_amm.meta.json",
-    "schema": "meta-idl.v0.4",
-    "schemaPath": "/idl/meta_idl.schema.v0.4.json",
+    "schema": "meta-idl.v0.5",
+    "schemaPath": "/idl/meta_idl.schema.v0.5.json",
     "version": "0.1.0",
     "protocolId": "pump-amm-mainnet"
   },

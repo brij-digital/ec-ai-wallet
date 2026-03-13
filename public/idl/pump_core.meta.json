@@ -1,6 +1,6 @@
 {
-  "$schema": "/idl/meta_idl.schema.v0.3.json",
-  "schema": "meta-idl.v0.3",
+  "$schema": "/idl/meta_idl.schema.v0.5.json",
+  "schema": "meta-idl.v0.5",
   "version": "0.1.0",
   "protocolId": "pump-core-mainnet",
   "operations": {

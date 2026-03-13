@@ -5,7 +5,7 @@ This repository is a command-driven web demo for an Espresso Cash AI Wallet MVP.
 Current scope:
 - Single-signature wallet approval (no Swig/passkeys yet)
 - One active swap integration via Orca Whirlpools on Solana mainnet
-- One base IDL + one Meta IDL (`meta-idl.v0.4`) for declarative operation derivation
+- One base IDL + one Meta IDL (`meta-idl.v0.5`) for declarative operation derivation
 - One authoring DSL (`AIDL v0.1`) compiled to canonical Meta IDL JSON
 - Chat-style command input with deterministic command parsing
 
@@ -57,7 +57,7 @@ Supported token aliases for `/swap` and `/quote`:
 - Pump AMM Meta IDL: `public/idl/pump_amm.meta.json`
 - Orca authoring source: `aidl/orca_whirlpool.aidl.json`
 - Pump AMM authoring source: `aidl/pump_amm.aidl.json`
-- Meta IDL schema: `public/idl/meta_idl.schema.v0.4.json`
+- Meta IDL schema: `public/idl/meta_idl.schema.v0.5.json`
 - Tutorial: `docs/meta-idl-tutorial.md`
   - Detailed end-to-end walkthrough of current `/quote` and `/swap` flow
 - AIDL authoring guide: `docs/aidl-authoring.md`
@@ -70,7 +70,7 @@ Meta operation used by `/swap` and `/quote`:
 - `swap_exact_in`
 - compiled instruction: `swap_v2`
 
-Meta IDL v0.4 resolver primitives currently implemented in runtime:
+Meta IDL v0.5 resolver primitives currently implemented in runtime:
 - `wallet_pubkey`
 - `decode_account`
 - `account_owner`
@@ -81,7 +81,7 @@ Meta IDL v0.4 resolver primitives currently implemented in runtime:
 - `lookup` (generic relation query primitive; not used in current Orca swap template)
 - `unix_timestamp`
 
-Meta IDL v0.4 discover primitives currently implemented in runtime:
+Meta IDL v0.5 discover primitives currently implemented in runtime:
 - `discover.mock` (generic)
 - `discover.query_http_json` (generic)
 - `discover.compare_values` (generic)
@@ -89,7 +89,7 @@ Meta IDL v0.4 discover primitives currently implemented in runtime:
 - `discover.pick_list_item`
 - `discover.pick_list_item_by_value`
 
-Meta IDL v0.4 compute primitives currently implemented in runtime:
+Meta IDL v0.5 compute primitives currently implemented in runtime:
 - `math.add`
 - `math.sum`
 - `math.mul`
@@ -111,7 +111,7 @@ Meta IDL v0.4 compute primitives currently implemented in runtime:
 - `compare.lte`
 - `logic.if`
 
-Meta IDL v0.4 supports template expansion:
+Meta IDL v0.5 supports template expansion:
 - `templates.<name>.expand` defines reusable declarative blocks.
 - `operations.<operation>.use[]` applies templates with parameter mapping via `$param.*`.
 

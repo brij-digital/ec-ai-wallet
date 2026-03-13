@@ -22,7 +22,7 @@ Current protocol/operation:
 - App command flow: `src/App.tsx`
 - AIDL compiler: `scripts/compile-aidl.mjs`
 - Meta spec: `public/idl/orca_whirlpool.meta.json`
-- Meta schema: `public/idl/meta_idl.schema.v0.4.json`
+- Meta schema: `public/idl/meta_idl.schema.v0.5.json`
 
 ## 3) Runtime Vocabulary
 
@@ -53,7 +53,7 @@ Current compute steps used by Orca operation:
 - `compare.equals`
 - `logic.if`
 
-New in v0.4 runtime (available primitives):
+Meta IDL v0.5 runtime (available primitives):
 - `token_account_balance`, `token_supply` resolvers
 - `math.sum`, `list.filter`, `list.first`, `list.min_by`, `list.max_by`, `coalesce`
 - `compare.not_equals`, `compare.gt`, `compare.gte`, `compare.lt`, `compare.lte`

@@ -8,13 +8,7 @@ const IDL_DIR = path.join(PUBLIC_DIR, 'idl');
 const REGISTRY_PATH = path.join(IDL_DIR, 'registry.json');
 const FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'fixtures');
 
-const SUPPORTED_META_IDL_SCHEMAS = new Set([
-  'meta-idl.v0.1',
-  'meta-idl.v0.2',
-  'meta-idl.v0.3',
-  'meta-idl.v0.4',
-  'meta-idl.v0.5',
-]);
+const REQUIRED_META_IDL_SCHEMA = 'meta-idl.v0.5';
 
 function fail(message) {
   throw new Error(message);
@@ -258,11 +252,11 @@ function materializeOperation(operationId, operation, meta) {
   };
 
   for (const useSpec of operation.use ?? []) {
-    const templateName = useSpec.template ?? useSpec.macro;
+    const templateName = useSpec.template;
     if (!templateName) {
       fail(`Operation ${operationId} contains use item without template name.`);
     }
-    const template = meta.templates?.[templateName] ?? meta.macros?.[templateName];
+    const template = meta.templates?.[templateName];
     if (!template) {
       fail(`Operation ${operationId} references unknown template ${templateName}.`);
     }
@@ -314,8 +308,8 @@ function collectIdlInstructionNames(idl, label) {
 
 function validateMetaSchema(meta, manifest) {
   const schema = asString(meta.schema, `${manifest.id}.meta.schema`);
-  if (!SUPPORTED_META_IDL_SCHEMAS.has(schema)) {
-    fail(`${manifest.id}: unsupported meta schema ${schema}.`);
+  if (schema !== REQUIRED_META_IDL_SCHEMA) {
+    fail(`${manifest.id}: unsupported meta schema ${schema}. Required: ${REQUIRED_META_IDL_SCHEMA}.`);
   }
 
   const version = asString(meta.version, `${manifest.id}.meta.version`);
@@ -345,7 +339,7 @@ function validateManifest(manifest, seenIds) {
 }
 
 function loadOperations(meta, protocolId) {
-  const operations = meta.operations ?? meta.actions;
+  const operations = meta.operations;
   if (!operations || typeof operations !== 'object' || Array.isArray(operations)) {
     fail(`${protocolId}: meta operations are missing.`);
   }
