@@ -1271,7 +1271,7 @@ export async function listMetaUserForms(options: {
   const operations = meta.operations ?? {};
   const formsSpec = meta.user_forms ?? {};
 
-  const formsFromSpec = Object.entries(formsSpec)
+  const forms = Object.entries(formsSpec)
     .map(([formId, form]) => {
       const operationId = form.operation;
       if (!operations[operationId]) {
@@ -1284,18 +1284,8 @@ export async function listMetaUserForms(options: {
         ...(form.description ? { description: form.description } : {}),
       } as MetaUserFormSummary;
     })
-    .filter((entry): entry is MetaUserFormSummary => entry !== null);
-
-  const forms =
-    formsFromSpec.length > 0
-      ? formsFromSpec
-      : Object.keys(operations)
-          .sort((a, b) => a.localeCompare(b))
-          .map((operationId) => ({
-            formId: operationId,
-            operationId,
-            title: operationId,
-          }));
+    .filter((entry): entry is MetaUserFormSummary => entry !== null)
+    .sort((a, b) => a.formId.localeCompare(b.formId));
 
   return {
     protocolId: options.protocolId,
