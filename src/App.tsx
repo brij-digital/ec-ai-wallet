@@ -53,7 +53,7 @@ const QUICK_PREFILL_SWAP_COMMAND =
 const QUICK_PREFILL_PUMP_QUOTE_COMMAND =
   '/pump-amm C4yDhKwkikpVGCQWD9BT2SJyHAtRFFnKPDM9Nyshpump 0.01 100 --simulate';
 const QUICK_PREFILL_PUMP_CURVE_COMMAND =
-  '/pump-curve EuN3FubSnMCCxZahkxneNcRFSXdweeLXuWnXKYMc18H5 0.01 100 --simulate';
+  '/pump-curve 2wHC2vrKwFn87nwXcCnBbx5KRBi61km156af9YS8pump 0.01 100 --simulate';
 const QUICK_PREFILL_KAMINO_DEPOSIT_COMMAND =
   '/kamino-deposit 8J5NcJX4RScwC9hWfW2MtgQ8v4D6vQkYvA4K4GcCbn8J EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v 0.1 --simulate';
 const BUILDER_EXAMPLE_INPUTS: Record<string, Record<string, string>> = {
@@ -73,7 +73,7 @@ const BUILDER_EXAMPLE_INPUTS: Record<string, Record<string, string>> = {
     slippage_bps: '100',
   },
   [`${PUMP_CURVE_PROTOCOL_ID}/${PUMP_CURVE_OPERATION_ID}`]: {
-    base_mint: 'EuN3FubSnMCCxZahkxneNcRFSXdweeLXuWnXKYMc18H5',
+    base_mint: '2wHC2vrKwFn87nwXcCnBbx5KRBi61km156af9YS8pump',
     spendable_sol_in: '10000000',
     min_tokens_out: '1',
     track_volume: 'true',
