@@ -215,11 +215,33 @@ export type MetaOperationSummary = {
       required: boolean;
       default?: unknown;
       discover_from?: string;
+      discover_stage?: 'discover' | 'derive' | 'compute' | 'input' | 'unknown';
       ui_tier?: 'enduser' | 'geek';
       ui_editable?: boolean;
     }
   >;
 };
+
+function resolveDiscoverStage(path: string, operation: MaterializedActionSpec): 'discover' | 'derive' | 'compute' | 'input' | 'unknown' {
+  const cleaned = path.startsWith('$') ? path.slice(1) : path;
+  const [root] = cleaned.split('.').filter(Boolean);
+  if (!root) {
+    return 'unknown';
+  }
+  if (root === 'input') {
+    return 'input';
+  }
+  if ((operation.discover ?? []).some((step) => step.name === root)) {
+    return 'discover';
+  }
+  if ((operation.derive ?? []).some((step) => step.name === root)) {
+    return 'derive';
+  }
+  if ((operation.compute ?? []).some((step) => step.name === root)) {
+    return 'compute';
+  }
+  return 'unknown';
+}
 
 const metaCache = new Map<string, MetaIdlSpec>();
 const idlCache = new Map<string, Idl>();
@@ -1200,6 +1222,7 @@ export async function listMetaOperations(options: {
             required: spec.required !== false,
             ...(spec.default !== undefined ? { default: cloneJsonLike(spec.default) } : {}),
             ...(spec.discover_from ? { discover_from: spec.discover_from } : {}),
+            ...(spec.discover_from ? { discover_stage: resolveDiscoverStage(spec.discover_from, operation) } : {}),
             ...(spec.ui_tier ? { ui_tier: spec.ui_tier } : {}),
             ...(typeof spec.ui_editable === 'boolean' ? { ui_editable: spec.ui_editable } : {}),
           },

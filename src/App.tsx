@@ -330,6 +330,31 @@ function App() {
     return !isAutoResolvedBuilderInput(spec);
   }
 
+  function getBuilderInputTag(spec: MetaOperationSummary['inputs'][string]): string {
+    if (spec.discover_from) {
+      if (spec.discover_stage === 'compute') {
+        return 'computed';
+      }
+      if (spec.discover_stage === 'derive' || spec.discover_stage === 'discover') {
+        return 'derived';
+      }
+      if (spec.discover_stage === 'input') {
+        return 'linked';
+      }
+      return 'auto';
+    }
+    if (spec.default !== undefined) {
+      return 'default';
+    }
+    if (spec.required) {
+      return 'required';
+    }
+    if (spec.default === undefined && !spec.discover_from) {
+      return 'required via discover';
+    }
+    return 'optional';
+  }
+
   function parseBuilderInputValue(raw: string, type: string, label: string): unknown {
     const trimmed = raw.trim();
     if (!trimmed) {
@@ -2585,18 +2610,19 @@ function App() {
                 </div>
                 {hiddenBuilderInputsCount > 0 && builderViewMode === 'enduser' ? (
                   <p className="builder-note">
-                    {hiddenBuilderInputsCount} field(s) auto-resolved or advanced. Switch to Geek mode to view them.
+                    {hiddenBuilderInputsCount} field(s) auto-resolved (default/derived/computed). Switch to Geek mode to view them.
                   </p>
                 ) : null}
 
                 <div className="builder-inputs">
                   {visibleBuilderInputs.map(([inputName, spec]) => {
                     const editable = isBuilderInputEditable(spec);
+                    const fieldTag = getBuilderInputTag(spec);
                     return (
                     <label key={inputName}>
                       <span>
                         {inputName} <code>{spec.type}</code>{' '}
-                        {spec.required ? <strong>(required)</strong> : <em>(optional)</em>}
+                        {spec.required ? <strong>({fieldTag})</strong> : <em>({fieldTag})</em>}
                       </span>
                       <input
                         type="text"
