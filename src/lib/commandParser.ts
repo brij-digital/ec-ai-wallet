@@ -32,6 +32,28 @@ export type PumpCurveCommand = {
   simulate: boolean;
 };
 
+export type KaminoDepositCommand = {
+  kind: 'kamino-deposit';
+  reserveOrVault: string;
+  tokenMint: string;
+  amountUi: string;
+  simulate: boolean;
+};
+
+export type KaminoWithdrawCommand = {
+  kind: 'kamino-withdraw';
+  reserveOrVault: string;
+  tokenMint: string;
+  amountUi: string;
+  simulate: boolean;
+};
+
+export type KaminoViewPositionCommand = {
+  kind: 'kamino-view-position';
+  reserveOrVault: string;
+  tokenMint: string;
+};
+
 export type IdlSendCommand = {
   kind: 'idl-send';
   protocolId: string;
@@ -63,6 +85,9 @@ export type ParsedCommand =
   | { kind: 'orca'; value: OrcaCommand }
   | { kind: 'pump-amm'; value: PumpAmmCommand }
   | { kind: 'pump-curve'; value: PumpCurveCommand }
+  | { kind: 'kamino-deposit'; value: KaminoDepositCommand }
+  | { kind: 'kamino-withdraw'; value: KaminoWithdrawCommand }
+  | { kind: 'kamino-view-position'; value: KaminoViewPositionCommand }
   | { kind: 'write-raw'; value: IdlSendCommand }
   | { kind: 'read-raw'; value: IdlSendCommand }
   | { kind: 'help' }
@@ -275,6 +300,70 @@ function parsePumpCurveArgs(args: string[]): PumpCurveCommand {
   };
 }
 
+function parseKaminoDepositArgs(args: string[]): KaminoDepositCommand {
+  const { argsWithoutFlag, simulate } = splitSimulationFlag(args);
+  if (argsWithoutFlag.length !== 3) {
+    throw new Error(
+      'Usage: /kamino-deposit <RESERVE_OR_VAULT> <TOKEN_MINT> <AMOUNT> [--simulate]',
+    );
+  }
+
+  const [reserveOrVaultRaw, tokenMintRaw, amountUi] = argsWithoutFlag;
+  const reserveOrVault = new PublicKey(reserveOrVaultRaw).toBase58();
+  const tokenMint = new PublicKey(tokenMintRaw).toBase58();
+  if (!/^\d+(\.\d+)?$/.test(amountUi)) {
+    throw new Error('AMOUNT must be a positive number.');
+  }
+
+  return {
+    kind: 'kamino-deposit',
+    reserveOrVault,
+    tokenMint,
+    amountUi,
+    simulate,
+  };
+}
+
+function parseKaminoWithdrawArgs(args: string[]): KaminoWithdrawCommand {
+  const { argsWithoutFlag, simulate } = splitSimulationFlag(args);
+  if (argsWithoutFlag.length !== 3) {
+    throw new Error(
+      'Usage: /kamino-withdraw <RESERVE_OR_VAULT> <TOKEN_MINT> <AMOUNT> [--simulate]',
+    );
+  }
+
+  const [reserveOrVaultRaw, tokenMintRaw, amountUi] = argsWithoutFlag;
+  const reserveOrVault = new PublicKey(reserveOrVaultRaw).toBase58();
+  const tokenMint = new PublicKey(tokenMintRaw).toBase58();
+  if (!/^\d+(\.\d+)?$/.test(amountUi)) {
+    throw new Error('AMOUNT must be a positive number.');
+  }
+
+  return {
+    kind: 'kamino-withdraw',
+    reserveOrVault,
+    tokenMint,
+    amountUi,
+    simulate,
+  };
+}
+
+function parseKaminoViewPositionArgs(args: string[]): KaminoViewPositionCommand {
+  if (args.length !== 2) {
+    throw new Error('Usage: /kamino-view-position <RESERVE_OR_VAULT> <TOKEN_MINT>');
+  }
+
+  const [reserveOrVaultRaw, tokenMintRaw] = args;
+  const reserveOrVault = new PublicKey(reserveOrVaultRaw).toBase58();
+  const tokenMint = new PublicKey(tokenMintRaw).toBase58();
+
+  return {
+    kind: 'kamino-view-position',
+    reserveOrVault,
+    tokenMint,
+  };
+}
+
 export function parseCommand(raw: string): ParsedCommand {
   const trimmed = raw.trim();
   if (trimmed.length === 0) {
@@ -362,6 +451,18 @@ export function parseCommand(raw: string): ParsedCommand {
 
   if (command === '/pump-curve') {
     return { kind: 'pump-curve', value: parsePumpCurveArgs(args) };
+  }
+
+  if (command === '/kamino-deposit') {
+    return { kind: 'kamino-deposit', value: parseKaminoDepositArgs(args) };
+  }
+
+  if (command === '/kamino-withdraw') {
+    return { kind: 'kamino-withdraw', value: parseKaminoWithdrawArgs(args) };
+  }
+
+  if (command === '/kamino-view-position') {
+    return { kind: 'kamino-view-position', value: parseKaminoViewPositionArgs(args) };
   }
 
   throw new Error(`Unknown command: ${command}. Try /help.`);

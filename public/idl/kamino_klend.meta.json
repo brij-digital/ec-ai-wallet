@@ -1,0 +1,243 @@
+{
+  "$schema": "/idl/meta_idl.schema.v0.4.json",
+  "schema": "meta-idl.v0.4",
+  "version": "0.1.0",
+  "protocolId": "kamino-klend-mainnet",
+  "operations": {
+    "deposit_reserve_liquidity": {
+      "instruction": "depositReserveLiquidity",
+      "inputs": {
+        "reserve": { "type": "pubkey" },
+        "liquidity_mint": { "type": "pubkey" },
+        "liquidity_amount": { "type": "u64" }
+      },
+      "derive": [
+        {
+          "name": "wallet",
+          "resolver": "wallet_pubkey"
+        },
+        {
+          "name": "reserve_data",
+          "resolver": "decode_account",
+          "address": "$input.reserve",
+          "account_type": "Reserve"
+        },
+        {
+          "name": "lending_market_authority",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": ["utf8:lma", "$reserve_data.lendingMarket"]
+        },
+        {
+          "name": "collateral_token_program",
+          "resolver": "account_owner",
+          "address": "$reserve_data.collateral.mintPubkey"
+        },
+        {
+          "name": "user_source_liquidity",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.liquidity.mintPubkey",
+          "token_program": "$reserve_data.liquidity.tokenProgram"
+        },
+        {
+          "name": "user_destination_collateral",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.collateral.mintPubkey",
+          "token_program": "$collateral_token_program"
+        }
+      ],
+      "args": {
+        "liquidityAmount": "$input.liquidity_amount"
+      },
+      "accounts": {
+        "owner": "$wallet",
+        "reserve": "$input.reserve",
+        "lendingMarket": "$reserve_data.lendingMarket",
+        "lendingMarketAuthority": "$lending_market_authority",
+        "reserveLiquidityMint": "$reserve_data.liquidity.mintPubkey",
+        "reserveLiquiditySupply": "$reserve_data.liquidity.supplyVault",
+        "reserveCollateralMint": "$reserve_data.collateral.mintPubkey",
+        "userSourceLiquidity": "$user_source_liquidity",
+        "userDestinationCollateral": "$user_destination_collateral",
+        "collateralTokenProgram": "$collateral_token_program",
+        "liquidityTokenProgram": "$reserve_data.liquidity.tokenProgram",
+        "instructionSysvarAccount": "Sysvar1nstructions1111111111111111111111111"
+      }
+    },
+    "redeem_reserve_collateral": {
+      "instruction": "redeemReserveCollateral",
+      "inputs": {
+        "reserve": { "type": "pubkey" },
+        "liquidity_mint": { "type": "pubkey" },
+        "liquidity_amount": { "type": "u64" }
+      },
+      "derive": [
+        {
+          "name": "wallet",
+          "resolver": "wallet_pubkey"
+        },
+        {
+          "name": "reserve_data",
+          "resolver": "decode_account",
+          "address": "$input.reserve",
+          "account_type": "Reserve"
+        },
+        {
+          "name": "lending_market_authority",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": ["utf8:lma", "$reserve_data.lendingMarket"]
+        },
+        {
+          "name": "collateral_token_program",
+          "resolver": "account_owner",
+          "address": "$reserve_data.collateral.mintPubkey"
+        },
+        {
+          "name": "user_source_collateral",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.collateral.mintPubkey",
+          "token_program": "$collateral_token_program"
+        },
+        {
+          "name": "user_destination_liquidity",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.liquidity.mintPubkey",
+          "token_program": "$reserve_data.liquidity.tokenProgram"
+        }
+      ],
+      "compute": [
+        {
+          "name": "borrowed_liquidity_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.borrowedAmountSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "protocol_fees_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.accumulatedProtocolFeesSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "referrer_fees_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.accumulatedReferrerFeesSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "pending_referrer_fees_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.pendingReferrerFeesSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "total_liquidity_before_fees",
+          "compute": "math.add",
+          "values": [
+            "$reserve_data.liquidity.availableAmount",
+            "$borrowed_liquidity_native"
+          ]
+        },
+        {
+          "name": "total_liquidity_supply",
+          "compute": "math.sub",
+          "values": [
+            "$total_liquidity_before_fees",
+            "$protocol_fees_native",
+            "$referrer_fees_native",
+            "$pending_referrer_fees_native"
+          ]
+        },
+        {
+          "name": "collateral_numerator",
+          "compute": "math.mul",
+          "values": [
+            "$input.liquidity_amount",
+            "$reserve_data.collateral.mintTotalSupply"
+          ]
+        },
+        {
+          "name": "collateral_den_minus_one",
+          "compute": "math.sub",
+          "values": [
+            "$total_liquidity_supply",
+            "1"
+          ]
+        },
+        {
+          "name": "collateral_numerator_adjusted",
+          "compute": "math.add",
+          "values": [
+            "$collateral_numerator",
+            "$collateral_den_minus_one"
+          ]
+        },
+        {
+          "name": "collateral_amount",
+          "compute": "math.floor_div",
+          "dividend": "$collateral_numerator_adjusted",
+          "divisor": "$total_liquidity_supply"
+        }
+      ],
+      "args": {
+        "collateralAmount": "$collateral_amount"
+      },
+      "accounts": {
+        "owner": "$wallet",
+        "lendingMarket": "$reserve_data.lendingMarket",
+        "reserve": "$input.reserve",
+        "lendingMarketAuthority": "$lending_market_authority",
+        "reserveLiquidityMint": "$reserve_data.liquidity.mintPubkey",
+        "reserveCollateralMint": "$reserve_data.collateral.mintPubkey",
+        "reserveLiquiditySupply": "$reserve_data.liquidity.supplyVault",
+        "userSourceCollateral": "$user_source_collateral",
+        "userDestinationLiquidity": "$user_destination_liquidity",
+        "collateralTokenProgram": "$collateral_token_program",
+        "liquidityTokenProgram": "$reserve_data.liquidity.tokenProgram",
+        "instructionSysvarAccount": "Sysvar1nstructions1111111111111111111111111"
+      }
+    },
+    "view_position": {
+      "inputs": {
+        "reserve": { "type": "pubkey" },
+        "liquidity_mint": { "type": "pubkey" }
+      },
+      "derive": [
+        {
+          "name": "wallet",
+          "resolver": "wallet_pubkey"
+        },
+        {
+          "name": "reserve_data",
+          "resolver": "decode_account",
+          "address": "$input.reserve",
+          "account_type": "Reserve"
+        },
+        {
+          "name": "collateral_token_program",
+          "resolver": "account_owner",
+          "address": "$reserve_data.collateral.mintPubkey"
+        },
+        {
+          "name": "user_liquidity_ata",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.liquidity.mintPubkey",
+          "token_program": "$reserve_data.liquidity.tokenProgram"
+        },
+        {
+          "name": "user_collateral_ata",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.collateral.mintPubkey",
+          "token_program": "$collateral_token_program"
+        }
+      ]
+    }
+  }
+}

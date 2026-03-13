@@ -13,6 +13,7 @@ import {
   type AccountMeta,
 } from '@solana/web3.js';
 import { getProtocolById } from './idlRegistry';
+import { normalizeIdlForAnchorCoder } from './normalizeIdl';
 
 type IdlProtocol = {
   id: string;
@@ -211,7 +212,7 @@ function normalizeValueByIdlType(idl: Idl, type: IdlTypeRef | unknown, value: un
       return new BN(value.toString());
     }
 
-    if (type === 'publicKey') {
+    if (type === 'publicKey' || type === 'pubkey') {
       if (typeof value !== 'string') {
         throw new Error('Expected a base58 public key string.');
       }
@@ -342,7 +343,7 @@ async function loadProtocolAndIdl(protocolId: string): Promise<{ protocol: IdlPr
     throw new Error(`Failed to load IDL file ${protocol.idlPath}`);
   }
 
-  const parsed = (await response.json()) as Idl;
+  const parsed = normalizeIdlForAnchorCoder((await response.json()) as Idl);
   idlCache.set(protocol.id, parsed);
 
   return {
@@ -450,7 +451,7 @@ function sampleValueForType(idl: Idl, type: IdlTypeRef | unknown): unknown {
       return false;
     }
 
-    if (type === 'publicKey') {
+    if (type === 'publicKey' || type === 'pubkey') {
       return '<PUBKEY>';
     }
 

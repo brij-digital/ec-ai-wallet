@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { BorshAccountsCoder, utils, type Idl } from '@coral-xyz/anchor';
 import {
   createAssociatedTokenAccountIdempotentInstruction,
   createCloseAccountInstruction,
@@ -10,9 +11,12 @@ import {
 import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import Decimal from 'decimal.js';
 import './App.css';
-import { formatTokenAmount, listSupportedTokens, resolveToken } from './constants/tokens';
+import { formatTokenAmount, listSupportedTokens, parseUiAmountToAtomic, resolveToken } from './constants/tokens';
 import {
   parseCommand,
+  type KaminoDepositCommand,
+  type KaminoViewPositionCommand,
+  type KaminoWithdrawCommand,
   type OrcaCommand,
   type PumpAmmCommand,
   type PumpCurveCommand,
@@ -27,9 +31,11 @@ import {
 } from './lib/idlDeclarativeRuntime';
 import {
   explainMetaOperation,
+  prepareMetaOperation,
   prepareMetaInstruction,
   type MetaOperationExplain,
 } from './lib/metaIdlRuntime';
+import { normalizeIdlForAnchorCoder } from './lib/normalizeIdl';
 
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
 const ORCA_OPERATION_ID = 'swap_exact_in';
@@ -37,12 +43,26 @@ const PUMP_AMM_PROTOCOL_ID = 'pump-amm-mainnet';
 const PUMP_AMM_OPERATION_ID = 'buy';
 const PUMP_CURVE_PROTOCOL_ID = 'pump-core-mainnet';
 const PUMP_CURVE_OPERATION_ID = 'buy_exact_sol_in';
+const KAMINO_KLEND_PROTOCOL_ID = 'kamino-klend-mainnet';
+const KAMINO_DEPOSIT_OPERATION_ID = 'deposit_reserve_liquidity';
+const KAMINO_WITHDRAW_OPERATION_ID = 'redeem_reserve_collateral';
+const KAMINO_VIEW_OPERATION_ID = 'view_position';
+const KAMINO_KLEND_PROGRAM_ID = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD';
 const QUICK_PREFILL_SWAP_COMMAND =
   '/orca EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v So11111111111111111111111111111111111111112 0.01 50 --simulate';
 const QUICK_PREFILL_PUMP_QUOTE_COMMAND =
   '/pump-amm C4yDhKwkikpVGCQWD9BT2SJyHAtRFFnKPDM9Nyshpump 0.01 100 --simulate';
 const QUICK_PREFILL_PUMP_CURVE_COMMAND =
   '/pump-curve EuN3FubSnMCCxZahkxneNcRFSXdweeLXuWnXKYMc18H5 0.01 100 --simulate';
+const QUICK_PREFILL_KAMINO_DEPOSIT_COMMAND =
+  '/kamino-deposit 8J5NcJX4RScwC9hWfW2MtgQ8v4D6vQkYvA4K4GcCbn8J EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v 0.1 --simulate';
+const KAMINO_FIXED_SLOT_MS = 400;
+const KAMINO_SLOTS_PER_SECOND = 2;
+const KAMINO_SLOTS_PER_YEAR = KAMINO_SLOTS_PER_SECOND * 60 * 60 * 24 * 365;
+const KAMINO_SF_SCALE = 1n << 60n;
+let kaminoLookupIdlCache: Idl | null = null;
+let kaminoReserveDiscriminatorCache: string | null = null;
+let kaminoReserveScanCache: { fetchedAt: number; reserves: KaminoReserveSnapshot[] } | null = null;
 
 type Message = {
   id: number;
@@ -65,6 +85,25 @@ type PumpPoolCandidate = {
   lpSupply: string;
 };
 
+type KaminoReserveSnapshot = {
+  address: string;
+  lendingMarket: string;
+  liquidityMint: string;
+  liquiditySupplyVault: string;
+  liquidityTokenProgram: string;
+  collateralMint: string;
+  collateralSupplyVault: string;
+  mintDecimals: number;
+  availableAmount: bigint;
+  borrowedAmountSf: bigint;
+  accumulatedProtocolFeesSf: bigint;
+  accumulatedReferrerFeesSf: bigint;
+  pendingReferrerFeesSf: bigint;
+  collateralMintTotalSupply: bigint;
+  protocolTakeRatePct: number;
+  borrowCurvePoints: Array<{ utilizationRateBps: number; borrowRateBps: number }>;
+};
+
 type PendingPoolSelection = {
   command: OrcaCommand;
   candidates: OrcaPoolCandidate[];
@@ -75,6 +114,9 @@ const HELP_TEXT = [
   '/orca <INPUT_TOKEN> <OUTPUT_TOKEN> <AMOUNT> <SLIPPAGE_BPS> [--simulate]',
   '/pump-amm <TOKEN_MINT> <AMOUNT_SOL> <SLIPPAGE_BPS> [POOL_PUBKEY] [--simulate]',
   '/pump-curve <TOKEN_MINT> <AMOUNT_SOL> <SLIPPAGE_BPS> [--simulate]',
+  '/kamino-deposit <RESERVE_OR_VAULT> <TOKEN_MINT> <AMOUNT> [--simulate]',
+  '/kamino-withdraw <RESERVE_OR_VAULT> <TOKEN_MINT> <AMOUNT> [--simulate]',
+  '/kamino-view-position <RESERVE_OR_VAULT> <TOKEN_MINT>',
   '/write-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
   '/read-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
   '/idl-list',
@@ -87,6 +129,7 @@ const HELP_TEXT = [
   'AMOUNT is UI amount (e.g. 0.1 for SOL).',
   'Pool discovery is on-chain via Orca program account scan.',
   'Pump quote/buy spends wrapped SOL (WSOL) under the hood.',
+  'Kamino commands accept reserve pubkey or reserve vault pubkey as first argument.',
   'If multiple pools match a pair, you will be asked to pick one (or provide a whirlpool override internally).',
   '',
   'Examples:',
@@ -96,9 +139,14 @@ const HELP_TEXT = [
   '/pump-amm <TOKEN_MINT> 0.01 100',
   '/pump-curve <TOKEN_MINT> 0.01 100 --simulate',
   '/pump-curve <TOKEN_MINT> 0.01 100',
+  '/kamino-deposit <RESERVE_OR_VAULT> EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v 10 --simulate',
+  '/kamino-withdraw <RESERVE_OR_VAULT> EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v 5 --simulate',
+  '/kamino-view-position <RESERVE_OR_VAULT> EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
   '/meta-explain orca-whirlpool-mainnet swap_exact_in',
   '/meta-explain pump-amm-mainnet buy',
   '/meta-explain pump-core-mainnet buy_exact_sol_in',
+  '/meta-explain kamino-klend-mainnet deposit_reserve_liquidity',
+  '/meta-explain kamino-klend-mainnet redeem_reserve_collateral',
 ].join('\n');
 
 function App() {
@@ -347,6 +395,306 @@ function App() {
 
   function formatPoolChoiceLine(pool: OrcaPoolCandidate, index: number): string {
     return `${index + 1}. ${compactPubkey(pool.whirlpool)} | tickSpacing ${pool.tickSpacing} | liquidity ${compactInteger(pool.liquidity)}`;
+  }
+
+  async function loadKaminoLookupIdl(): Promise<Idl> {
+    if (kaminoLookupIdlCache) {
+      return kaminoLookupIdlCache;
+    }
+
+    const response = await fetch('/idl/kamino_klend.json');
+    if (!response.ok) {
+      throw new Error('Failed to load local Kamino IDL.');
+    }
+    const parsed = normalizeIdlForAnchorCoder((await response.json()) as Idl);
+    kaminoLookupIdlCache = parsed;
+    return parsed;
+  }
+
+  function toPubkeyString(value: unknown, label: string): string {
+    if (value instanceof PublicKey) {
+      return value.toBase58();
+    }
+    if (typeof value === 'string') {
+      return new PublicKey(value).toBase58();
+    }
+    if (value && typeof value === 'object' && 'toBase58' in (value as Record<string, unknown>)) {
+      const toBase58 = (value as { toBase58?: () => string }).toBase58;
+      if (typeof toBase58 === 'function') {
+        return new PublicKey(toBase58()).toBase58();
+      }
+    }
+    throw new Error(`${label} must be a public key.`);
+  }
+
+  function toBigIntLike(value: unknown, label: string): bigint {
+    if (typeof value === 'bigint') {
+      return value;
+    }
+    if (typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value)) {
+      return BigInt(value);
+    }
+    if (typeof value === 'string' && /^-?\d+$/.test(value)) {
+      return BigInt(value);
+    }
+    if (value && typeof value === 'object' && 'toString' in (value as Record<string, unknown>)) {
+      const rendered = String((value as { toString: () => string }).toString());
+      if (/^-?\d+$/.test(rendered)) {
+        return BigInt(rendered);
+      }
+    }
+    throw new Error(`${label} must be bigint-compatible integer.`);
+  }
+
+  function toNumberLike(value: unknown, label: string): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    if (value && typeof value === 'object' && 'toString' in (value as Record<string, unknown>)) {
+      const parsed = Number(String((value as { toString: () => string }).toString()));
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    throw new Error(`${label} must be number-like.`);
+  }
+
+  function parseKaminoReserveSnapshot(decoded: unknown, address: string): KaminoReserveSnapshot {
+    const reserve = asRecord(decoded, 'kamino.reserve');
+    const liquidity = asRecord(reserve.liquidity, 'kamino.reserve.liquidity');
+    const collateral = asRecord(reserve.collateral, 'kamino.reserve.collateral');
+    const config = asRecord(reserve.config, 'kamino.reserve.config');
+    const borrowRateCurve = asRecord(config.borrowRateCurve, 'kamino.reserve.config.borrowRateCurve');
+    const pointsRaw = Array.isArray(borrowRateCurve.points) ? borrowRateCurve.points : [];
+    const borrowCurvePoints = pointsRaw.map((entry, index) => {
+      const point = asRecord(entry, `kamino.reserve.config.borrowRateCurve.points[${index}]`);
+      return {
+        utilizationRateBps: Math.trunc(toNumberLike(point.utilizationRateBps, `curve[${index}].utilizationRateBps`)),
+        borrowRateBps: Math.trunc(toNumberLike(point.borrowRateBps, `curve[${index}].borrowRateBps`)),
+      };
+    });
+
+    return {
+      address: new PublicKey(address).toBase58(),
+      lendingMarket: toPubkeyString(reserve.lendingMarket, 'reserve.lendingMarket'),
+      liquidityMint: toPubkeyString(liquidity.mintPubkey, 'reserve.liquidity.mintPubkey'),
+      liquiditySupplyVault: toPubkeyString(liquidity.supplyVault, 'reserve.liquidity.supplyVault'),
+      liquidityTokenProgram: toPubkeyString(liquidity.tokenProgram, 'reserve.liquidity.tokenProgram'),
+      collateralMint: toPubkeyString(collateral.mintPubkey, 'reserve.collateral.mintPubkey'),
+      collateralSupplyVault: toPubkeyString(collateral.supplyVault, 'reserve.collateral.supplyVault'),
+      mintDecimals: Math.trunc(toNumberLike(liquidity.mintDecimals, 'reserve.liquidity.mintDecimals')),
+      availableAmount: toBigIntLike(liquidity.availableAmount, 'reserve.liquidity.availableAmount'),
+      borrowedAmountSf: toBigIntLike(liquidity.borrowedAmountSf, 'reserve.liquidity.borrowedAmountSf'),
+      accumulatedProtocolFeesSf: toBigIntLike(
+        liquidity.accumulatedProtocolFeesSf,
+        'reserve.liquidity.accumulatedProtocolFeesSf',
+      ),
+      accumulatedReferrerFeesSf: toBigIntLike(
+        liquidity.accumulatedReferrerFeesSf,
+        'reserve.liquidity.accumulatedReferrerFeesSf',
+      ),
+      pendingReferrerFeesSf: toBigIntLike(
+        liquidity.pendingReferrerFeesSf,
+        'reserve.liquidity.pendingReferrerFeesSf',
+      ),
+      collateralMintTotalSupply: toBigIntLike(collateral.mintTotalSupply, 'reserve.collateral.mintTotalSupply'),
+      protocolTakeRatePct: Math.trunc(toNumberLike(config.protocolTakeRatePct, 'reserve.config.protocolTakeRatePct')),
+      borrowCurvePoints,
+    };
+  }
+
+  function estimateKaminoTotalSupplyAtomic(snapshot: KaminoReserveSnapshot): bigint {
+    const borrowed = snapshot.borrowedAmountSf / KAMINO_SF_SCALE;
+    const protocolFees = snapshot.accumulatedProtocolFeesSf / KAMINO_SF_SCALE;
+    const referrerFees = snapshot.accumulatedReferrerFeesSf / KAMINO_SF_SCALE;
+    const pendingFees = snapshot.pendingReferrerFeesSf / KAMINO_SF_SCALE;
+    const total = snapshot.availableAmount + borrowed - protocolFees - referrerFees - pendingFees;
+    return total > 0n ? total : 0n;
+  }
+
+  function estimateKaminoCollateralForWithdrawAtomic(
+    snapshot: KaminoReserveSnapshot,
+    liquidityAmountAtomic: bigint,
+  ): bigint {
+    const totalSupply = estimateKaminoTotalSupplyAtomic(snapshot);
+    if (totalSupply <= 0n || snapshot.collateralMintTotalSupply <= 0n) {
+      return liquidityAmountAtomic;
+    }
+    const numerator = liquidityAmountAtomic * snapshot.collateralMintTotalSupply;
+    return (numerator + totalSupply - 1n) / totalSupply;
+  }
+
+  function estimateKaminoLiquidityFromCollateralAtomic(
+    snapshot: KaminoReserveSnapshot,
+    collateralAmountAtomic: bigint,
+  ): bigint {
+    const totalSupply = estimateKaminoTotalSupplyAtomic(snapshot);
+    if (totalSupply <= 0n || snapshot.collateralMintTotalSupply <= 0n) {
+      return collateralAmountAtomic;
+    }
+    return (collateralAmountAtomic * totalSupply) / snapshot.collateralMintTotalSupply;
+  }
+
+  function getBorrowRateFromCurve(utilization: number, points: Array<{ utilizationRateBps: number; borrowRateBps: number }>): number {
+    const curve = points
+      .map((point) => ({
+        utilization: point.utilizationRateBps / 10_000,
+        rate: point.borrowRateBps / 10_000,
+      }))
+      .sort((left, right) => left.utilization - right.utilization);
+    if (curve.length < 2) {
+      return 0;
+    }
+
+    const boundedUtilization = Math.min(1, Math.max(0, utilization));
+    for (let index = 1; index < curve.length; index += 1) {
+      const left = curve[index - 1];
+      const right = curve[index];
+      if (boundedUtilization <= right.utilization) {
+        if (right.utilization <= left.utilization) {
+          return right.rate;
+        }
+        const ratio = (boundedUtilization - left.utilization) / (right.utilization - left.utilization);
+        return left.rate + ratio * (right.rate - left.rate);
+      }
+    }
+
+    return curve[curve.length - 1].rate;
+  }
+
+  function calculateKaminoSupplyYield(snapshot: KaminoReserveSnapshot): {
+    utilization: number;
+    supplyApr: number;
+    supplyApy: number;
+  } {
+    const totalSupply = estimateKaminoTotalSupplyAtomic(snapshot);
+    if (totalSupply <= 0n) {
+      return { utilization: 0, supplyApr: 0, supplyApy: 0 };
+    }
+
+    const borrowed = Number(snapshot.borrowedAmountSf / KAMINO_SF_SCALE);
+    const supply = Number(totalSupply);
+    if (!Number.isFinite(borrowed) || !Number.isFinite(supply) || supply <= 0) {
+      return { utilization: 0, supplyApr: 0, supplyApy: 0 };
+    }
+
+    const utilization = Math.min(1, Math.max(0, borrowed / supply));
+    const slotAdjustmentFactor = 1000 / KAMINO_SLOTS_PER_SECOND / KAMINO_FIXED_SLOT_MS;
+    const rawBorrowRate = getBorrowRateFromCurve(utilization, snapshot.borrowCurvePoints) * slotAdjustmentFactor;
+    const protocolTake = 1 - snapshot.protocolTakeRatePct / 100;
+    const supplyApr = Math.max(0, utilization * rawBorrowRate * protocolTake);
+    const supplyApy = Math.max(0, Math.pow(1 + supplyApr / KAMINO_SLOTS_PER_YEAR, KAMINO_SLOTS_PER_YEAR) - 1);
+    return { utilization, supplyApr, supplyApy };
+  }
+
+  function formatPercent(value: number): string {
+    if (!Number.isFinite(value)) {
+      return 'n/a';
+    }
+    return `${(value * 100).toFixed(2)}%`;
+  }
+
+  async function getKaminoReserveDiscriminator(): Promise<string> {
+    if (kaminoReserveDiscriminatorCache) {
+      return kaminoReserveDiscriminatorCache;
+    }
+    const idl = await loadKaminoLookupIdl();
+    const reserveAccount = (idl.accounts ?? []).find((entry) => entry.name === 'Reserve') as
+      | { discriminator?: number[] }
+      | undefined;
+    if (reserveAccount && Array.isArray(reserveAccount.discriminator) && reserveAccount.discriminator.length === 8) {
+      kaminoReserveDiscriminatorCache = utils.bytes.bs58.encode(Uint8Array.from(reserveAccount.discriminator));
+      return kaminoReserveDiscriminatorCache;
+    }
+
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('account:Reserve'));
+    const discriminatorBytes = new Uint8Array(digest).slice(0, 8);
+    kaminoReserveDiscriminatorCache = utils.bytes.bs58.encode(discriminatorBytes);
+    return kaminoReserveDiscriminatorCache;
+  }
+
+  async function scanKaminoReserves(): Promise<KaminoReserveSnapshot[]> {
+    const now = Date.now();
+    if (kaminoReserveScanCache && now - kaminoReserveScanCache.fetchedAt < 30_000) {
+      return kaminoReserveScanCache.reserves;
+    }
+
+    const [idl, discriminator] = await Promise.all([loadKaminoLookupIdl(), getKaminoReserveDiscriminator()]);
+    const coder = new BorshAccountsCoder(idl);
+    const accounts = await connection.getProgramAccounts(new PublicKey(KAMINO_KLEND_PROGRAM_ID), {
+      commitment: 'confirmed',
+      filters: [{ memcmp: { offset: 0, bytes: discriminator } }],
+    });
+
+    const reserves: KaminoReserveSnapshot[] = [];
+    for (const account of accounts) {
+      try {
+        const decoded = coder.decode('Reserve', account.account.data);
+        reserves.push(parseKaminoReserveSnapshot(decoded, account.pubkey.toBase58()));
+      } catch {
+        // Skip non-decodable account data.
+      }
+    }
+
+    kaminoReserveScanCache = {
+      fetchedAt: now,
+      reserves,
+    };
+    return reserves;
+  }
+
+  async function resolveKaminoReserveForCommand(options: {
+    reserveOrVault: string;
+    tokenMint: string;
+  }): Promise<{ reserve: KaminoReserveSnapshot; resolvedBy: 'reserve' | 'vault' }> {
+    const reserveOrVault = new PublicKey(options.reserveOrVault).toBase58();
+    const tokenMint = new PublicKey(options.tokenMint).toBase58();
+
+    try {
+      const decodedDirect = await decodeIdlAccount({
+        protocolId: KAMINO_KLEND_PROTOCOL_ID,
+        accountType: 'Reserve',
+        address: reserveOrVault,
+        connection,
+      });
+      const reserveDirect = parseKaminoReserveSnapshot(decodedDirect.data, reserveOrVault);
+      if (reserveDirect.liquidityMint !== tokenMint) {
+        throw new Error(
+          `Token mint mismatch for reserve ${reserveOrVault}. Reserve mint is ${reserveDirect.liquidityMint}, input mint is ${tokenMint}.`,
+        );
+      }
+      return {
+        reserve: reserveDirect,
+        resolvedBy: 'reserve',
+      };
+    } catch {
+      // Not a direct reserve pubkey, continue with vault lookup.
+    }
+
+    const reserves = await scanKaminoReserves();
+    const tokenReserves = reserves.filter((entry) => entry.liquidityMint === tokenMint);
+    const matched = tokenReserves.find(
+      (entry) =>
+        entry.address === reserveOrVault ||
+        entry.liquiditySupplyVault === reserveOrVault ||
+        entry.collateralSupplyVault === reserveOrVault,
+    );
+    if (matched) {
+      return {
+        reserve: matched,
+        resolvedBy: matched.address === reserveOrVault ? 'reserve' : 'vault',
+      };
+    }
+
+    throw new Error(
+      `No Kamino reserve found for token ${tokenMint} matching selector ${reserveOrVault} (reserve or vault).`,
+    );
   }
 
   async function executeOrca(options: {
@@ -1187,6 +1535,346 @@ function App() {
     );
   }
 
+  function buildKaminoAtaPreInstructions(options: {
+    owner: PublicKey;
+    userLiquidityAta: string;
+    liquidityMint: string;
+    liquidityTokenProgram: string;
+    userCollateralAta: string;
+    collateralMint: string;
+    collateralTokenProgram: string;
+  }): TransactionInstruction[] {
+    return [
+      createAssociatedTokenAccountIdempotentInstruction(
+        options.owner,
+        new PublicKey(options.userLiquidityAta),
+        options.owner,
+        new PublicKey(options.liquidityMint),
+        new PublicKey(options.liquidityTokenProgram),
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        options.owner,
+        new PublicKey(options.userCollateralAta),
+        options.owner,
+        new PublicKey(options.collateralMint),
+        new PublicKey(options.collateralTokenProgram),
+      ),
+    ];
+  }
+
+  async function executeKaminoDeposit(options: {
+    value: KaminoDepositCommand;
+  }): Promise<void> {
+    if (!wallet.publicKey) {
+      throw new Error('Connect wallet first to run Kamino deposit.');
+    }
+    const walletPublicKey = wallet.publicKey;
+    const resolved = await resolveKaminoReserveForCommand({
+      reserveOrVault: options.value.reserveOrVault,
+      tokenMint: options.value.tokenMint,
+    });
+    const liquidityAmountAtomic = parseUiAmountToAtomic(options.value.amountUi, resolved.reserve.mintDecimals);
+    if (liquidityAmountAtomic <= 0n) {
+      throw new Error('AMOUNT must be greater than zero.');
+    }
+
+    const prepared = await prepareMetaInstruction({
+      protocolId: KAMINO_KLEND_PROTOCOL_ID,
+      operationId: KAMINO_DEPOSIT_OPERATION_ID,
+      input: {
+        reserve: resolved.reserve.address,
+        liquidity_mint: resolved.reserve.liquidityMint,
+        liquidity_amount: liquidityAmountAtomic.toString(),
+      },
+      connection,
+      walletPublicKey,
+    });
+
+    const preInstructions = buildKaminoAtaPreInstructions({
+      owner: walletPublicKey,
+      userLiquidityAta: prepared.accounts.userSourceLiquidity,
+      liquidityMint: prepared.accounts.reserveLiquidityMint,
+      liquidityTokenProgram: prepared.accounts.liquidityTokenProgram,
+      userCollateralAta: prepared.accounts.userDestinationCollateral,
+      collateralMint: prepared.accounts.reserveCollateralMint,
+      collateralTokenProgram: prepared.accounts.collateralTokenProgram,
+    });
+
+    let preSourceAtomic = 0n;
+    try {
+      const balance = await connection.getTokenAccountBalance(new PublicKey(prepared.accounts.userSourceLiquidity), 'confirmed');
+      preSourceAtomic = BigInt(balance.value.amount);
+    } catch {
+      preSourceAtomic = 0n;
+    }
+    let preCollateralAtomic = 0n;
+    try {
+      const balance = await connection.getTokenAccountBalance(
+        new PublicKey(prepared.accounts.userDestinationCollateral),
+        'confirmed',
+      );
+      preCollateralAtomic = BigInt(balance.value.amount);
+    } catch {
+      preCollateralAtomic = 0n;
+    }
+
+    const args = prepared.args as Record<string, unknown>;
+    const simulation = await simulateIdlInstruction({
+      protocolId: prepared.protocolId,
+      instructionName: prepared.instructionName,
+      args,
+      accounts: prepared.accounts,
+      preInstructions,
+      includeAccounts: [prepared.accounts.userSourceLiquidity, prepared.accounts.userDestinationCollateral],
+      connection,
+      wallet,
+    });
+    if (!simulation.ok) {
+      throw new Error(`Simulation failed: ${simulation.error ?? 'unknown'}\n${simulation.logs.join('\n')}`);
+    }
+
+    const simSource = simulation.accounts.find((entry) => entry.address === prepared.accounts.userSourceLiquidity);
+    const simCollateral = simulation.accounts.find((entry) => entry.address === prepared.accounts.userDestinationCollateral);
+    const postSourceAtomic = readSplTokenAmountFromSimAccount(simSource?.dataBase64 ?? null);
+    const postCollateralAtomic = readSplTokenAmountFromSimAccount(simCollateral?.dataBase64 ?? null);
+    const estimatedLiquiditySpent = preSourceAtomic > postSourceAtomic ? preSourceAtomic - postSourceAtomic : 0n;
+    const estimatedCollateralMinted =
+      postCollateralAtomic > preCollateralAtomic ? postCollateralAtomic - preCollateralAtomic : 0n;
+
+    if (options.value.simulate) {
+      pushMessage(
+        'assistant',
+        [
+          'Kamino deposit simulate:',
+          `resolved reserve: ${resolved.reserve.address} (${resolved.resolvedBy})`,
+          `liquidity mint: ${resolved.reserve.liquidityMint}`,
+          `input amount: ${options.value.amountUi} (${liquidityAmountAtomic.toString()} atomic)`,
+          `estimated liquidity spent: ${estimatedLiquiditySpent.toString()} atomic`,
+          `estimated collateral minted: ${estimatedCollateralMinted.toString()} atomic`,
+          `simulation: ok${simulation.unitsConsumed ? ` (${simulation.unitsConsumed} CU)` : ''}`,
+          'Run same command without --simulate to execute.',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    const result = await sendIdlInstruction({
+      protocolId: prepared.protocolId,
+      instructionName: prepared.instructionName,
+      args,
+      accounts: prepared.accounts,
+      preInstructions,
+      connection,
+      wallet,
+    });
+
+    pushMessage(
+      'assistant',
+      [
+        'Kamino deposit tx sent.',
+        `reserve: ${resolved.reserve.address}`,
+        `liquidity amount: ${options.value.amountUi} (${liquidityAmountAtomic.toString()} atomic)`,
+        result.signature,
+        result.explorerUrl,
+      ].join('\n'),
+    );
+  }
+
+  async function executeKaminoWithdraw(options: {
+    value: KaminoWithdrawCommand;
+  }): Promise<void> {
+    if (!wallet.publicKey) {
+      throw new Error('Connect wallet first to run Kamino withdraw.');
+    }
+    const walletPublicKey = wallet.publicKey;
+    const resolved = await resolveKaminoReserveForCommand({
+      reserveOrVault: options.value.reserveOrVault,
+      tokenMint: options.value.tokenMint,
+    });
+    const liquidityAmountAtomic = parseUiAmountToAtomic(options.value.amountUi, resolved.reserve.mintDecimals);
+    if (liquidityAmountAtomic <= 0n) {
+      throw new Error('AMOUNT must be greater than zero.');
+    }
+
+    const prepared = await prepareMetaInstruction({
+      protocolId: KAMINO_KLEND_PROTOCOL_ID,
+      operationId: KAMINO_WITHDRAW_OPERATION_ID,
+      input: {
+        reserve: resolved.reserve.address,
+        liquidity_mint: resolved.reserve.liquidityMint,
+        liquidity_amount: liquidityAmountAtomic.toString(),
+      },
+      connection,
+      walletPublicKey,
+    });
+    const args = prepared.args as Record<string, unknown>;
+    const collateralAmount = asIntegerLikeString(args.collateralAmount, 'args.collateralAmount');
+    const localEstimatedCollateral = estimateKaminoCollateralForWithdrawAtomic(
+      resolved.reserve,
+      liquidityAmountAtomic,
+    ).toString();
+
+    const preInstructions = buildKaminoAtaPreInstructions({
+      owner: walletPublicKey,
+      userLiquidityAta: prepared.accounts.userDestinationLiquidity,
+      liquidityMint: prepared.accounts.reserveLiquidityMint,
+      liquidityTokenProgram: prepared.accounts.liquidityTokenProgram,
+      userCollateralAta: prepared.accounts.userSourceCollateral,
+      collateralMint: prepared.accounts.reserveCollateralMint,
+      collateralTokenProgram: prepared.accounts.collateralTokenProgram,
+    });
+
+    let preLiquidityAtomic = 0n;
+    try {
+      const balance = await connection.getTokenAccountBalance(
+        new PublicKey(prepared.accounts.userDestinationLiquidity),
+        'confirmed',
+      );
+      preLiquidityAtomic = BigInt(balance.value.amount);
+    } catch {
+      preLiquidityAtomic = 0n;
+    }
+    let preCollateralAtomic = 0n;
+    try {
+      const balance = await connection.getTokenAccountBalance(new PublicKey(prepared.accounts.userSourceCollateral), 'confirmed');
+      preCollateralAtomic = BigInt(balance.value.amount);
+    } catch {
+      preCollateralAtomic = 0n;
+    }
+
+    const simulation = await simulateIdlInstruction({
+      protocolId: prepared.protocolId,
+      instructionName: prepared.instructionName,
+      args,
+      accounts: prepared.accounts,
+      preInstructions,
+      includeAccounts: [prepared.accounts.userDestinationLiquidity, prepared.accounts.userSourceCollateral],
+      connection,
+      wallet,
+    });
+    if (!simulation.ok) {
+      throw new Error(`Simulation failed: ${simulation.error ?? 'unknown'}\n${simulation.logs.join('\n')}`);
+    }
+
+    const simLiquidity = simulation.accounts.find((entry) => entry.address === prepared.accounts.userDestinationLiquidity);
+    const simCollateral = simulation.accounts.find((entry) => entry.address === prepared.accounts.userSourceCollateral);
+    const postLiquidityAtomic = readSplTokenAmountFromSimAccount(simLiquidity?.dataBase64 ?? null);
+    const postCollateralAtomic = readSplTokenAmountFromSimAccount(simCollateral?.dataBase64 ?? null);
+    const estimatedLiquidityOut =
+      postLiquidityAtomic > preLiquidityAtomic ? postLiquidityAtomic - preLiquidityAtomic : 0n;
+    const estimatedCollateralSpent =
+      preCollateralAtomic > postCollateralAtomic ? preCollateralAtomic - postCollateralAtomic : 0n;
+
+    if (options.value.simulate) {
+      pushMessage(
+        'assistant',
+        [
+          'Kamino withdraw simulate:',
+          `resolved reserve: ${resolved.reserve.address} (${resolved.resolvedBy})`,
+          `requested liquidity out: ${options.value.amountUi} (${liquidityAmountAtomic.toString()} atomic)`,
+          `computed collateralAmount arg: ${collateralAmount}`,
+          `local collateral estimate: ${localEstimatedCollateral}`,
+          `estimated liquidity out: ${estimatedLiquidityOut.toString()} atomic`,
+          `estimated collateral spent: ${estimatedCollateralSpent.toString()} atomic`,
+          `simulation: ok${simulation.unitsConsumed ? ` (${simulation.unitsConsumed} CU)` : ''}`,
+          'Run same command without --simulate to execute.',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    const result = await sendIdlInstruction({
+      protocolId: prepared.protocolId,
+      instructionName: prepared.instructionName,
+      args,
+      accounts: prepared.accounts,
+      preInstructions,
+      connection,
+      wallet,
+    });
+
+    pushMessage(
+      'assistant',
+      [
+        'Kamino withdraw tx sent.',
+        `reserve: ${resolved.reserve.address}`,
+        `computed collateralAmount: ${collateralAmount}`,
+        result.signature,
+        result.explorerUrl,
+      ].join('\n'),
+    );
+  }
+
+  async function executeKaminoViewPosition(options: {
+    value: KaminoViewPositionCommand;
+  }): Promise<void> {
+    if (!wallet.publicKey) {
+      throw new Error('Connect wallet first to view Kamino position.');
+    }
+    const walletPublicKey = wallet.publicKey;
+    const resolved = await resolveKaminoReserveForCommand({
+      reserveOrVault: options.value.reserveOrVault,
+      tokenMint: options.value.tokenMint,
+    });
+    const prepared = await prepareMetaOperation({
+      protocolId: KAMINO_KLEND_PROTOCOL_ID,
+      operationId: KAMINO_VIEW_OPERATION_ID,
+      input: {
+        reserve: resolved.reserve.address,
+        liquidity_mint: resolved.reserve.liquidityMint,
+      },
+      connection,
+      walletPublicKey,
+    });
+
+    const reserveData = parseKaminoReserveSnapshot(
+      prepared.derived.reserve_data ?? prepared.derived.reserveData,
+      resolved.reserve.address,
+    );
+    const userLiquidityAta = asString(prepared.derived.user_liquidity_ata, 'user_liquidity_ata');
+    const userCollateralAta = asString(prepared.derived.user_collateral_ata, 'user_collateral_ata');
+
+    let userLiquidityBalanceAtomic = 0n;
+    try {
+      const balance = await connection.getTokenAccountBalance(new PublicKey(userLiquidityAta), 'confirmed');
+      userLiquidityBalanceAtomic = BigInt(balance.value.amount);
+    } catch {
+      userLiquidityBalanceAtomic = 0n;
+    }
+    let userCollateralBalanceAtomic = 0n;
+    try {
+      const balance = await connection.getTokenAccountBalance(new PublicKey(userCollateralAta), 'confirmed');
+      userCollateralBalanceAtomic = BigInt(balance.value.amount);
+    } catch {
+      userCollateralBalanceAtomic = 0n;
+    }
+
+    const estimatedLiquidityClaimAtomic = estimateKaminoLiquidityFromCollateralAtomic(
+      reserveData,
+      userCollateralBalanceAtomic,
+    );
+    const liquidityUi = formatTokenAmount(userLiquidityBalanceAtomic.toString(), reserveData.mintDecimals);
+    const claimUi = formatTokenAmount(estimatedLiquidityClaimAtomic.toString(), reserveData.mintDecimals);
+    const supplyYield = calculateKaminoSupplyYield(reserveData);
+
+    pushMessage(
+      'assistant',
+      [
+        'Kamino position:',
+        `resolved reserve: ${reserveData.address} (${resolved.resolvedBy})`,
+        `liquidity mint: ${reserveData.liquidityMint}`,
+        `liquidity ATA: ${userLiquidityAta}`,
+        `collateral ATA: ${userCollateralAta}`,
+        `wallet liquidity balance: ${liquidityUi} (${userLiquidityBalanceAtomic.toString()} atomic)`,
+        `wallet collateral balance: ${userCollateralBalanceAtomic.toString()} cToken atomic`,
+        `estimated redeemable liquidity: ${claimUi} (${estimatedLiquidityClaimAtomic.toString()} atomic)`,
+        `reserve utilization: ${formatPercent(supplyYield.utilization)}`,
+        `estimated supply APR: ${formatPercent(supplyYield.supplyApr)}`,
+        `estimated supply APY: ${formatPercent(supplyYield.supplyApy)}`,
+      ].join('\n'),
+    );
+  }
+
   async function handleCommandSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -1298,6 +1986,27 @@ function App() {
 
       if (parsed.kind === 'pump-curve') {
         await executePumpCurve({
+          value: parsed.value,
+        });
+        return;
+      }
+
+      if (parsed.kind === 'kamino-deposit') {
+        await executeKaminoDeposit({
+          value: parsed.value,
+        });
+        return;
+      }
+
+      if (parsed.kind === 'kamino-withdraw') {
+        await executeKaminoWithdraw({
+          value: parsed.value,
+        });
+        return;
+      }
+
+      if (parsed.kind === 'kamino-view-position') {
+        await executeKaminoViewPosition({
           value: parsed.value,
         });
         return;
@@ -1434,6 +2143,13 @@ function App() {
             disabled={isWorking}
           >
             Prefill Pump Curve
+          </button>
+          <button
+            type="button"
+            onClick={() => setCommandInput(QUICK_PREFILL_KAMINO_DEPOSIT_COMMAND)}
+            disabled={isWorking}
+          >
+            Prefill Kamino Deposit
           </button>
         </div>
       </section>
