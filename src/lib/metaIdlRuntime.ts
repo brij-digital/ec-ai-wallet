@@ -46,7 +46,6 @@ type ResolverStepFallback = {
 
 type DeriveStep = ResolverStepFallback & {
   name: string;
-  fallback?: ResolverStepFallback;
   [key: string]: unknown;
 };
 
@@ -71,6 +70,15 @@ type ActionInputSpec = {
   ui_editable?: boolean;
 };
 
+type ReadOutputSpec = {
+  type: 'array' | 'object' | 'scalar';
+  source: string;
+  title?: string;
+  empty_text?: string;
+  max_items?: number;
+  item_label_fields?: string[];
+};
+
 type ActionSpec = {
   instruction?: string;
   inputs?: Record<string, ActionInputSpec>;
@@ -80,6 +88,7 @@ type ActionSpec = {
   args?: Record<string, unknown>;
   accounts?: Record<string, unknown>;
   remaining_accounts?: Array<Record<string, unknown>>;
+  read_output?: ReadOutputSpec;
   post?: PostInstructionSpec[];
   use?: TemplateUseSpec[];
 };
@@ -124,6 +133,7 @@ type MaterializedActionSpec = {
   args: Record<string, unknown>;
   accounts: Record<string, unknown>;
   remainingAccounts: unknown;
+  readOutput?: ReadOutputSpec;
   post?: PostInstructionSpec[];
 };
 
@@ -210,6 +220,14 @@ type PreparedMetaOperation = {
   accounts: Record<string, string>;
   remainingAccounts: Array<{ pubkey: string; isSigner: boolean; isWritable: boolean }>;
   derived: Record<string, unknown>;
+  readOutput?: {
+    type: 'array' | 'object' | 'scalar';
+    source: string;
+    title?: string;
+    emptyText?: string;
+    maxItems?: number;
+    itemLabelFields?: string[];
+  };
   postInstructions: PreparedPostInstruction[];
 };
 
@@ -235,6 +253,7 @@ export type MetaOperationExplain = {
   args: Record<string, unknown>;
   accounts: Record<string, unknown>;
   remainingAccounts: unknown;
+  readOutput?: Record<string, unknown>;
   post: Array<Record<string, unknown>>;
 };
 
@@ -253,6 +272,14 @@ export type MetaOperationSummary = {
       ui_editable?: boolean;
     }
   >;
+  readOutput?: {
+    type: 'array' | 'object' | 'scalar';
+    source: string;
+    title?: string;
+    emptyText?: string;
+    maxItems?: number;
+    itemLabelFields?: string[];
+  };
 };
 
 export type MetaUserFormSummary = {
@@ -307,6 +334,58 @@ function resolveDiscoverStage(path: string, operation: MaterializedActionSpec): 
     return 'compute';
   }
   return 'unknown';
+}
+
+function normalizeReadOutputSpec(
+  spec: ReadOutputSpec | undefined,
+  context: string,
+):
+  | {
+      type: 'array' | 'object' | 'scalar';
+      source: string;
+      title?: string;
+      emptyText?: string;
+      maxItems?: number;
+      itemLabelFields?: string[];
+    }
+  | undefined {
+  if (!spec) {
+    return undefined;
+  }
+
+  if (!spec.source || typeof spec.source !== 'string' || spec.source.trim().length === 0) {
+    throw new Error(`${context}: read_output.source is required.`);
+  }
+
+  const normalized: {
+    type: 'array' | 'object' | 'scalar';
+    source: string;
+    title?: string;
+    emptyText?: string;
+    maxItems?: number;
+    itemLabelFields?: string[];
+  } = {
+    type: spec.type,
+    source: spec.source,
+  };
+
+  if (typeof spec.title === 'string' && spec.title.length > 0) {
+    normalized.title = spec.title;
+  }
+  if (typeof spec.empty_text === 'string' && spec.empty_text.length > 0) {
+    normalized.emptyText = spec.empty_text;
+  }
+  if (typeof spec.max_items === 'number' && Number.isInteger(spec.max_items) && spec.max_items > 0) {
+    normalized.maxItems = spec.max_items;
+  }
+  if (Array.isArray(spec.item_label_fields)) {
+    const fields = spec.item_label_fields.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+    if (fields.length > 0) {
+      normalized.itemLabelFields = fields;
+    }
+  }
+
+  return normalized;
 }
 
 const metaCache = new Map<string, MetaIdlSpec>();
@@ -518,17 +597,6 @@ function resolveCollectionCandidates(step: DeriveStep, items: unknown[], scope: 
     .map((item) => applySelectTemplate(step.select, item, scope));
 }
 
-function buildFallbackStep(step: DeriveStep): DeriveStep | null {
-  if (!step.fallback) {
-    return null;
-  }
-
-  return {
-    name: `${step.name}_fallback`,
-    ...step.fallback,
-  };
-}
-
 function readItemsByPath(value: unknown, path?: string): unknown[] {
   if (path) {
     const resolved = readPathFromValue(value, path);
@@ -695,6 +763,10 @@ function mergeActionFragment(target: MaterializedActionSpec, fragment: Omit<Acti
     }
   }
 
+  if (fragment.read_output !== undefined) {
+    target.readOutput = cloneJsonLike(fragment.read_output);
+  }
+
   if (fragment.post && fragment.post.length > 0) {
     target.post = [...(target.post ?? []), ...cloneJsonLike(fragment.post)];
   }
@@ -740,6 +812,7 @@ function materializeOperation(operationId: string, operation: ActionSpec, meta: 
     args: operation.args,
     accounts: operation.accounts,
     remaining_accounts: operation.remaining_accounts,
+    read_output: operation.read_output,
     post: operation.post,
   });
   mergeActionFragment(materialized, actionDirectFragment, `operation ${operationId}`);
@@ -996,10 +1069,6 @@ async function runResolver(step: DeriveStep, ctx: ResolverContext): Promise<unkn
     const items = await loadLookupItems(step, ctx);
     const candidates = resolveCollectionCandidates(step, items, ctx.scope);
     if (candidates.length === 0) {
-      const fallbackStep = buildFallbackStep(step);
-      if (fallbackStep) {
-        return runResolver(fallbackStep, ctx);
-      }
       throw new Error(`lookup resolver returned no candidate for step ${step.name}.`);
     }
 
@@ -1200,6 +1269,10 @@ async function prepareMetaOperationInternal(options: {
     accounts: assertStringRecord(resolvedAccounts, 'accounts'),
     remainingAccounts: assertRemainingAccounts(resolvedRemainingAccounts, 'remaining_accounts'),
     derived,
+    readOutput: normalizeReadOutputSpec(
+      operation.readOutput,
+      `${options.protocolId}/${options.operationId}`,
+    ),
     postInstructions,
   };
 }
@@ -1247,6 +1320,7 @@ export async function explainMetaOperation(options: {
   const meta = await loadMetaSpec(options.protocolId);
   const operationSpec = resolveOperationSpec(meta, options.protocolId, options.operationId);
   const materialized = materializeOperation(options.operationId, operationSpec, meta);
+  const readOutput = normalizeReadOutputSpec(materialized.readOutput, `${options.protocolId}/${options.operationId}`);
 
   return {
     protocolId: options.protocolId,
@@ -1262,6 +1336,7 @@ export async function explainMetaOperation(options: {
     args: cloneJsonLike(materialized.args),
     accounts: cloneJsonLike(materialized.accounts),
     remainingAccounts: cloneJsonLike(materialized.remainingAccounts),
+    ...(readOutput ? { readOutput } : {}),
     post: cloneJsonLike(materialized.post ?? []),
   };
 }
@@ -1280,6 +1355,7 @@ export async function listMetaOperations(options: {
   const summaries = Object.entries(operations)
     .map(([operationId, operationSpec]) => {
       const operation = materializeOperation(operationId, operationSpec, meta);
+      const readOutput = normalizeReadOutputSpec(operation.readOutput, `${options.protocolId}/${operationId}`);
       const inputs = Object.fromEntries(
         Object.entries(operation.inputs).map(([name, spec]) => [
           name,
@@ -1299,6 +1375,7 @@ export async function listMetaOperations(options: {
         operationId,
         instruction: operation.instruction,
         inputs,
+        ...(readOutput ? { readOutput } : {}),
       } as MetaOperationSummary;
     })
     .sort((a, b) => a.operationId.localeCompare(b.operationId));
@@ -1396,25 +1473,24 @@ export async function listMetaApps(options: {
                   ui:
                     step.ui.kind === 'select_from_derived' &&
                     typeof step.ui.source === 'string' &&
-                    step.ui.source.length > 0
+                    step.ui.source.length > 0 &&
+                    typeof step.ui.bind_to === 'string' &&
+                    step.ui.bind_to.length > 0 &&
+                    typeof step.ui.value_path === 'string' &&
+                    step.ui.value_path.length > 0 &&
+                    typeof step.ui.require_selection === 'boolean' &&
+                    typeof step.ui.auto_advance === 'boolean'
                       ? {
                           kind: 'select_from_derived' as const,
                           source: step.ui.source,
-                          bindTo:
-                            typeof step.ui.bind_to === 'string' && step.ui.bind_to.length > 0
-                              ? step.ui.bind_to
-                              : 'selected_item',
-                          valuePath:
-                            typeof step.ui.value_path === 'string' && step.ui.value_path.length > 0
-                              ? step.ui.value_path
-                              : 'id',
+                          bindTo: step.ui.bind_to,
+                          valuePath: step.ui.value_path,
                           labelFields: Array.isArray(step.ui.label_fields)
                             ? step.ui.label_fields
                                 .filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
                             : [],
-                          requireSelection:
-                            step.ui.require_selection === undefined ? true : Boolean(step.ui.require_selection),
-                          autoAdvance: step.ui.auto_advance === undefined ? true : Boolean(step.ui.auto_advance),
+                          requireSelection: step.ui.require_selection,
+                          autoAdvance: step.ui.auto_advance,
                           ...(typeof step.ui.title === 'string' && step.ui.title.length > 0
                             ? { title: step.ui.title }
                             : {}),

@@ -32,14 +32,12 @@ import {
 import {
   explainMetaOperation,
   listMetaApps,
-  listMetaUserForms,
   listMetaOperations,
   prepareMetaOperation,
   prepareMetaInstruction,
   type MetaAppSummary,
   type MetaOperationExplain,
   type MetaOperationSummary,
-  type MetaUserFormSummary,
 } from './lib/metaIdlRuntime';
 
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
@@ -115,7 +113,6 @@ type BuilderProtocol = {
 
 type BuilderViewMode = 'enduser' | 'geek';
 
-type BuilderUserForm = MetaUserFormSummary;
 type BuilderApp = MetaAppSummary;
 
 type OrcaPoolCandidate = {
@@ -197,8 +194,6 @@ function App() {
   const [builderAppStepIndex, setBuilderAppStepIndex] = useState(0);
   const [builderAppStepContexts, setBuilderAppStepContexts] = useState<Record<string, BuilderAppStepContext>>({});
   const [builderAppStepCompleted, setBuilderAppStepCompleted] = useState<Record<string, boolean>>({});
-  const [builderForms, setBuilderForms] = useState<BuilderUserForm[]>([]);
-  const [builderFormId, setBuilderFormId] = useState('');
   const [builderOperations, setBuilderOperations] = useState<MetaOperationSummary[]>([]);
   const [builderOperationId, setBuilderOperationId] = useState('');
   const [builderViewMode, setBuilderViewMode] = useState<BuilderViewMode>('enduser');
@@ -212,10 +207,6 @@ function App() {
   const supportedTokens = useMemo(
     () => listSupportedTokens().map((token) => `${token.symbol} (${token.mint})`).join(', '),
     [],
-  );
-  const selectedBuilderForm = useMemo(
-    () => builderForms.find((entry) => entry.formId === builderFormId) ?? null,
-    [builderForms, builderFormId],
   );
   const selectedBuilderApp = useMemo(
     () => builderApps.find((entry) => entry.appId === builderAppId) ?? null,
@@ -270,9 +261,9 @@ function App() {
   const effectiveBuilderOperationId = useMemo(
     () =>
       builderViewMode === 'enduser'
-        ? selectedBuilderAppStep?.operationId ?? selectedBuilderForm?.operationId ?? builderOperationId
+        ? selectedBuilderAppStep?.operationId ?? ''
         : builderOperationId,
-    [builderViewMode, selectedBuilderAppStep, selectedBuilderForm, builderOperationId],
+    [builderViewMode, selectedBuilderAppStep, builderOperationId],
   );
   const selectedBuilderOperation = useMemo(
     () => builderOperations.find((entry) => entry.operationId === effectiveBuilderOperationId) ?? null,
@@ -344,8 +335,6 @@ function App() {
       setBuilderAppStepIndex(0);
       setBuilderAppStepContexts({});
       setBuilderAppStepCompleted({});
-      setBuilderForms([]);
-      setBuilderFormId('');
       setBuilderOperations([]);
       setBuilderOperationId('');
       return;
@@ -353,11 +342,8 @@ function App() {
 
     let cancelled = false;
     void (async () => {
-      const [operationsView, formsView, appsView] = await Promise.all([
+      const [operationsView, appsView] = await Promise.all([
         listMetaOperations({
-          protocolId: builderProtocolId,
-        }),
-        listMetaUserForms({
           protocolId: builderProtocolId,
         }),
         listMetaApps({
@@ -378,24 +364,13 @@ function App() {
       setBuilderAppStepIndex(0);
       setBuilderAppStepContexts({});
       setBuilderAppStepCompleted({});
-      setBuilderForms(formsView.forms);
-      setBuilderFormId((current) => {
-        if (current && formsView.forms.some((entry) => entry.formId === current)) {
-          return current;
-        }
-        return formsView.forms[0]?.formId ?? '';
-      });
       setBuilderOperations(operationsView.operations);
       setBuilderOperationId((current) => {
         const appOperationId = appsView.apps[0]?.steps?.[0]?.operationId;
         if (builderViewMode === 'enduser' && appOperationId) {
           return appOperationId;
         }
-        const formOperationId = formsView.forms[0]?.operationId;
-        if (builderViewMode === 'enduser' && formOperationId) {
-          return formOperationId;
-        }
-        if (builderViewMode === 'enduser' && !formOperationId) {
+        if (builderViewMode === 'enduser') {
           return '';
         }
         if (current && operationsView.operations.some((entry) => entry.operationId === current)) {
@@ -405,7 +380,7 @@ function App() {
       });
     })().catch((error) => {
       if (!cancelled) {
-        const message = error instanceof Error ? error.message : 'Failed to load meta operations/forms.';
+        const message = error instanceof Error ? error.message : 'Failed to load meta operations/apps.';
         setBuilderStatusText(`Error: ${message}`);
         setBuilderRawDetails(null);
         setBuilderApps([]);
@@ -413,8 +388,6 @@ function App() {
         setBuilderAppStepIndex(0);
         setBuilderAppStepContexts({});
         setBuilderAppStepCompleted({});
-        setBuilderForms([]);
-        setBuilderFormId('');
         setBuilderOperations([]);
         setBuilderOperationId('');
       }
@@ -435,23 +408,10 @@ function App() {
       }
       return;
     }
-    if (!builderForms.length) {
-      if (builderOperationId !== '') {
-        setBuilderOperationId('');
-      }
-      return;
+    if (builderOperationId !== '') {
+      setBuilderOperationId('');
     }
-    const selected = builderForms.find((entry) => entry.formId === builderFormId) ?? builderForms[0];
-    if (!selected) {
-      return;
-    }
-    if (builderFormId !== selected.formId) {
-      setBuilderFormId(selected.formId);
-    }
-    if (builderOperationId !== selected.operationId) {
-      setBuilderOperationId(selected.operationId);
-    }
-  }, [builderViewMode, selectedBuilderAppStep, builderForms, builderFormId, builderOperationId]);
+  }, [builderViewMode, selectedBuilderAppStep, builderOperationId]);
 
   useEffect(() => {
     if (!selectedBuilderApp) {
@@ -727,13 +687,7 @@ function App() {
       setBuilderOperationId(firstApp.steps[0].operationId);
       return;
     }
-    const firstForm = builderForms[0];
-    if (firstForm) {
-      setBuilderFormId(firstForm.formId);
-      setBuilderOperationId(firstForm.operationId);
-    } else {
-      setBuilderOperationId('');
-    }
+    setBuilderOperationId('');
   }
 
   function handleBuilderModeGeek() {
@@ -879,18 +833,103 @@ function App() {
     return `${value.slice(0, 6)}...${value.slice(-4)}`;
   }
 
-  function formatIntegerFull(value: string): string {
-    const trimmed = value.trim();
-    if (!/^-?\d+$/.test(trimmed)) {
-      return value;
-    }
-    const sign = trimmed.startsWith('-') ? '-' : '';
-    const digits = sign ? trimmed.slice(1) : trimmed;
-    return `${sign}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-  }
-
   function formatOrcaPoolChoiceLine(pool: OrcaPoolCandidate, index: number): string {
     return `${index + 1}. ${compactPubkey(pool.whirlpool)} | tickSpacing ${pool.tickSpacing} | liquidity ${compactInteger(pool.liquidity)}`;
+  }
+
+  function stringifyReadOutputValue(value: unknown): string {
+    if (value === null || value === undefined) {
+      return 'null';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+      return String(value);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  function formatReadOutputItem(
+    item: unknown,
+    index: number,
+    labelFields: string[],
+  ): string {
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      const record = item as Record<string, unknown>;
+      if (labelFields.length > 0) {
+        const parts = labelFields
+          .map((field) => readBuilderPath(record, field))
+          .filter((entry) => entry !== undefined && entry !== null)
+          .map((entry) => String(entry));
+        if (parts.length > 0) {
+          return `${index + 1}. ${parts.join(' | ')}`;
+        }
+      }
+      const firstKeys = Object.keys(record).slice(0, 4);
+      if (firstKeys.length > 0) {
+        return `${index + 1}. ${firstKeys.map((key) => `${key}=${stringifyReadOutputValue(record[key])}`).join(' | ')}`;
+      }
+    }
+    return `${index + 1}. ${stringifyReadOutputValue(item)}`;
+  }
+
+  function buildReadOnlyHighlightsFromSpec(
+    spec: NonNullable<MetaOperationSummary['readOutput']>,
+    readValue: unknown,
+  ): string[] {
+    const highlights: string[] = [];
+    if (spec.title) {
+      highlights.push(spec.title);
+    }
+
+    if (spec.type === 'scalar') {
+      if (readValue === undefined || readValue === null || readValue === '') {
+        highlights.push(spec.emptyText ?? 'No value returned.');
+        return highlights;
+      }
+      highlights.push(`value: ${stringifyReadOutputValue(readValue)}`);
+      return highlights;
+    }
+
+    if (spec.type === 'object') {
+      if (!readValue || typeof readValue !== 'object' || Array.isArray(readValue)) {
+        highlights.push(spec.emptyText ?? 'No object returned.');
+        return highlights;
+      }
+      const entries = Object.entries(readValue as Record<string, unknown>);
+      if (entries.length === 0) {
+        highlights.push(spec.emptyText ?? 'No object fields returned.');
+        return highlights;
+      }
+      for (const [key, value] of entries) {
+        highlights.push(`${key}: ${stringifyReadOutputValue(value)}`);
+      }
+      return highlights;
+    }
+
+    if (!Array.isArray(readValue)) {
+      highlights.push(spec.emptyText ?? 'No list returned.');
+      return highlights;
+    }
+
+    if (readValue.length === 0) {
+      highlights.push(spec.emptyText ?? 'No items found.');
+      return highlights;
+    }
+
+    const maxItems = typeof spec.maxItems === 'number' && spec.maxItems > 0 ? spec.maxItems : readValue.length;
+    const shown = readValue.slice(0, maxItems);
+    highlights.push(`items: ${readValue.length}`);
+    highlights.push(...shown.map((item, index) => formatReadOutputItem(item, index, spec.itemLabelFields ?? [])));
+    if (readValue.length > shown.length) {
+      highlights.push(`...and ${readValue.length - shown.length} more.`);
+    }
+    return highlights;
   }
 
   function asPrettyJson(value: unknown): string {
@@ -2558,84 +2597,24 @@ function App() {
       }
 
       if (!prepared.instructionName) {
-        const readOnlyHighlights: string[] = [];
-        const maybePoolCandidates = prepared.derived.pool_candidates;
-        if (Array.isArray(maybePoolCandidates)) {
-          const pools = normalizeOrcaPoolCandidates(maybePoolCandidates);
-          if (pools.length > 0) {
-            if (
-              builderProtocolId === ORCA_PROTOCOL_ID &&
-              selectedBuilderOperation.operationId === ORCA_LIST_POOLS_OPERATION_ID &&
-              typeof executionInput.token_in_mint === 'string' &&
-              typeof executionInput.token_out_mint === 'string'
-            ) {
-              const inMint = executionInput.token_in_mint;
-              const outMint = executionInput.token_out_mint;
-              const inLabel = getMintDisplay(inMint).label;
-              const outLabel = getMintDisplay(outMint).label;
-              readOnlyHighlights.push(`pair: ${inLabel}/${outLabel}`);
-              readOnlyHighlights.push('sorted by liquidity: highest first');
-            }
-            const previewCount = Math.min(pools.length, 5);
-            readOnlyHighlights.push(`pools found: ${pools.length}`);
-            readOnlyHighlights.push(
-              ...pools.slice(0, previewCount).map(
-                (pool, index) =>
-                  `${index + 1}. whirlpool ${pool.whirlpool} | tickSpacing ${pool.tickSpacing} | liquidity ${formatIntegerFull(pool.liquidity)}`,
-              ),
-            );
-            if (pools[0]) {
-              readOnlyHighlights.push(`selected pool (default): ${pools[0].whirlpool}`);
-            }
-            if (pools.length > previewCount) {
-              readOnlyHighlights.push(`...and ${pools.length - previewCount} more (open raw details below).`);
-            }
-            if (builderProtocolId === ORCA_PROTOCOL_ID && selectedBuilderOperation.operationId === ORCA_LIST_POOLS_OPERATION_ID) {
-              readOnlyHighlights.push('next: open "Swap By Pool" form and paste one whirlpool pubkey.');
-            }
-          } else {
-            readOnlyHighlights.push('pools found: 0');
-          }
+        if (!selectedBuilderOperation.readOutput) {
+          throw new Error(
+            `Read-only operation ${builderProtocolId}/${selectedBuilderOperation.operationId} is missing read_output in Meta IDL.`,
+          );
         }
-        if (readOnlyHighlights.length === 0) {
-          const derivedEntries = Object.entries(prepared.derived);
-          if (derivedEntries.length === 0) {
-            readOnlyHighlights.push('No derived output returned.');
-          } else {
-            for (const [key, value] of derivedEntries) {
-              if (Array.isArray(value)) {
-                readOnlyHighlights.push(`${key}: ${value.length} item(s)`);
-                const previewCount = Math.min(value.length, 3);
-                for (let i = 0; i < previewCount; i += 1) {
-                  const entry = value[i];
-                  if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
-                    const record = entry as Record<string, unknown>;
-                    if (typeof record.whirlpool === 'string') {
-                      readOnlyHighlights.push(`${i + 1}. whirlpool ${record.whirlpool}`);
-                      continue;
-                    }
-                    const firstKeys = Object.keys(record).slice(0, 3);
-                    const compact = firstKeys
-                      .map((field) => `${field}=${String(record[field])}`)
-                      .join(' | ');
-                    readOnlyHighlights.push(`${i + 1}. ${compact}`);
-                  } else {
-                    readOnlyHighlights.push(`${i + 1}. ${String(entry)}`);
-                  }
-                }
-                continue;
-              }
-
-              if (value && typeof value === 'object') {
-                const keys = Object.keys(value as Record<string, unknown>);
-                readOnlyHighlights.push(`${key}: object (${keys.length} key(s))`);
-                continue;
-              }
-
-              readOnlyHighlights.push(`${key}: ${String(value)}`);
-            }
-          }
+        const readScope = {
+          input: executionInput,
+          args: prepared.args,
+          accounts: prepared.accounts,
+          derived: prepared.derived,
+        };
+        const readValue = readBuilderPath(readScope, selectedBuilderOperation.readOutput.source);
+        if (readValue === undefined) {
+          throw new Error(
+            `read_output.source ${selectedBuilderOperation.readOutput.source} did not resolve for ${builderProtocolId}/${selectedBuilderOperation.operationId}.`,
+          );
         }
+        const readOnlyHighlights = buildReadOnlyHighlightsFromSpec(selectedBuilderOperation.readOutput, readValue);
         const resultLines = [
           `Builder result (${builderProtocolId}/${selectedBuilderOperation.operationId}):`,
           'Read-only operation (no instruction to execute).',
@@ -2644,6 +2623,8 @@ function App() {
         setBuilderResult(resultLines, {
           input: executionInput,
           notes: builderNotes,
+          readOutput: selectedBuilderOperation.readOutput,
+          readOutputValue: readValue,
           derived: prepared.derived,
           args: prepared.args,
           accounts: prepared.accounts,
@@ -3086,7 +3067,7 @@ function App() {
               </aside>
 
               <aside className="builder-list">
-                <h3>{builderViewMode === 'enduser' ? (builderApps.length > 0 ? 'Apps' : 'User Forms') : 'Actions'}</h3>
+                <h3>{builderViewMode === 'enduser' ? 'Apps' : 'Actions'}</h3>
                 <div className="builder-items">
                   {builderViewMode === 'enduser'
                     ? builderApps.length > 0
@@ -3110,25 +3091,9 @@ function App() {
                             <small>{app.appId}</small>
                           </button>
                         ))
-                      : builderForms.length > 0
-                        ? builderForms.map((form) => (
-                            <button
-                              key={form.formId}
-                              type="button"
-                              className={builderFormId === form.formId ? 'active' : ''}
-                              onClick={() => {
-                                setBuilderFormId(form.formId);
-                                setBuilderOperationId(form.operationId);
-                              }}
-                              disabled={isWorking}
-                            >
-                              {form.title}
-                              <small>{form.operationId}</small>
-                            </button>
-                          ))
-                        : (
-                            <p className="builder-empty">No user forms declared for this protocol.</p>
-                          )
+                      : (
+                          <p className="builder-empty">No end-user apps declared for this protocol.</p>
+                        )
                     : builderOperations.map((operation) => (
                         <button
                           key={operation.operationId}
@@ -3189,12 +3154,6 @@ function App() {
                       <p className="builder-note">{selectedBuilderAppStep.description}</p>
                     ) : null}
                   </>
-                ) : null}
-                {builderViewMode === 'enduser' && !selectedBuilderApp && selectedBuilderForm ? (
-                  <p>
-                    form: <strong>{selectedBuilderForm.title}</strong>
-                    {selectedBuilderForm.description ? ` — ${selectedBuilderForm.description}` : ''}
-                  </p>
                 ) : null}
                 <p>
                   instruction: <code>{selectedBuilderOperation.instruction || 'read-only'}</code>

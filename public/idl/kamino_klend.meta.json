@@ -142,7 +142,12 @@
         {
           "template": "kamino.resolve_reserve.v1"
         }
-      ]
+      ],
+      "read_output": {
+        "type": "object",
+        "source": "$derived.selected_reserve",
+        "title": "Resolved reserve"
+      }
     },
     "deposit_reserve_liquidity": {
       "instruction": "depositReserveLiquidity",
@@ -342,6 +347,11 @@
           "template": "kamino.resolve_reserve.v1"
         }
       ],
+      "read_output": {
+        "type": "object",
+        "source": "$derived",
+        "title": "Position view"
+      },
       "derive": [
         {
           "name": "wallet",

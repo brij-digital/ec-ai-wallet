@@ -123,6 +123,42 @@
       },
       "additionalProperties": false
     },
+    "readOutputSpec": {
+      "type": "object",
+      "required": [
+        "type",
+        "source"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "array",
+            "object",
+            "scalar"
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "empty_text": {
+          "type": "string"
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "item_label_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "userFormSpec": {
       "type": "object",
       "required": [
@@ -167,7 +203,11 @@
           "type": "object",
           "required": [
             "kind",
-            "source"
+            "source",
+            "bind_to",
+            "value_path",
+            "require_selection",
+            "auto_advance"
           ],
           "properties": {
             "kind": {
@@ -322,9 +362,6 @@
             "first",
             "all"
           ]
-        },
-        "fallback": {
-          "$ref": "#/$defs/resolverBase"
         }
       },
       "additionalProperties": false
@@ -1379,6 +1416,9 @@
           "items": {
             "$ref": "#/$defs/postStep"
           }
+        },
+        "read_output": {
+          "$ref": "#/$defs/readOutputSpec"
         }
       },
       "additionalProperties": false
@@ -1432,6 +1472,9 @@
           "items": {
             "$ref": "#/$defs/postStep"
           }
+        },
+        "read_output": {
+          "$ref": "#/$defs/readOutputSpec"
         },
         "use": {
           "type": "array",

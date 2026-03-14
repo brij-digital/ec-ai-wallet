@@ -306,12 +306,6 @@
               "tickSpacing": "$decoded.tick_spacing",
               "liquidity": "$decoded.liquidity"
             }
-          },
-          {
-            "name": "selected_pool",
-            "discover": "discover.pick_list_item",
-            "items": "$pool_candidates",
-            "index": 0
           }
         ],
         "derive": [],
@@ -386,7 +380,15 @@
             "token_out_mint": "$input.token_out_mint"
           }
         }
-      ]
+      ],
+      "read_output": {
+        "type": "array",
+        "source": "$derived.pool_candidates",
+        "title": "Pools found",
+        "empty_text": "No Whirlpool pool found for this pair.",
+        "max_items": 20,
+        "item_label_fields": ["whirlpool", "tickSpacing", "liquidity"]
+      }
     }
   },
   "apps": {
