@@ -1,6 +1,6 @@
 {
-  "$schema": "/idl/meta_idl.schema.v0.5.json",
-  "schema": "meta-idl.v0.5",
+  "$schema": "/idl/meta_idl.schema.v0.6.json",
+  "schema": "meta-idl.v0.6",
   "version": "0.2.0",
   "protocolId": "pump-core-mainnet",
   "operations": {
@@ -120,6 +120,29 @@
         "fee_config": "$fee_config",
         "fee_program": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"
       }
+    }
+  },
+  "apps": {
+    "buy_curve_token": {
+      "title": "Buy Token (Pump Curve)",
+      "description": "Buy non-graduated token on Pump bonding curve.",
+      "entry_step": "buy",
+      "steps": [
+        {
+          "id": "buy",
+          "operation": "buy_exact_sol_in",
+          "title": "Buy",
+          "description": "Simulate first, then send with the same inputs.",
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": []
+        }
+      ]
     }
   }
 }

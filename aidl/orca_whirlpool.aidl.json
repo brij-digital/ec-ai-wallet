@@ -2,8 +2,8 @@
   "kind": "aidl.v0.1",
   "target": {
     "output": "public/idl/orca_whirlpool.meta.json",
-    "schema": "meta-idl.v0.5",
-    "schemaPath": "/idl/meta_idl.schema.v0.5.json",
+    "schema": "meta-idl.v0.6",
+    "schemaPath": "/idl/meta_idl.schema.v0.6.json",
     "version": "0.2.0",
     "protocolId": "orca-whirlpool-mainnet"
   },
@@ -395,12 +395,27 @@
     "swap_from_discovery": {
       "title": "Discover -> Swap",
       "description": "List pools for a pair, then execute swap on the selected pool.",
+      "entry_step": "discover",
       "steps": [
         {
           "id": "discover",
           "operation": "list_pools",
           "title": "Discover Pools",
           "description": "Fetch Whirlpool candidates sorted by liquidity.",
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "selection_made",
+            "path": "$steps.discover.derived.selected_pool"
+          },
+          "transitions": [
+            {
+              "on": "success",
+              "to": "swap"
+            }
+          ],
           "ui": {
             "kind": "select_from_derived",
             "source": "pool_candidates",
@@ -422,6 +437,14 @@
           "operation": "swap_exact_in",
           "title": "Swap By Pool",
           "description": "Run simulation or send on selected Whirlpool.",
+          "blocking": {
+            "depends_on": ["discover"],
+            "requires_paths": ["$steps.discover.derived.selected_pool.whirlpool"]
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [],
           "input_from": {
             "token_in_mint": "$steps.discover.input.token_in_mint",
             "token_out_mint": "$steps.discover.input.token_out_mint",
@@ -429,18 +452,6 @@
           }
         }
       ]
-    }
-  },
-  "user_forms": {
-    "discover_pools": {
-      "operation": "list_pools",
-      "title": "Discover Pools",
-      "description": "List Whirlpool pools for a token pair."
-    },
-    "swap_by_pool": {
-      "operation": "swap_exact_in",
-      "title": "Swap By Pool",
-      "description": "Execute swap on a selected Whirlpool pool."
     }
   }
 }

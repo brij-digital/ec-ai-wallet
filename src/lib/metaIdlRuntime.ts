@@ -9,7 +9,7 @@ import { runRegisteredDiscoverStep } from './metaDiscoverRegistry';
 import { normalizeIdlForAnchorCoder } from './normalizeIdl';
 import { resolveAppUrl } from './appUrl';
 
-const META_IDL_SCHEMA = 'meta-idl.v0.5';
+const META_IDL_SCHEMA = 'meta-idl.v0.6';
 const DEFAULT_SPL_TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 
 type BuiltinResolverName =
@@ -93,34 +93,55 @@ type ActionSpec = {
   use?: TemplateUseSpec[];
 };
 
-type UserFormSpec = {
-  operation: string;
-  title?: string;
-  description?: string;
+type UserAppStepTransitionSpec = {
+  on: 'success';
+  to: string;
 };
 
+type UserAppStepBlockingSpec = {
+  depends_on: string[];
+  requires_paths?: string[];
+};
+
+type UserAppStepSuccessSpec =
+  | {
+      kind: 'operation_ok';
+    }
+  | {
+      kind: 'selection_made';
+      path: string;
+    }
+  | {
+      kind: 'path_truthy';
+      path: string;
+    };
+
 type UserAppStepSpec = {
-  id?: string;
+  id: string;
   operation: string;
-  title?: string;
+  title: string;
   description?: string;
   input_from?: Record<string, unknown>;
+  transitions: UserAppStepTransitionSpec[];
+  blocking: UserAppStepBlockingSpec;
+  success: UserAppStepSuccessSpec;
   ui?: {
     kind: 'select_from_derived';
     source: string;
-    bind_to?: string;
-    value_path?: string;
+    bind_to: string;
+    value_path: string;
     label_fields?: string[];
-    require_selection?: boolean;
-    auto_advance?: boolean;
+    require_selection: boolean;
+    auto_advance: boolean;
     title?: string;
     description?: string;
   };
 };
 
 type UserAppSpec = {
-  title?: string;
+  title: string;
   description?: string;
+  entry_step: string;
   steps: UserAppStepSpec[];
 };
 
@@ -181,8 +202,7 @@ type MetaIdlSpec = {
   sources?: Record<string, LookupSourceSpec>;
   templates?: Record<string, TemplateSpec>;
   operations?: Record<string, ActionSpec>;
-  user_forms?: Record<string, UserFormSpec>;
-  apps?: Record<string, UserAppSpec>;
+  apps: Record<string, UserAppSpec>;
 };
 
 type ResolverContext = {
@@ -282,19 +302,32 @@ export type MetaOperationSummary = {
   };
 };
 
-export type MetaUserFormSummary = {
-  formId: string;
-  operationId: string;
-  title: string;
-  description?: string;
-};
-
 export type MetaAppStepSummary = {
   stepId: string;
   operationId: string;
   title: string;
   description?: string;
   inputFrom: Record<string, unknown>;
+  transitions: Array<{
+    on: 'success';
+    to: string;
+  }>;
+  blocking: {
+    dependsOn: string[];
+    requiresPaths: string[];
+  };
+  success:
+    | {
+        kind: 'operation_ok';
+      }
+    | {
+        kind: 'selection_made';
+        path: string;
+      }
+    | {
+        kind: 'path_truthy';
+        path: string;
+      };
   ui?: {
     kind: 'select_from_derived';
     source: string;
@@ -312,6 +345,7 @@ export type MetaAppSummary = {
   appId: string;
   title: string;
   description?: string;
+  entryStepId: string;
   steps: MetaAppStepSummary[];
 };
 
@@ -634,6 +668,11 @@ function assertMetaSpec(meta: MetaIdlSpec, protocolId: string): MetaIdlSpec {
   const hasOperations = !!meta.operations && typeof meta.operations === 'object';
   if (!hasOperations) {
     throw new Error(`Meta IDL for ${protocolId} is missing operations.`);
+  }
+
+  const hasApps = !!meta.apps && typeof meta.apps === 'object' && !Array.isArray(meta.apps);
+  if (!hasApps) {
+    throw new Error(`Meta IDL for ${protocolId} is missing apps (required in app-first schema).`);
   }
 
   return meta;
@@ -1388,42 +1427,6 @@ export async function listMetaOperations(options: {
   };
 }
 
-export async function listMetaUserForms(options: {
-  protocolId: string;
-}): Promise<{
-  protocolId: string;
-  schema: string | null;
-  version: string;
-  forms: MetaUserFormSummary[];
-}> {
-  const meta = await loadMetaSpec(options.protocolId);
-  const operations = meta.operations ?? {};
-  const formsSpec = meta.user_forms ?? {};
-
-  const forms = Object.entries(formsSpec)
-    .map(([formId, form]) => {
-      const operationId = form.operation;
-      if (!operations[operationId]) {
-        return null;
-      }
-      return {
-        formId,
-        operationId,
-        title: form.title ?? formId,
-        ...(form.description ? { description: form.description } : {}),
-      } as MetaUserFormSummary;
-    })
-    .filter((entry): entry is MetaUserFormSummary => entry !== null)
-    .sort((a, b) => a.formId.localeCompare(b.formId));
-
-  return {
-    protocolId: options.protocolId,
-    schema: meta.schema ?? null,
-    version: meta.version,
-    forms,
-  };
-}
-
 export async function listMetaApps(options: {
   protocolId: string;
 }): Promise<{
@@ -1434,91 +1437,197 @@ export async function listMetaApps(options: {
 }> {
   const meta = await loadMetaSpec(options.protocolId);
   const operations = meta.operations ?? {};
-  const appsSpec = meta.apps ?? {};
+  const appsSpec = asRecord(meta.apps, `${options.protocolId}.apps`);
 
   const apps = Object.entries(appsSpec)
-    .map(([appId, app]) => {
-      const stepsRaw = Array.isArray(app.steps) ? app.steps : [];
-      const steps = stepsRaw
-        .map((step, index) => {
-          if (!step || typeof step !== 'object') {
-            return null;
-          }
-          const operationId = step.operation;
-          if (typeof operationId !== 'string' || operationId.length === 0) {
-            return null;
-          }
-          if (!operations[operationId]) {
-            return null;
+    .map(([appId, appRaw]) => {
+      const app = asRecord(appRaw, `${options.protocolId}.apps.${appId}`);
+      const title = asString(app.title, `${options.protocolId}.apps.${appId}.title`);
+      const entryStepId = asString(app.entry_step, `${options.protocolId}.apps.${appId}.entry_step`);
+      if (!Array.isArray(app.steps) || app.steps.length === 0) {
+        throw new Error(`${options.protocolId}.apps.${appId}.steps must be a non-empty array.`);
+      }
+
+      const steps = app.steps.map((stepRaw, index) => {
+        const step = asRecord(stepRaw, `${options.protocolId}.apps.${appId}.steps[${index}]`);
+        const stepId = asString(step.id, `${options.protocolId}.apps.${appId}.steps[${index}].id`);
+        const operationId = asString(step.operation, `${options.protocolId}.apps.${appId}.steps[${index}].operation`);
+        if (!operations[operationId]) {
+          throw new Error(
+            `${options.protocolId}.apps.${appId}.steps[${index}] references unknown operation ${operationId}.`,
+          );
+        }
+        const stepTitle = asString(step.title, `${options.protocolId}.apps.${appId}.steps[${index}].title`);
+        const inputFrom =
+          step.input_from && typeof step.input_from === 'object' && !Array.isArray(step.input_from)
+            ? (cloneJsonLike(step.input_from) as Record<string, unknown>)
+            : {};
+
+        const transitionsRaw = step.transitions;
+        if (!Array.isArray(transitionsRaw)) {
+          throw new Error(`${options.protocolId}.apps.${appId}.steps[${index}].transitions must be an array.`);
+        }
+        const transitions = transitionsRaw.map((transitionRaw, transitionIndex) => {
+          const transition = asRecord(
+            transitionRaw,
+            `${options.protocolId}.apps.${appId}.steps[${index}].transitions[${transitionIndex}]`,
+          );
+          const on = asString(
+            transition.on,
+            `${options.protocolId}.apps.${appId}.steps[${index}].transitions[${transitionIndex}].on`,
+          );
+          if (on !== 'success') {
+            throw new Error(
+              `${options.protocolId}.apps.${appId}.steps[${index}].transitions[${transitionIndex}].on must be "success".`,
+            );
           }
           return {
-            stepId:
-              typeof step.id === 'string' && step.id.length > 0
-                ? step.id
-                : `step_${index + 1}`,
-            operationId,
-            title:
-              typeof step.title === 'string' && step.title.length > 0
-                ? step.title
-                : `Step ${index + 1}`,
-            ...(typeof step.description === 'string' && step.description.length > 0
-              ? { description: step.description }
-              : {}),
-            inputFrom:
-              step.input_from && typeof step.input_from === 'object' && !Array.isArray(step.input_from)
-                ? (cloneJsonLike(step.input_from) as Record<string, unknown>)
-                : {},
-            ...(step.ui && typeof step.ui === 'object' && !Array.isArray(step.ui)
-              ? {
-                  ui:
-                    step.ui.kind === 'select_from_derived' &&
-                    typeof step.ui.source === 'string' &&
-                    step.ui.source.length > 0 &&
-                    typeof step.ui.bind_to === 'string' &&
-                    step.ui.bind_to.length > 0 &&
-                    typeof step.ui.value_path === 'string' &&
-                    step.ui.value_path.length > 0 &&
-                    typeof step.ui.require_selection === 'boolean' &&
-                    typeof step.ui.auto_advance === 'boolean'
-                      ? {
-                          kind: 'select_from_derived' as const,
-                          source: step.ui.source,
-                          bindTo: step.ui.bind_to,
-                          valuePath: step.ui.value_path,
-                          labelFields: Array.isArray(step.ui.label_fields)
-                            ? step.ui.label_fields
-                                .filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
-                            : [],
-                          requireSelection: step.ui.require_selection,
-                          autoAdvance: step.ui.auto_advance,
-                          ...(typeof step.ui.title === 'string' && step.ui.title.length > 0
-                            ? { title: step.ui.title }
-                            : {}),
-                          ...(typeof step.ui.description === 'string' && step.ui.description.length > 0
-                            ? { description: step.ui.description }
-                            : {}),
-                        }
-                      : undefined,
-                }
-              : {}),
-          } as MetaAppStepSummary;
-        })
-        .filter((entry): entry is MetaAppStepSummary => entry !== null);
+            on: 'success' as const,
+            to: asString(
+              transition.to,
+              `${options.protocolId}.apps.${appId}.steps[${index}].transitions[${transitionIndex}].to`,
+            ),
+          };
+        });
 
-      if (steps.length === 0) {
-        return null;
+        const blockingRaw = asRecord(step.blocking, `${options.protocolId}.apps.${appId}.steps[${index}].blocking`);
+        if (!Array.isArray(blockingRaw.depends_on)) {
+          throw new Error(
+            `${options.protocolId}.apps.${appId}.steps[${index}].blocking.depends_on must be an array.`,
+          );
+        }
+        const dependsOn = blockingRaw.depends_on.map((entry, depIndex) =>
+          asString(entry, `${options.protocolId}.apps.${appId}.steps[${index}].blocking.depends_on[${depIndex}]`),
+        );
+        const requiresPaths = Array.isArray(blockingRaw.requires_paths)
+          ? blockingRaw.requires_paths.map((entry, pathIndex) =>
+              asString(
+                entry,
+                `${options.protocolId}.apps.${appId}.steps[${index}].blocking.requires_paths[${pathIndex}]`,
+              ),
+            )
+          : [];
+
+        const successRaw = asRecord(step.success, `${options.protocolId}.apps.${appId}.steps[${index}].success`);
+        const successKind = asString(successRaw.kind, `${options.protocolId}.apps.${appId}.steps[${index}].success.kind`);
+        const success: MetaAppStepSummary['success'] =
+          successKind === 'operation_ok'
+            ? { kind: 'operation_ok' }
+            : successKind === 'selection_made'
+              ? {
+                  kind: 'selection_made',
+                  path: asString(
+                    successRaw.path,
+                    `${options.protocolId}.apps.${appId}.steps[${index}].success.path`,
+                  ),
+                }
+              : successKind === 'path_truthy'
+                ? {
+                    kind: 'path_truthy',
+                    path: asString(
+                      successRaw.path,
+                      `${options.protocolId}.apps.${appId}.steps[${index}].success.path`,
+                    ),
+                  }
+                : (() => {
+                    throw new Error(
+                      `${options.protocolId}.apps.${appId}.steps[${index}].success.kind must be operation_ok|selection_made|path_truthy.`,
+                    );
+                  })();
+
+        const ui =
+          step.ui && typeof step.ui === 'object' && !Array.isArray(step.ui)
+            ? (() => {
+                const uiRaw = asRecord(step.ui, `${options.protocolId}.apps.${appId}.steps[${index}].ui`);
+                const kind = asString(uiRaw.kind, `${options.protocolId}.apps.${appId}.steps[${index}].ui.kind`);
+                if (kind !== 'select_from_derived') {
+                  throw new Error(`${options.protocolId}.apps.${appId}.steps[${index}].ui.kind unsupported: ${kind}`);
+                }
+                const source = asString(uiRaw.source, `${options.protocolId}.apps.${appId}.steps[${index}].ui.source`);
+                const bindTo = asString(uiRaw.bind_to, `${options.protocolId}.apps.${appId}.steps[${index}].ui.bind_to`);
+                const valuePath = asString(
+                  uiRaw.value_path,
+                  `${options.protocolId}.apps.${appId}.steps[${index}].ui.value_path`,
+                );
+                const requireSelection = Boolean(uiRaw.require_selection);
+                const autoAdvance = Boolean(uiRaw.auto_advance);
+                const labelFields = Array.isArray(uiRaw.label_fields)
+                  ? uiRaw.label_fields
+                      .map((entry, labelIndex) =>
+                        asString(
+                          entry,
+                          `${options.protocolId}.apps.${appId}.steps[${index}].ui.label_fields[${labelIndex}]`,
+                        ),
+                      )
+                  : [];
+                return {
+                  kind: 'select_from_derived' as const,
+                  source,
+                  bindTo,
+                  valuePath,
+                  requireSelection,
+                  autoAdvance,
+                  labelFields,
+                  ...(typeof uiRaw.title === 'string' && uiRaw.title.length > 0 ? { title: uiRaw.title } : {}),
+                  ...(typeof uiRaw.description === 'string' && uiRaw.description.length > 0
+                    ? { description: uiRaw.description }
+                    : {}),
+                };
+              })()
+            : undefined;
+
+        return {
+          stepId,
+          operationId,
+          title: stepTitle,
+          ...(typeof step.description === 'string' && step.description.length > 0 ? { description: step.description } : {}),
+          inputFrom,
+          transitions,
+          blocking: {
+            dependsOn,
+            requiresPaths,
+          },
+          success,
+          ...(ui ? { ui } : {}),
+        } as MetaAppStepSummary;
+      });
+
+      const stepIdSet = new Set<string>();
+      for (const step of steps) {
+        if (stepIdSet.has(step.stepId)) {
+          throw new Error(`${options.protocolId}.apps.${appId} has duplicate step id ${step.stepId}.`);
+        }
+        stepIdSet.add(step.stepId);
+      }
+      if (!stepIdSet.has(entryStepId)) {
+        throw new Error(`${options.protocolId}.apps.${appId}.entry_step references unknown step id ${entryStepId}.`);
+      }
+
+      for (const step of steps) {
+        for (const dep of step.blocking.dependsOn) {
+          if (!stepIdSet.has(dep)) {
+            throw new Error(
+              `${options.protocolId}.apps.${appId}.steps.${step.stepId}.blocking.depends_on references unknown step ${dep}.`,
+            );
+          }
+        }
+        for (const transition of step.transitions) {
+          if (!stepIdSet.has(transition.to)) {
+            throw new Error(
+              `${options.protocolId}.apps.${appId}.steps.${step.stepId}.transitions references unknown step ${transition.to}.`,
+            );
+          }
+        }
       }
 
       return {
         appId,
-        title: typeof app.title === 'string' && app.title.length > 0 ? app.title : appId,
-        ...(typeof app.description === 'string' && app.description.length > 0
-          ? { description: app.description }
-          : {}),
+        title,
+        ...(typeof app.description === 'string' && app.description.length > 0 ? { description: app.description } : {}),
+        entryStepId,
         steps,
       } as MetaAppSummary;
     })
-    .filter((entry): entry is MetaAppSummary => entry !== null)
     .sort((a, b) => a.appId.localeCompare(b.appId));
 
   return {

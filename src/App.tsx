@@ -212,6 +212,13 @@ function App() {
     () => builderApps.find((entry) => entry.appId === builderAppId) ?? null,
     [builderApps, builderAppId],
   );
+  const selectedBuilderAppEntryStepIndex = useMemo(() => {
+    if (!selectedBuilderApp) {
+      return 0;
+    }
+    const index = selectedBuilderApp.steps.findIndex((step) => step.stepId === selectedBuilderApp.entryStepId);
+    return index >= 0 ? index : 0;
+  }, [selectedBuilderApp]);
   const isBuilderAppMode = builderViewMode === 'enduser' && !!selectedBuilderApp;
   const selectedBuilderAppStep = useMemo(() => {
     if (!selectedBuilderApp) {
@@ -361,12 +368,22 @@ function App() {
         }
         return appsView.apps[0]?.appId ?? '';
       });
-      setBuilderAppStepIndex(0);
+      const firstApp = appsView.apps[0];
+      if (firstApp) {
+        const entryIndex = firstApp.steps.findIndex((step) => step.stepId === firstApp.entryStepId);
+        setBuilderAppStepIndex(entryIndex >= 0 ? entryIndex : 0);
+      } else {
+        setBuilderAppStepIndex(0);
+      }
       setBuilderAppStepContexts({});
       setBuilderAppStepCompleted({});
       setBuilderOperations(operationsView.operations);
       setBuilderOperationId((current) => {
-        const appOperationId = appsView.apps[0]?.steps?.[0]?.operationId;
+        const firstApp = appsView.apps[0];
+        const entryStep = firstApp
+          ? firstApp.steps.find((step) => step.stepId === firstApp.entryStepId) ?? firstApp.steps[0]
+          : undefined;
+        const appOperationId = entryStep?.operationId;
         if (builderViewMode === 'enduser' && appOperationId) {
           return appOperationId;
         }
@@ -418,9 +435,9 @@ function App() {
       return;
     }
     if (builderAppStepIndex < 0 || builderAppStepIndex >= selectedBuilderApp.steps.length) {
-      setBuilderAppStepIndex(0);
+      setBuilderAppStepIndex(selectedBuilderAppEntryStepIndex);
     }
-  }, [selectedBuilderApp, builderAppStepIndex]);
+  }, [selectedBuilderApp, builderAppStepIndex, selectedBuilderAppEntryStepIndex]);
 
   useEffect(() => {
     if (!selectedBuilderOperation) {
@@ -503,6 +520,72 @@ function App() {
     return JSON.stringify(left) === JSON.stringify(right);
   }
 
+  function isBuilderTruthy(value: unknown): boolean {
+    if (value === null || value === undefined) {
+      return false;
+    }
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      return Number.isFinite(value) && value !== 0;
+    }
+    if (typeof value === 'bigint') {
+      return value !== 0n;
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        return false;
+      }
+      if (trimmed === '0' || trimmed.toLowerCase() === 'false' || trimmed.toLowerCase() === 'null') {
+        return false;
+      }
+      return true;
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    if (typeof value === 'object') {
+      return Object.keys(value as Record<string, unknown>).length > 0;
+    }
+    return true;
+  }
+
+  function buildBuilderAppScope(contexts: Record<string, BuilderAppStepContext>): Record<string, unknown> {
+    return {
+      steps: contexts,
+    };
+  }
+
+  function evaluateBuilderStepSuccess(
+    step: MetaAppSummary['steps'][number],
+    contexts: Record<string, BuilderAppStepContext>,
+    operationSucceeded: boolean,
+  ): boolean {
+    if (step.success.kind === 'operation_ok') {
+      return operationSucceeded;
+    }
+    const value = readBuilderPath(buildBuilderAppScope(contexts), step.success.path);
+    return isBuilderTruthy(value);
+  }
+
+  function findBuilderAppStepIndexById(app: MetaAppSummary, stepId: string): number {
+    return app.steps.findIndex((step) => step.stepId === stepId);
+  }
+
+  function resolveBuilderNextStepIndexOnSuccess(
+    app: MetaAppSummary,
+    step: MetaAppSummary['steps'][number],
+  ): number | null {
+    const nextTransition = step.transitions.find((transition) => transition.on === 'success');
+    if (!nextTransition) {
+      return null;
+    }
+    const nextIndex = findBuilderAppStepIndexById(app, nextTransition.to);
+    return nextIndex >= 0 ? nextIndex : null;
+  }
+
   function resolveBuilderAppInputFrom(
     value: unknown,
     contexts: Record<string, BuilderAppStepContext>,
@@ -538,10 +621,7 @@ function App() {
       if (selected !== undefined) {
         return `${index + 1}. ${String(selected)}`;
       }
-      const firstKeys = Object.keys(record).slice(0, 3);
-      if (firstKeys.length > 0) {
-        return `${index + 1}. ${firstKeys.map((key) => `${key}=${String(record[key])}`).join(' | ')}`;
-      }
+      return `${index + 1}. [invalid selector: ui.valuePath did not resolve]`;
     }
     return `${index + 1}. ${String(item)}`;
   }
@@ -681,10 +761,12 @@ function App() {
     const firstApp = builderApps[0];
     if (firstApp && firstApp.steps.length > 0) {
       setBuilderAppId(firstApp.appId);
-      setBuilderAppStepIndex(0);
+      const entryIndex = firstApp.steps.findIndex((step) => step.stepId === firstApp.entryStepId);
+      setBuilderAppStepIndex(entryIndex >= 0 ? entryIndex : 0);
       setBuilderAppStepContexts({});
       setBuilderAppStepCompleted({});
-      setBuilderOperationId(firstApp.steps[0].operationId);
+      const entryStep = firstApp.steps.find((step) => step.stepId === firstApp.entryStepId) ?? firstApp.steps[0];
+      setBuilderOperationId(entryStep ? entryStep.operationId : '');
       return;
     }
     setBuilderOperationId('');
@@ -711,42 +793,63 @@ function App() {
     clearBuilderAppProgressFrom(builderAppStepIndex + 1);
     const currentStepId = selectedBuilderAppStep.stepId;
     const bindPath = selectedBuilderAppSelectUi.bindTo;
-    setBuilderAppStepContexts((prev) => {
-      const current = prev[currentStepId];
-      if (!current) {
-        return prev;
-      }
-      return {
-        ...prev,
-        [currentStepId]: {
-          ...current,
-          derived: writeBuilderPath({ ...current.derived }, bindPath, item),
-        },
-      };
-    });
-    setBuilderAppStepCompleted((prev) => ({
-      ...prev,
-      [currentStepId]: true,
-    }));
+    const currentContext = builderAppStepContexts[currentStepId];
+    if (!currentContext) {
+      setBuilderStatusText('Run this step first to populate selectable items.');
+      setBuilderRawDetails(null);
+      setBuilderShowRawDetails(false);
+      return;
+    }
 
-    if (builderAppStepIndex + 1 < selectedBuilderApp.steps.length) {
-      const nextIndex = builderAppStepIndex + 1;
+    const nextContexts = {
+      ...builderAppStepContexts,
+      [currentStepId]: {
+        ...currentContext,
+        derived: writeBuilderPath({ ...currentContext.derived }, bindPath, item),
+      },
+    };
+    setBuilderAppStepContexts(nextContexts);
+
+    const stepCompleted = evaluateBuilderStepSuccess(selectedBuilderAppStep, nextContexts, true);
+    const nextCompleted = {
+      ...builderAppStepCompleted,
+      [currentStepId]: stepCompleted,
+    };
+    setBuilderAppStepCompleted(nextCompleted);
+
+    const selectedValue = readBuilderPath(item, selectedBuilderAppSelectUi.valuePath);
+    const nextIndex = stepCompleted
+      ? resolveBuilderNextStepIndexOnSuccess(selectedBuilderApp, selectedBuilderAppStep)
+      : null;
+    if (stepCompleted && nextIndex !== null) {
       const nextStep = selectedBuilderApp.steps[nextIndex];
-      if (selectedBuilderAppSelectUi.autoAdvance) {
+      const nextUnlocked = isBuilderAppStepUnlocked(selectedBuilderApp, nextStep, nextContexts, nextCompleted);
+      if (selectedBuilderAppSelectUi.autoAdvance && nextUnlocked) {
         setBuilderAppStepIndex(nextIndex);
         setBuilderOperationId(nextStep.operationId);
       }
-      const selectedValue = readBuilderPath(item, selectedBuilderAppSelectUi.valuePath);
       setBuilderStatusText(
         `Selected item: ${selectedValue === undefined ? 'n/a' : String(selectedValue)}. ${
-          selectedBuilderAppSelectUi.autoAdvance
+          selectedBuilderAppSelectUi.autoAdvance && nextUnlocked
             ? `Continue on step ${nextIndex + 1}: ${nextStep.title}.`
-            : 'Proceed to the next step when ready.'
+            : 'Selection saved. Proceed to the next declared step.'
         }`,
       );
       setBuilderRawDetails(null);
       setBuilderShowRawDetails(false);
+      return;
     }
+
+    if (!stepCompleted) {
+      setBuilderStatusText('Selection saved, but success criteria for this step are not satisfied yet.');
+      setBuilderRawDetails(null);
+      setBuilderShowRawDetails(false);
+      return;
+    }
+
+    setBuilderStatusText(`Selected item: ${selectedValue === undefined ? 'n/a' : String(selectedValue)}.`);
+    setBuilderRawDetails(null);
+    setBuilderShowRawDetails(false);
   }
 
   function handleBuilderAppResetCurrentStep() {
@@ -869,11 +972,9 @@ function App() {
         if (parts.length > 0) {
           return `${index + 1}. ${parts.join(' | ')}`;
         }
+        return `${index + 1}. [no label field resolved]`;
       }
-      const firstKeys = Object.keys(record).slice(0, 4);
-      if (firstKeys.length > 0) {
-        return `${index + 1}. ${firstKeys.map((key) => `${key}=${stringifyReadOutputValue(record[key])}`).join(' | ')}`;
-      }
+      return `${index + 1}. [configure read_output.itemLabelFields]`;
     }
     return `${index + 1}. ${stringifyReadOutputValue(item)}`;
   }
@@ -942,15 +1043,16 @@ function App() {
     setBuilderShowRawDetails(false);
   }
 
-  function storeBuilderAppStepContext(options: {
+  function applyBuilderAppStepResult(options: {
     executionInput: Record<string, unknown>;
     prepared: Awaited<ReturnType<typeof prepareMetaOperation>>;
-  }) {
+    operationSucceeded: boolean;
+  }): boolean {
     if (builderViewMode !== 'enduser' || !selectedBuilderAppStep) {
-      return;
+      return options.operationSucceeded;
     }
-    setBuilderAppStepContexts((prev) => ({
-      ...prev,
+    const nextContexts = {
+      ...builderAppStepContexts,
       [selectedBuilderAppStep.stepId]: {
         input: options.executionInput,
         derived: options.prepared.derived,
@@ -958,17 +1060,14 @@ function App() {
         accounts: options.prepared.accounts,
         instructionName: options.prepared.instructionName,
       },
-    }));
-  }
-
-  function setBuilderAppCurrentStepCompleted(completed: boolean) {
-    if (builderViewMode !== 'enduser' || !selectedBuilderAppStep) {
-      return;
-    }
+    };
+    setBuilderAppStepContexts(nextContexts);
+    const completed = evaluateBuilderStepSuccess(selectedBuilderAppStep, nextContexts, options.operationSucceeded);
     setBuilderAppStepCompleted((prev) => ({
       ...prev,
       [selectedBuilderAppStep.stepId]: completed,
     }));
+    return completed;
   }
 
   function clearBuilderAppProgressFrom(startIndex: number) {
@@ -995,6 +1094,33 @@ function App() {
     });
   }
 
+  function isBuilderAppStepUnlocked(
+    app: MetaAppSummary,
+    targetStep: MetaAppSummary['steps'][number],
+    contexts: Record<string, BuilderAppStepContext>,
+    completed: Record<string, boolean>,
+  ): boolean {
+    const dependsSatisfied = targetStep.blocking.dependsOn.every((stepId) => Boolean(completed[stepId]));
+    if (!dependsSatisfied) {
+      return false;
+    }
+    const scope = buildBuilderAppScope(contexts);
+    const pathsSatisfied = targetStep.blocking.requiresPaths.every((path) => isBuilderTruthy(readBuilderPath(scope, path)));
+    if (!pathsSatisfied) {
+      return false;
+    }
+
+    if (targetStep.stepId === app.entryStepId) {
+      return true;
+    }
+
+    return app.steps.some(
+      (step) =>
+        Boolean(completed[step.stepId]) &&
+        step.transitions.some((transition) => transition.on === 'success' && transition.to === targetStep.stepId),
+    );
+  }
+
   function canOpenBuilderAppStep(targetIndex: number): boolean {
     if (!selectedBuilderApp) {
       return false;
@@ -1002,16 +1128,8 @@ function App() {
     if (targetIndex < 0 || targetIndex >= selectedBuilderApp.steps.length) {
       return false;
     }
-    if (targetIndex === 0) {
-      return true;
-    }
-    for (let i = 0; i < targetIndex; i += 1) {
-      const stepId = selectedBuilderApp.steps[i].stepId;
-      if (!builderAppStepCompleted[stepId]) {
-        return false;
-      }
-    }
-    return true;
+    const targetStep = selectedBuilderApp.steps[targetIndex];
+    return isBuilderAppStepUnlocked(selectedBuilderApp, targetStep, builderAppStepContexts, builderAppStepCompleted);
   }
 
   function getMintDisplay(mint: string): { label: string; decimals: number | null } {
@@ -2629,18 +2747,11 @@ function App() {
           args: prepared.args,
           accounts: prepared.accounts,
         });
-        storeBuilderAppStepContext({
+        applyBuilderAppStepResult({
           executionInput,
           prepared,
+          operationSucceeded: true,
         });
-        if (selectedBuilderAppSelectUi?.kind === 'select_from_derived' && selectedBuilderAppSelectUi.requireSelection) {
-          setBuilderAppStepCompleted((prev) => ({
-            ...prev,
-            [selectedBuilderAppStep!.stepId]: false,
-          }));
-        } else {
-          setBuilderAppCurrentStepCompleted(true);
-        }
         pushMessage('assistant', resultLines.join('\n'));
         return;
       }
@@ -2726,11 +2837,11 @@ function App() {
           logs: simulation.logs,
         });
         if (simulation.ok) {
-          storeBuilderAppStepContext({
+          applyBuilderAppStepResult({
             executionInput,
             prepared,
+            operationSucceeded: true,
           });
-          setBuilderAppCurrentStepCompleted(true);
         }
         pushMessage('assistant', resultLines.join('\n'));
         return;
@@ -2756,11 +2867,11 @@ function App() {
         `explorer: ${sent.explorerUrl}`,
       ];
       setBuilderResult(resultLines);
-      storeBuilderAppStepContext({
+      applyBuilderAppStepResult({
         executionInput,
         prepared,
+        operationSucceeded: true,
       });
-      setBuilderAppCurrentStepCompleted(true);
       pushMessage('assistant', resultLines.join('\n'));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown builder error.';
@@ -3078,11 +3189,13 @@ function App() {
                             className={builderAppId === app.appId ? 'active' : ''}
                             onClick={() => {
                               setBuilderAppId(app.appId);
-                              setBuilderAppStepIndex(0);
+                              const entryIndex = app.steps.findIndex((step) => step.stepId === app.entryStepId);
+                              setBuilderAppStepIndex(entryIndex >= 0 ? entryIndex : 0);
                               setBuilderAppStepContexts({});
                               setBuilderAppStepCompleted({});
-                              if (app.steps[0]) {
-                                setBuilderOperationId(app.steps[0].operationId);
+                              const entryStep = app.steps.find((step) => step.stepId === app.entryStepId) ?? app.steps[0];
+                              if (entryStep) {
+                                setBuilderOperationId(entryStep.operationId);
                               }
                             }}
                             disabled={isWorking}

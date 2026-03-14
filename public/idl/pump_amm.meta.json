@@ -1,6 +1,6 @@
 {
-  "$schema": "/idl/meta_idl.schema.v0.5.json",
-  "schema": "meta-idl.v0.5",
+  "$schema": "/idl/meta_idl.schema.v0.6.json",
+  "schema": "meta-idl.v0.6",
   "version": "0.2.0",
   "protocolId": "pump-amm-mainnet",
   "templates": {
@@ -532,6 +532,29 @@
             "slippage_bps": "$input.slippage_bps",
             "track_volume": "$input.track_volume"
           }
+        }
+      ]
+    }
+  },
+  "apps": {
+    "buy_token": {
+      "title": "Buy Token (Pump AMM)",
+      "description": "Buy a graduated token directly on Pump AMM.",
+      "entry_step": "buy",
+      "steps": [
+        {
+          "id": "buy",
+          "operation": "buy",
+          "title": "Buy",
+          "description": "Simulate first, then send with the same inputs.",
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": []
         }
       ]
     }

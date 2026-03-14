@@ -193,8 +193,8 @@ async function main() {
       try {
         meta = asObject(await readJson(metaPath, `${id} Meta IDL`), `${id} Meta IDL`);
         const schema = asString(meta.schema, `${id}.meta.schema`);
-        if (schema !== 'meta-idl.v0.5') {
-          protocolErrors.push(`Unsupported meta schema: ${schema} (expected meta-idl.v0.5)`);
+        if (schema !== 'meta-idl.v0.6') {
+          protocolErrors.push(`Unsupported meta schema: ${schema} (expected meta-idl.v0.6)`);
         }
         const metaProtocolId = asString(meta.protocolId, `${id}.meta.protocolId`);
         if (metaProtocolId !== id) {
@@ -207,21 +207,14 @@ async function main() {
           protocolWarnings.push('No operations declared in meta.operations.');
         }
 
-        const userFormsRaw = meta.user_forms;
-        if (userFormsRaw === undefined) {
-          protocolWarnings.push('No user_forms declared (End User mode will show no forms).');
+        const appsRaw = meta.apps;
+        if (appsRaw === undefined) {
+          protocolErrors.push('No apps declared (required by app-first schema).');
         } else {
-          const userForms = asObject(userFormsRaw, `${id}.meta.user_forms`);
-          const formIds = Object.keys(userForms);
-          if (formIds.length === 0) {
-            protocolWarnings.push('user_forms exists but is empty.');
-          }
-          for (const formId of formIds) {
-            const form = asObject(userForms[formId], `${id}.meta.user_forms.${formId}`);
-            const operation = asString(form.operation, `${id}.meta.user_forms.${formId}.operation`);
-            if (!operations[operation]) {
-              protocolErrors.push(`user_forms.${formId} references unknown operation: ${operation}`);
-            }
+          const apps = asObject(appsRaw, `${id}.meta.apps`);
+          const appIds = Object.keys(apps);
+          if (appIds.length === 0) {
+            protocolErrors.push('apps exists but is empty.');
           }
         }
       } catch (error) {
@@ -240,8 +233,8 @@ async function main() {
     }
 
     const status = asString(manifest.status, `${id}.status`);
-    if (status === 'active' && (meta?.user_forms === undefined || Object.keys(meta.user_forms ?? {}).length === 0)) {
-      protocolWarnings.push('Protocol is active but has no user_forms for End User mode.');
+    if (status === 'active' && (meta?.apps === undefined || Object.keys(meta.apps ?? {}).length === 0)) {
+      protocolErrors.push('Protocol is active but has no apps for End User mode.');
     }
 
     if (protocolErrors.length > 0) {
@@ -259,7 +252,7 @@ async function main() {
     console.log(`- meta: ${path.relative(ROOT, metaPath)} ${metaExists ? 'OK' : 'MISSING'}`);
     if (meta && typeof meta === 'object' && meta.operations && typeof meta.operations === 'object') {
       console.log(`- operations: ${Object.keys(meta.operations).length}`);
-      console.log(`- user_forms: ${meta.user_forms && typeof meta.user_forms === 'object' ? Object.keys(meta.user_forms).length : 0}`);
+      console.log(`- apps: ${meta.apps && typeof meta.apps === 'object' ? Object.keys(meta.apps).length : 0}`);
     }
 
     for (const warn of protocolWarnings) {

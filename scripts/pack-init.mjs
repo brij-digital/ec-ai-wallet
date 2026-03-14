@@ -97,8 +97,8 @@ function createAidlSkeleton({ protocolId, slug }) {
     kind: 'aidl.v0.1',
     target: {
       output: `public/idl/${slug}.meta.json`,
-      schema: 'meta-idl.v0.5',
-      schemaPath: '/idl/meta_idl.schema.v0.5.json',
+      schema: 'meta-idl.v0.6',
+      schemaPath: '/idl/meta_idl.schema.v0.6.json',
       version: '0.1.0',
       protocolId,
     },
@@ -126,11 +126,26 @@ function createAidlSkeleton({ protocolId, slug }) {
         ],
       },
     },
-    user_forms: {
-      health: {
-        operation: 'health_read',
+    apps: {
+      health_app: {
         title: 'Health Check',
-        description: 'Starter read-only form. Replace with real protocol workflows.',
+        description: 'Starter read-only app. Replace with real protocol workflows.',
+        entry_step: 'health',
+        steps: [
+          {
+            id: 'health',
+            operation: 'health_read',
+            title: 'Health Read',
+            blocking: {
+              depends_on: [],
+              requires_paths: [],
+            },
+            success: {
+              kind: 'operation_ok',
+            },
+            transitions: [],
+          },
+        ],
       },
     },
   };
@@ -242,7 +257,7 @@ async function main() {
   console.log('');
   console.log('Next steps:');
   console.log('1. Fill public/idl/<slug>.json with real IDL instructions/accounts.');
-  console.log('2. Replace health_read in aidl/<slug>.aidl.json with real operations/templates/user_forms.');
+  console.log('2. Replace health_read in aidl/<slug>.aidl.json with real operations/templates/apps.');
   console.log('3. Run: npm run aidl:compile');
   console.log('4. Run: npm run pack:doctor -- --protocol <protocol-id>');
   console.log('5. Run: npm run pack:check');

@@ -226,10 +226,11 @@ function compileAidl(source, sourceFile) {
 
   const templatesRaw = asObject(source.templates, `${sourceFile}.templates`);
   const operationsRaw = asObject(source.operations, `${sourceFile}.operations`);
-  const userFormsRaw =
-    source.user_forms === undefined ? undefined : asObject(source.user_forms, `${sourceFile}.user_forms`);
   const appsRaw = source.apps === undefined ? undefined : asObject(source.apps, `${sourceFile}.apps`);
   const sourcesRaw = source.sources === undefined ? undefined : asObject(source.sources, `${sourceFile}.sources`);
+  if (source.user_forms !== undefined) {
+    fail(`${sourceFile}.user_forms is no longer supported. Use apps (schema v0.6 app-first).`);
+  }
 
   /** @type {Record<string, unknown>} */
   const templates = {};
@@ -253,7 +254,6 @@ function compileAidl(source, sourceFile) {
     ...(sourcesRaw ? { sources: sourcesRaw } : {}),
     templates,
     operations,
-    ...(userFormsRaw ? { user_forms: userFormsRaw } : {}),
     ...(appsRaw ? { apps: appsRaw } : {}),
   };
 

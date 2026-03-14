@@ -10,7 +10,7 @@ const FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'fixtures');
 const RPC_SIM_FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'rpc', 'simulations');
 const RPC_PARITY_FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'rpc', 'parity');
 
-const REQUIRED_META_IDL_SCHEMA = 'meta-idl.v0.5';
+const REQUIRED_META_IDL_SCHEMA = 'meta-idl.v0.6';
 
 function fail(message) {
   throw new Error(message);
@@ -323,6 +323,90 @@ function validateMetaSchema(meta, manifest) {
   }
 }
 
+function validateApps(meta, protocolId, operations) {
+  const apps = asObject(meta.apps, `${protocolId}.apps`);
+  const appEntries = Object.entries(apps);
+  if (appEntries.length === 0) {
+    fail(`${protocolId}: apps must not be empty for app-first schema.`);
+  }
+
+  for (const [appId, appRaw] of appEntries) {
+    const app = asObject(appRaw, `${protocolId}.apps.${appId}`);
+    asString(app.title, `${protocolId}.apps.${appId}.title`);
+    const entryStep = asString(app.entry_step, `${protocolId}.apps.${appId}.entry_step`);
+    const steps = asArray(app.steps, `${protocolId}.apps.${appId}.steps`);
+    if (steps.length === 0) {
+      fail(`${protocolId}.apps.${appId}.steps must not be empty.`);
+    }
+
+    const stepIds = new Set();
+    for (let i = 0; i < steps.length; i += 1) {
+      const step = asObject(steps[i], `${protocolId}.apps.${appId}.steps[${i}]`);
+      const stepId = asString(step.id, `${protocolId}.apps.${appId}.steps[${i}].id`);
+      if (stepIds.has(stepId)) {
+        fail(`${protocolId}.apps.${appId} has duplicate step id ${stepId}.`);
+      }
+      stepIds.add(stepId);
+      const operationId = asString(step.operation, `${protocolId}.apps.${appId}.steps[${i}].operation`);
+      if (!operations[operationId]) {
+        fail(`${protocolId}.apps.${appId}.steps.${stepId} references unknown operation ${operationId}.`);
+      }
+      asString(step.title, `${protocolId}.apps.${appId}.steps[${i}].title`);
+
+      const transitions = asArray(step.transitions, `${protocolId}.apps.${appId}.steps.${stepId}.transitions`);
+      for (let t = 0; t < transitions.length; t += 1) {
+        const transition = asObject(
+          transitions[t],
+          `${protocolId}.apps.${appId}.steps.${stepId}.transitions[${t}]`,
+        );
+        const on = asString(transition.on, `${protocolId}.apps.${appId}.steps.${stepId}.transitions[${t}].on`);
+        if (on !== 'success') {
+          fail(`${protocolId}.apps.${appId}.steps.${stepId}.transitions[${t}].on must be success.`);
+        }
+        asString(transition.to, `${protocolId}.apps.${appId}.steps.${stepId}.transitions[${t}].to`);
+      }
+
+      const blocking = asObject(step.blocking, `${protocolId}.apps.${appId}.steps.${stepId}.blocking`);
+      asStringArray(blocking.depends_on, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.depends_on`);
+      if (blocking.requires_paths !== undefined) {
+        asStringArray(blocking.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.requires_paths`);
+      }
+
+      const success = asObject(step.success, `${protocolId}.apps.${appId}.steps.${stepId}.success`);
+      const kind = asString(success.kind, `${protocolId}.apps.${appId}.steps.${stepId}.success.kind`);
+      if (!['operation_ok', 'selection_made', 'path_truthy'].includes(kind)) {
+        fail(`${protocolId}.apps.${appId}.steps.${stepId}.success.kind invalid: ${kind}`);
+      }
+      if (kind === 'selection_made' || kind === 'path_truthy') {
+        asString(success.path, `${protocolId}.apps.${appId}.steps.${stepId}.success.path`);
+      }
+    }
+
+    if (!stepIds.has(entryStep)) {
+      fail(`${protocolId}.apps.${appId}.entry_step references unknown step ${entryStep}.`);
+    }
+    for (let i = 0; i < steps.length; i += 1) {
+      const step = asObject(steps[i], `${protocolId}.apps.${appId}.steps[${i}]`);
+      const stepId = asString(step.id, `${protocolId}.apps.${appId}.steps[${i}].id`);
+      const transitions = asArray(step.transitions, `${protocolId}.apps.${appId}.steps.${stepId}.transitions`);
+      for (const transitionRaw of transitions) {
+        const transition = asObject(transitionRaw, `${protocolId}.apps.${appId}.steps.${stepId}.transitions[*]`);
+        const to = asString(transition.to, `${protocolId}.apps.${appId}.steps.${stepId}.transitions[*].to`);
+        if (!stepIds.has(to)) {
+          fail(`${protocolId}.apps.${appId}.steps.${stepId} transition target unknown: ${to}`);
+        }
+      }
+      const blocking = asObject(step.blocking, `${protocolId}.apps.${appId}.steps.${stepId}.blocking`);
+      const dependsOn = asStringArray(blocking.depends_on, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.depends_on`);
+      for (const dep of dependsOn) {
+        if (!stepIds.has(dep)) {
+          fail(`${protocolId}.apps.${appId}.steps.${stepId} blocking.depends_on unknown step: ${dep}`);
+        }
+      }
+    }
+  }
+}
+
 function validateManifest(manifest, seenIds) {
   const id = asString(manifest.id, 'registry.protocol.id');
   if (seenIds.has(id)) {
@@ -427,6 +511,7 @@ async function run() {
 
     const idlInstructionNames = collectIdlInstructionNames(idl, protocolId);
     const operations = loadOperations(meta, protocolId);
+    validateApps(meta, protocolId, operations);
     const materializedByOperation = {};
 
     for (const [operationId, operationRaw] of Object.entries(operations)) {
