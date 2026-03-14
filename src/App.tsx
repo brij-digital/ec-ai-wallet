@@ -136,6 +136,13 @@ type BuilderAppStepContext = {
   instructionName: string | null;
 };
 
+type BuilderPreparedStepResult = {
+  derived: Record<string, unknown>;
+  args: Record<string, unknown>;
+  accounts: Record<string, string>;
+  instructionName: string | null;
+};
+
 type RemoteViewRunResponse = {
   ok: boolean;
   protocol?: string;
@@ -166,7 +173,7 @@ const HELP_TEXT = [
   '',
   'Notes:',
   'AMOUNT is UI amount (e.g. 0.1 for SOL).',
-  'Pool discovery is on-chain via Orca program account scan.',
+  `Pool discovery runs through View API (${DEFAULT_VIEW_API_BASE_URL}) with no local fallback.`,
   'Pump quote/buy spends wrapped SOL (WSOL) under the hood.',
   'Kamino commands accept reserve pubkey or reserve vault pubkey as first argument.',
   '',
@@ -923,18 +930,25 @@ function App() {
       throw new Error('View API base URL is not configured (VITE_VIEW_API_BASE_URL).');
     }
 
-    const response = await fetch(`${VIEW_API_BASE_URL}/view-run`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        protocol_id: options.protocolId,
-        operation_id: options.operationId,
-        input: options.input,
-        ...(typeof options.limit === 'number' ? { limit: options.limit } : {}),
-      }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${VIEW_API_BASE_URL}/view-run`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          protocol_id: options.protocolId,
+          operation_id: options.operationId,
+          input: options.input,
+          ...(typeof options.limit === 'number' ? { limit: options.limit } : {}),
+        }),
+      });
+    } catch (error) {
+      throw new Error(
+        `Failed to reach View API at ${VIEW_API_BASE_URL}. Check service uptime and CORS preflight configuration for /view-run.`,
+      );
+    }
 
     const bodyText = await response.text();
     let parsed: unknown = null;
@@ -1116,9 +1130,34 @@ function App() {
     setBuilderShowRawDetails(false);
   }
 
+  function buildDerivedFromReadOutputSource(sourcePath: string, value: unknown): Record<string, unknown> {
+    const cleaned = sourcePath.startsWith('$') ? sourcePath.slice(1) : sourcePath;
+    if (!cleaned.startsWith('derived')) {
+      throw new Error(`Unsupported read_output.source ${sourcePath}: only $derived.* is supported in Builder remote view mode.`);
+    }
+
+    if (cleaned === 'derived') {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error(`read_output.source ${sourcePath} resolved to non-object; expected object for $derived root.`);
+      }
+      return value as Record<string, unknown>;
+    }
+
+    const prefix = 'derived.';
+    if (!cleaned.startsWith(prefix)) {
+      throw new Error(`Unsupported read_output.source ${sourcePath}: expected $derived.<path>.`);
+    }
+
+    const derivedPath = cleaned.slice(prefix.length);
+    if (!derivedPath) {
+      throw new Error(`Unsupported read_output.source ${sourcePath}: missing derived path.`);
+    }
+    return writeBuilderPath({}, derivedPath, value);
+  }
+
   function applyBuilderAppStepResult(options: {
     executionInput: Record<string, unknown>;
-    prepared: Awaited<ReturnType<typeof prepareMetaOperation>>;
+    prepared: BuilderPreparedStepResult;
     operationSucceeded: boolean;
   }): boolean {
     if (builderViewMode !== 'enduser' || !selectedBuilderAppStep) {
@@ -2718,11 +2757,13 @@ function App() {
       return;
     }
 
-    if (!wallet.publicKey) {
+    const isReadOnlyOperation = !selectedBuilderOperation.instruction;
+    if (!wallet.publicKey && !isReadOnlyOperation) {
       setBuilderStatusText('Error: Connect wallet first.');
       setBuilderRawDetails(null);
       return;
     }
+    const walletPublicKey = wallet.publicKey;
 
     setIsWorking(true);
     setBuilderStatusText(null);
@@ -2754,12 +2795,77 @@ function App() {
       }
 
       let executionInput = { ...inputPayload };
+      if (isReadOnlyOperation) {
+        if (!selectedBuilderOperation.readOutput) {
+          throw new Error(
+            `Read-only operation ${builderProtocolId}/${selectedBuilderOperation.operationId} is missing read_output in Meta IDL.`,
+          );
+        }
+
+        const response = await runRemoteViewRun({
+          protocolId: builderProtocolId,
+          operationId: selectedBuilderOperation.operationId,
+          input: executionInput,
+          limit: 20,
+        });
+
+        const remoteItems = response.items ?? [];
+        const derived = buildDerivedFromReadOutputSource(selectedBuilderOperation.readOutput.source, remoteItems);
+        const preparedReadOnly: BuilderPreparedStepResult = {
+          derived,
+          args: {},
+          accounts: {},
+          instructionName: null,
+        };
+
+        const readScope = {
+          input: executionInput,
+          args: preparedReadOnly.args,
+          accounts: preparedReadOnly.accounts,
+          derived: preparedReadOnly.derived,
+        };
+        const readValue = readBuilderPath(readScope, selectedBuilderOperation.readOutput.source);
+        if (readValue === undefined) {
+          throw new Error(
+            `read_output.source ${selectedBuilderOperation.readOutput.source} did not resolve for ${builderProtocolId}/${selectedBuilderOperation.operationId}.`,
+          );
+        }
+
+        const readOnlyHighlights = buildReadOnlyHighlightsFromSpec(selectedBuilderOperation.readOutput, readValue);
+        const resultLines = [
+          `Builder result (${builderProtocolId}/${selectedBuilderOperation.operationId}):`,
+          'Read-only operation (view API).',
+          ...(readOnlyHighlights.length > 0 ? readOnlyHighlights : []),
+        ];
+        setBuilderResult(resultLines, {
+          input: executionInput,
+          viewApi: {
+            baseUrl: VIEW_API_BASE_URL,
+            protocolId: builderProtocolId,
+            operationId: selectedBuilderOperation.operationId,
+          },
+          readOutput: selectedBuilderOperation.readOutput,
+          readOutputValue: readValue,
+          response,
+          derived: preparedReadOnly.derived,
+          args: preparedReadOnly.args,
+          accounts: preparedReadOnly.accounts,
+        });
+        applyBuilderAppStepResult({
+          executionInput,
+          prepared: preparedReadOnly,
+          operationSucceeded: true,
+        });
+        pushMessage('assistant', resultLines.join('\n'));
+        return;
+      }
+
       let prepared = await prepareMetaOperation({
         protocolId: builderProtocolId,
         operationId: selectedBuilderOperation.operationId,
         input: executionInput,
         connection,
-        walletPublicKey: wallet.publicKey,
+        walletPublicKey: walletPublicKey as PublicKey,
       });
       const builderNotes: string[] = [];
 
@@ -2777,7 +2883,7 @@ function App() {
           operationId: selectedBuilderOperation.operationId,
           input: pass1Input,
           connection,
-          walletPublicKey: wallet.publicKey,
+          walletPublicKey: walletPublicKey as PublicKey,
         });
 
         if (!pass1Prepared.instructionName) {
@@ -2788,7 +2894,7 @@ function App() {
           protocolId: pass1Prepared.protocolId,
           derived: pass1Prepared.derived,
           accounts: pass1Prepared.accounts,
-          walletPublicKey: wallet.publicKey,
+          walletPublicKey: walletPublicKey as PublicKey,
         });
         const pass1AToB = asBoolean(pass1Prepared.derived.a_to_b, 'derived.a_to_b');
         const pass1OutputAta = pass1AToB
@@ -2837,7 +2943,7 @@ function App() {
           operationId: selectedBuilderOperation.operationId,
           input: executionInput,
           connection,
-          walletPublicKey: wallet.publicKey,
+          walletPublicKey: walletPublicKey as PublicKey,
         });
         builderNotes.push(`computed estimated_out via simulation pass-1: ${computedEstimatedOut.toString()}`);
       }
@@ -2888,7 +2994,7 @@ function App() {
         protocolId: prepared.protocolId,
         derived: prepared.derived,
         accounts: prepared.accounts,
-        walletPublicKey: wallet.publicKey,
+        walletPublicKey: walletPublicKey as PublicKey,
       });
       const postInstructions = buildMetaPostInstructions(prepared.postInstructions);
       const runAsSimulation = isBuilderAppMode ? builderAppSubmitMode === 'simulate' : builderSimulate;
