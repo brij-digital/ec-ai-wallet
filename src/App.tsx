@@ -29,7 +29,7 @@ import {
   previewIdlInstruction,
   sendIdlInstruction,
   simulateIdlInstruction,
-} from './lib/idlDeclarativeRuntime';
+} from '@agentform/apppack-runtime/idlDeclarativeRuntime';
 import {
   explainMetaOperation,
   listMetaApps,
@@ -39,7 +39,7 @@ import {
   type MetaAppSummary,
   type MetaOperationExplain,
   type MetaOperationSummary,
-} from './lib/metaIdlRuntime';
+} from '@agentform/apppack-runtime/metaIdlRuntime';
 
 const ORCA_PROTOCOL_ID = 'orca-whirlpool-mainnet';
 const ORCA_LIST_POOLS_OPERATION_ID = 'list_pools';
