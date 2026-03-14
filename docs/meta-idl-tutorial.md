@@ -22,7 +22,22 @@ Current protocol/operation:
 - App command flow: `src/App.tsx`
 - AIDL compiler: `scripts/compile-aidl.mjs`
 - Meta spec: `public/idl/orca_whirlpool.meta.json`
-- Meta schema: `public/idl/meta_idl.schema.v0.5.json`
+- Meta schema: `public/idl/meta_idl.schema.v0.6.json`
+
+## 2.1) View Contract In Meta IDL
+
+Read operations can now include a declarative `view` block with protocol logic only:
+
+- `bootstrap`:
+  - initial query steps (usually `discover.query` step names).
+- `stream`:
+  - event source + filter for incremental updates.
+- `mapping`:
+  - how raw discovered/derived data maps to output entities.
+- `entity_keys`:
+  - deterministic identity fields for upsert/dedup.
+
+This keeps runtime policy concerns (freshness SLA, reconcile cadence, finality policy) outside protocol packs.
 
 ## 3) Runtime Vocabulary
 

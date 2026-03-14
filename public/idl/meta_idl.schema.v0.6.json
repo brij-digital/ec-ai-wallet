@@ -154,6 +154,95 @@
       },
       "additionalProperties": false
     },
+    "viewSpec": {
+      "type": "object",
+      "required": [
+        "bootstrap",
+        "mapping",
+        "entity_keys"
+      ],
+      "properties": {
+        "bootstrap": {
+          "type": "object",
+          "required": [
+            "kind",
+            "steps"
+          ],
+          "properties": {
+            "kind": {
+              "const": "query"
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "stream": {
+          "type": "object",
+          "required": [
+            "kind",
+            "source",
+            "filter"
+          ],
+          "properties": {
+            "kind": {
+              "const": "event"
+            },
+            "source": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "cursor_path": {
+              "type": "string"
+            },
+            "account_keys_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "mapping": {
+          "type": "object",
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "select": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "transforms": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "entity_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
     "userAppTransitionSpec": {
       "type": "object",
       "required": [
@@ -1499,6 +1588,9 @@
         },
         "read_output": {
           "$ref": "#/$defs/readOutputSpec"
+        },
+        "view": {
+          "$ref": "#/$defs/viewSpec"
         }
       },
       "additionalProperties": false
@@ -1555,6 +1647,9 @@
         },
         "read_output": {
           "$ref": "#/$defs/readOutputSpec"
+        },
+        "view": {
+          "$ref": "#/$defs/viewSpec"
         },
         "use": {
           "type": "array",

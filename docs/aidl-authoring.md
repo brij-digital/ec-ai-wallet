@@ -37,8 +37,8 @@ Example:
   "kind": "aidl.v0.1",
   "target": {
     "output": "public/idl/pump_amm.meta.json",
-    "schema": "meta-idl.v0.5",
-    "schemaPath": "/idl/meta_idl.schema.v0.5.json",
+    "schema": "meta-idl.v0.6",
+    "schemaPath": "/idl/meta_idl.schema.v0.6.json",
     "version": "0.1.0",
     "protocolId": "pump-amm-mainnet"
   },
@@ -51,6 +51,11 @@ Notes:
 - `target.output` is where compiled Meta IDL JSON is written.
 - `templates`/`operations` compile to standard Meta IDL fields.
 - `operations.useTemplate` is accepted in AIDL and compiles to `operations.use`.
+- Read operations can declare a `view` contract:
+  - `bootstrap` query steps
+  - optional `stream` source/filter
+  - `mapping` transform/select
+  - `entity_keys` for deterministic identity
 
 ## Compute shorthand
 

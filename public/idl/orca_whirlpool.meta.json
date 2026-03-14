@@ -377,6 +377,41 @@
           }
         }
       ],
+      "view": {
+        "bootstrap": {
+          "kind": "query",
+          "steps": [
+            "pool_candidates"
+          ]
+        },
+        "stream": {
+          "kind": "event",
+          "source": "substreams.transactions_by_programid_without_votes",
+          "filter": "program:$protocol.programId",
+          "cursor_path": "$event.slot",
+          "account_keys_paths": [
+            "$event.transaction.message.accountKeys",
+            "$event.meta.loadedWritableAddresses",
+            "$event.meta.loadedReadonlyAddresses"
+          ]
+        },
+        "mapping": {
+          "source": "$derived.pool_candidates",
+          "select": {
+            "whirlpool": "$item.whirlpool",
+            "tokenMintA": "$item.tokenMintA",
+            "tokenMintB": "$item.tokenMintB",
+            "tickSpacing": "$item.tickSpacing",
+            "liquidity": "$item.liquidity"
+          },
+          "transforms": [
+            "sort(liquidity desc)"
+          ]
+        },
+        "entity_keys": [
+          "whirlpool"
+        ]
+      },
       "read_output": {
         "type": "array",
         "source": "$derived.pool_candidates",

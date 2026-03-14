@@ -143,6 +143,40 @@
           "template": "kamino.resolve_reserve.v1"
         }
       ],
+      "view": {
+        "bootstrap": {
+          "kind": "query",
+          "steps": [
+            "reserve_by_address",
+            "reserve_by_liquidity_vault",
+            "reserve_by_collateral_vault"
+          ]
+        },
+        "stream": {
+          "kind": "event",
+          "source": "substreams.transactions_by_programid_without_votes",
+          "filter": "program:$protocol.programId",
+          "cursor_path": "$event.slot",
+          "account_keys_paths": [
+            "$event.transaction.message.accountKeys",
+            "$event.meta.loadedWritableAddresses",
+            "$event.meta.loadedReadonlyAddresses"
+          ]
+        },
+        "mapping": {
+          "source": "$derived.selected_reserve",
+          "select": {
+            "address": "$item.address",
+            "resolved_by": "$item.resolved_by",
+            "liquidity_mint": "$item.decoded.liquidity.mintPubkey",
+            "liquidity_vault": "$item.decoded.liquidity.supplyVault",
+            "collateral_vault": "$item.decoded.collateral.supplyVault"
+          }
+        },
+        "entity_keys": [
+          "address"
+        ]
+      },
       "read_output": {
         "type": "object",
         "source": "$derived.selected_reserve",
@@ -347,6 +381,41 @@
           "template": "kamino.resolve_reserve.v1"
         }
       ],
+      "view": {
+        "bootstrap": {
+          "kind": "query",
+          "steps": [
+            "reserve_by_address",
+            "reserve_by_liquidity_vault",
+            "reserve_by_collateral_vault"
+          ]
+        },
+        "stream": {
+          "kind": "event",
+          "source": "substreams.transactions_by_programid_without_votes",
+          "filter": "program:$protocol.programId",
+          "cursor_path": "$event.slot",
+          "account_keys_paths": [
+            "$event.transaction.message.accountKeys",
+            "$event.meta.loadedWritableAddresses",
+            "$event.meta.loadedReadonlyAddresses"
+          ]
+        },
+        "mapping": {
+          "source": "$derived",
+          "select": {
+            "reserve": "$item.reserve",
+            "wallet": "$item.wallet",
+            "resolved_by": "$item.resolved_by",
+            "user_liquidity_balance": "$item.user_liquidity_balance",
+            "user_collateral_balance": "$item.user_collateral_balance"
+          }
+        },
+        "entity_keys": [
+          "reserve",
+          "wallet"
+        ]
+      },
       "read_output": {
         "type": "object",
         "source": "$derived",
