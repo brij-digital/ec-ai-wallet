@@ -53,6 +53,10 @@ const KAMINO_KLEND_PROTOCOL_ID = 'kamino-klend-mainnet';
 const KAMINO_DEPOSIT_OPERATION_ID = 'deposit_reserve_liquidity';
 const KAMINO_WITHDRAW_OPERATION_ID = 'redeem_reserve_collateral';
 const KAMINO_VIEW_OPERATION_ID = 'view_position';
+const DEFAULT_VIEW_API_BASE_URL = 'https://apppack-view-service.onrender.com';
+const VIEW_API_BASE_URL = String(import.meta.env.VITE_VIEW_API_BASE_URL ?? DEFAULT_VIEW_API_BASE_URL)
+  .trim()
+  .replace(/\/+$/, '');
 const QUICK_PREFILL_SWAP_COMMAND =
   '/orca Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v So11111111111111111111111111111111111111112 0.01 50 --simulate';
 const QUICK_PREFILL_ORCA_LIST_POOLS_COMMAND =
@@ -130,6 +134,16 @@ type BuilderAppStepContext = {
   args: Record<string, unknown>;
   accounts: Record<string, string>;
   instructionName: string | null;
+};
+
+type RemoteViewRunResponse = {
+  ok: boolean;
+  protocol?: string;
+  operation?: string;
+  items?: unknown[];
+  query?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+  error?: string;
 };
 
 const HELP_TEXT = [
@@ -899,6 +913,59 @@ function App() {
     return value;
   }
 
+  async function runRemoteViewRun(options: {
+    protocolId: string;
+    operationId: string;
+    input: Record<string, unknown>;
+    limit?: number;
+  }): Promise<RemoteViewRunResponse> {
+    if (!VIEW_API_BASE_URL) {
+      throw new Error('View API base URL is not configured (VITE_VIEW_API_BASE_URL).');
+    }
+
+    const response = await fetch(`${VIEW_API_BASE_URL}/view-run`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        protocol_id: options.protocolId,
+        operation_id: options.operationId,
+        input: options.input,
+        ...(typeof options.limit === 'number' ? { limit: options.limit } : {}),
+      }),
+    });
+
+    const bodyText = await response.text();
+    let parsed: unknown = null;
+    if (bodyText.trim().length > 0) {
+      try {
+        parsed = JSON.parse(bodyText);
+      } catch {
+        parsed = null;
+      }
+    }
+
+    if (!response.ok) {
+      const detail =
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed) && typeof (parsed as { error?: unknown }).error === 'string'
+          ? (parsed as { error: string }).error
+          : bodyText || response.statusText;
+      throw new Error(`View API error ${response.status}: ${detail}`);
+    }
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('View API returned invalid JSON response.');
+    }
+
+    const result = parsed as RemoteViewRunResponse;
+    if (!result.ok) {
+      throw new Error(result.error ?? 'View API returned ok=false.');
+    }
+
+    return result;
+  }
+
   function normalizeOrcaPoolCandidates(raw: unknown): OrcaPoolCandidate[] {
     if (!Array.isArray(raw)) {
       return [];
@@ -906,11 +973,14 @@ function App() {
 
     return raw.map((entry, index) => {
       const candidate = asRecord(entry, `pool_candidates[${index}]`);
+      const tokenMintA = candidate.tokenMintA ?? candidate.token_mint_a;
+      const tokenMintB = candidate.tokenMintB ?? candidate.token_mint_b;
+      const tickSpacing = candidate.tickSpacing ?? candidate.tick_spacing;
       return {
         whirlpool: asString(candidate.whirlpool, `pool_candidates[${index}].whirlpool`),
-        tokenMintA: asString(candidate.tokenMintA, `pool_candidates[${index}].tokenMintA`),
-        tokenMintB: asString(candidate.tokenMintB, `pool_candidates[${index}].tokenMintB`),
-        tickSpacing: asIntegerLikeString(candidate.tickSpacing, `pool_candidates[${index}].tickSpacing`),
+        tokenMintA: asString(tokenMintA, `pool_candidates[${index}].tokenMintA`),
+        tokenMintB: asString(tokenMintB, `pool_candidates[${index}].tokenMintB`),
+        tickSpacing: asIntegerLikeString(tickSpacing, `pool_candidates[${index}].tickSpacing`),
         liquidity: asIntegerLikeString(candidate.liquidity, `pool_candidates[${index}].liquidity`),
       };
     });
@@ -1369,23 +1439,17 @@ function App() {
   async function executeOrcaListPools(options: {
     value: OrcaListPoolsCommand;
   }): Promise<void> {
-    if (!wallet.publicKey) {
-      throw new Error('Connect wallet first to query Orca pools.');
-    }
-    const walletPublicKey = wallet.publicKey;
-
-    const poolsLookup = await prepareMetaOperation({
+    const response = await runRemoteViewRun({
       protocolId: ORCA_PROTOCOL_ID,
       operationId: ORCA_LIST_POOLS_OPERATION_ID,
       input: {
         token_in_mint: options.value.inputMint,
         token_out_mint: options.value.outputMint,
       },
-      connection,
-      walletPublicKey,
+      limit: 20,
     });
 
-    const poolCandidates = normalizeOrcaPoolCandidates(poolsLookup.derived.pool_candidates);
+    const poolCandidates = normalizeOrcaPoolCandidates(response.items ?? []);
     if (poolCandidates.length === 0) {
       pushMessage(
         'assistant',
@@ -2618,44 +2682,18 @@ function App() {
   async function executeViewRun(options: {
     value: ViewRunCommand;
   }): Promise<void> {
-    if (!wallet.publicKey) {
-      throw new Error('Connect wallet first to run view operations.');
-    }
-
-    const prepared = await prepareMetaOperation({
+    const response = await runRemoteViewRun({
       protocolId: options.value.protocolId,
       operationId: options.value.operationId,
       input: options.value.input,
-      connection,
-      walletPublicKey: wallet.publicKey,
+      limit: 20,
     });
 
-    const explanation = await explainMetaOperation({
-      protocolId: options.value.protocolId,
-      operationId: options.value.operationId,
-    });
-
-    if (!prepared.readOutput) {
-      throw new Error(`Operation ${options.value.protocolId}/${options.value.operationId} has no read_output.`);
-    }
-    if (!explanation.view) {
-      throw new Error(`Operation ${options.value.protocolId}/${options.value.operationId} has no view contract.`);
-    }
-
-    const readScope = {
-      input: options.value.input,
-      args: prepared.args,
-      accounts: prepared.accounts,
-      derived: prepared.derived,
-    };
-    const readValue = readBuilderPath(readScope, prepared.readOutput.source);
-    if (readValue === undefined) {
-      throw new Error(
-        `read_output.source ${prepared.readOutput.source} did not resolve for ${options.value.protocolId}/${options.value.operationId}.`,
-      );
-    }
-
-    const highlights = buildReadOnlyHighlightsFromSpec(prepared.readOutput, readValue);
+    const items = Array.isArray(response.items) ? response.items : [];
+    const highlights = [
+      `items: ${items.length}`,
+      ...(response.meta ? [`source: ${asPrettyJson(response.meta)}`] : []),
+    ];
     pushMessage(
       'assistant',
       [
@@ -2665,9 +2703,7 @@ function App() {
         'Raw JSON:',
         asPrettyJson({
           input: options.value.input,
-          view: explanation.view,
-          read_output: prepared.readOutput,
-          output: readValue,
+          output: response,
         }),
       ].join('\n'),
     );
