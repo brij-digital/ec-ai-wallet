@@ -1179,6 +1179,27 @@ function App() {
       ([name, spec]) => `- ${name}: ${String(spec.type ?? 'unknown')} (${formatRequired(spec)})`,
     );
 
+    const view = explanation.view as Record<string, unknown> | undefined;
+    const viewBootstrap = view?.bootstrap as Record<string, unknown> | undefined;
+    const viewStream = view?.stream as Record<string, unknown> | undefined;
+
+    const viewBootstrapSteps = Array.isArray(viewBootstrap?.steps)
+      ? (viewBootstrap.steps as unknown[])
+          .map((entry) => String(entry))
+          .filter((entry) => entry.length > 0)
+      : [];
+    const viewEntityKeys = Array.isArray(view?.entity_keys)
+      ? (view.entity_keys as unknown[])
+          .map((entry) => String(entry))
+          .filter((entry) => entry.length > 0)
+      : [];
+    const viewStreamSource = viewStream
+      ? String(viewStream.source ?? 'n/a')
+      : null;
+    const viewStreamFilter = viewStream
+      ? String(viewStream.filter ?? 'n/a')
+      : null;
+
     return [
       `Meta operation: ${explanation.protocolId}/${explanation.operationId}`,
       `schema: ${explanation.schema ?? 'n/a'} | version: ${explanation.version}`,
@@ -1196,6 +1217,16 @@ function App() {
       '',
       'Compute phase:',
       ...(computeLines.length > 0 ? computeLines : ['none']),
+      '',
+      'View contract:',
+      ...(view
+        ? [
+            `bootstrap steps: ${viewBootstrapSteps.join(', ') || 'none'}`,
+            `stream source: ${viewStreamSource ?? 'none'}`,
+            `stream filter: ${viewStreamFilter ?? 'none'}`,
+            `entity keys: ${viewEntityKeys.join(', ') || 'none'}`,
+          ]
+        : ['none']),
       '',
       `Build args keys: ${Object.keys(explanation.args).join(', ') || 'none'}`,
       `Build accounts keys: ${Object.keys(explanation.accounts).join(', ') || 'none'}`,

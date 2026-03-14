@@ -79,6 +79,13 @@ type ReadOutputSpec = {
   item_label_fields?: string[];
 };
 
+type ViewSpec = {
+  bootstrap: Record<string, unknown>;
+  stream?: Record<string, unknown>;
+  mapping: Record<string, unknown>;
+  entity_keys: string[];
+};
+
 type ActionSpec = {
   instruction?: string;
   inputs?: Record<string, ActionInputSpec>;
@@ -88,6 +95,7 @@ type ActionSpec = {
   args?: Record<string, unknown>;
   accounts?: Record<string, unknown>;
   remaining_accounts?: Array<Record<string, unknown>>;
+  view?: ViewSpec;
   read_output?: ReadOutputSpec;
   post?: PostInstructionSpec[];
   use?: TemplateUseSpec[];
@@ -154,6 +162,7 @@ type MaterializedActionSpec = {
   args: Record<string, unknown>;
   accounts: Record<string, unknown>;
   remainingAccounts: unknown;
+  view?: ViewSpec;
   readOutput?: ReadOutputSpec;
   post?: PostInstructionSpec[];
 };
@@ -273,6 +282,7 @@ export type MetaOperationExplain = {
   args: Record<string, unknown>;
   accounts: Record<string, unknown>;
   remainingAccounts: unknown;
+  view?: Record<string, unknown>;
   readOutput?: Record<string, unknown>;
   post: Array<Record<string, unknown>>;
 };
@@ -802,6 +812,10 @@ function mergeActionFragment(target: MaterializedActionSpec, fragment: Omit<Acti
     }
   }
 
+  if (fragment.view !== undefined) {
+    target.view = cloneJsonLike(fragment.view);
+  }
+
   if (fragment.read_output !== undefined) {
     target.readOutput = cloneJsonLike(fragment.read_output);
   }
@@ -851,6 +865,7 @@ function materializeOperation(operationId: string, operation: ActionSpec, meta: 
     args: operation.args,
     accounts: operation.accounts,
     remaining_accounts: operation.remaining_accounts,
+    view: operation.view,
     read_output: operation.read_output,
     post: operation.post,
   });
@@ -1375,6 +1390,7 @@ export async function explainMetaOperation(options: {
     args: cloneJsonLike(materialized.args),
     accounts: cloneJsonLike(materialized.accounts),
     remainingAccounts: cloneJsonLike(materialized.remainingAccounts),
+    ...(materialized.view ? { view: cloneJsonLike(materialized.view) } : {}),
     ...(readOutput ? { readOutput } : {}),
     post: cloneJsonLike(materialized.post ?? []),
   };
