@@ -434,12 +434,15 @@ export function buildDerivedFromReadOutputSource(sourcePath: string, value: unkn
 
   const out: Record<string, unknown> = {};
   let current: Record<string, unknown> = out;
-  for (let i = 0; i < parts.length - 1; i += 1) {
-    const key = parts[i]!;
+  // Build relative to derived root so "$derived.pool_candidates" becomes
+  // { pool_candidates: value }, not { derived: { pool_candidates: value } }.
+  const relative = parts.slice(1);
+  for (let i = 0; i < relative.length - 1; i += 1) {
+    const key = relative[i]!;
     current[key] = {};
     current = current[key] as Record<string, unknown>;
   }
-  current[parts[parts.length - 1]!] = value;
+  current[relative[relative.length - 1]!] = value;
   return out;
 }
 
