@@ -285,13 +285,7 @@
                 }
               ]
             ],
-            "where": [
-              {
-                "path": "decoded.liquidity",
-                "op": ">",
-                "value": "0"
-              }
-            ],
+            "where": [],
             "sort": [
               {
                 "path": "decoded.liquidity",

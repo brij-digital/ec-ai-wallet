@@ -282,7 +282,12 @@
               ]
             ],
             "where": [],
-            "sort": [],
+            "sort": [
+              {
+                "path": "decoded.liquidity",
+                "dir": "desc"
+              }
+            ],
             "limit": 20,
             "select": {
               "whirlpool": "$account.pubkey",
@@ -390,9 +395,12 @@
             "whirlpool": "$item.whirlpool",
             "tokenMintA": "$item.tokenMintA",
             "tokenMintB": "$item.tokenMintB",
-            "tickSpacing": "$item.tickSpacing"
+            "tickSpacing": "$item.tickSpacing",
+            "liquidity": "$item.liquidity"
           },
-          "transforms": []
+          "transforms": [
+            "sort(liquidity desc)"
+          ]
         },
         "entity_keys": [
           "whirlpool"
@@ -406,7 +414,8 @@
         "max_items": 20,
         "item_label_fields": [
           "whirlpool",
-          "tickSpacing"
+          "tickSpacing",
+          "liquidity"
         ]
       }
     }
@@ -421,7 +430,7 @@
           "id": "discover",
           "operation": "list_pools",
           "title": "Discover Pools",
-          "description": "Fetch Whirlpool candidates for the selected token pair.",
+          "description": "Fetch Whirlpool candidates sorted by liquidity.",
           "blocking": {
             "depends_on": [],
             "requires_paths": []
@@ -443,7 +452,8 @@
             "value_path": "whirlpool",
             "label_fields": [
               "whirlpool",
-              "tickSpacing"
+              "tickSpacing",
+              "liquidity"
             ],
             "require_selection": true,
             "auto_advance": true,
