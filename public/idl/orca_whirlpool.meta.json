@@ -288,7 +288,8 @@
               "whirlpool": "$account.pubkey",
               "tokenMintA": "$decoded.token_mint_a",
               "tokenMintB": "$decoded.token_mint_b",
-              "tickSpacing": "$decoded.tick_spacing"
+              "tickSpacing": "$decoded.tick_spacing",
+              "liquidity": "$decoded.liquidity"
             }
           }
         ],
