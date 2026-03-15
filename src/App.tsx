@@ -28,24 +28,21 @@ import {
 } from '@agentform/apppack-runtime/metaIdlRuntime';
 import {
   asPrettyJson,
-  buildBuilderAppScope,
   buildDerivedFromReadOutputSource,
   buildExampleInputsForOperation,
   buildReadOnlyHighlightsFromSpec,
   evaluateBuilderStepSuccess,
-  formatBuilderSelectableItemLabel,
-  getBuilderInputTag,
-  isBuilderInputEditable,
-  isBuilderTruthy,
+  isBuilderAppStepUnlocked,
   parseBuilderInputValue,
   readBuilderPath,
   renderMetaExplain,
   resolveBuilderNextStepIndexOnSuccess,
   stringifyBuilderDefault,
-  valuesEqualForSelection,
   writeBuilderPath,
   type BuilderAppStepContext,
 } from './app/builderHelpers';
+import { BuilderTab } from './app/components/BuilderTab';
+import { CommandTab, type CommandMessage } from './app/components/CommandTab';
 
 const DEFAULT_VIEW_API_BASE_URL = 'https://apppack-view-service.onrender.com';
 const VIEW_API_BASE_URL = String(import.meta.env.VITE_VIEW_API_BASE_URL ?? DEFAULT_VIEW_API_BASE_URL)
@@ -54,11 +51,7 @@ const VIEW_API_BASE_URL = String(import.meta.env.VITE_VIEW_API_BASE_URL ?? DEFAU
 const QUICK_PREFILL_META_RUN_COMMAND =
   '/meta-run orca-whirlpool-mainnet swap_exact_in {"token_in_mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","token_out_mint":"So11111111111111111111111111111111111111112","amount_in":"10000","slippage_bps":50,"estimated_out":"100000","whirlpool":"Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE","unwrap_sol_output":true} --simulate';
 
-type Message = {
-  id: number;
-  role: 'user' | 'assistant';
-  text: string;
-};
+type Message = CommandMessage;
 
 type AppTab = 'command' | 'builder';
 
@@ -458,6 +451,35 @@ function App() {
     setBuilderViewMode('geek');
   }
 
+  function handleBuilderProtocolSelect(nextProtocolId: string) {
+    setBuilderProtocolId(nextProtocolId);
+  }
+
+  function handleBuilderAppSelect(app: BuilderApp) {
+    setBuilderAppId(app.appId);
+    const entryIndex = app.steps.findIndex((step) => step.stepId === app.entryStepId);
+    setBuilderAppStepIndex(entryIndex >= 0 ? entryIndex : 0);
+    setBuilderAppStepContexts({});
+    setBuilderAppStepCompleted({});
+    const entryStep = app.steps.find((step) => step.stepId === app.entryStepId) ?? app.steps[0];
+    if (entryStep) {
+      setBuilderOperationId(entryStep.operationId);
+    }
+  }
+
+  function handleBuilderOperationSelect(nextOperationId: string) {
+    setBuilderOperationId(nextOperationId);
+  }
+
+  function handleBuilderAppOpenStep(index: number) {
+    if (!selectedBuilderApp || !canOpenBuilderAppStep(index)) {
+      return;
+    }
+    const step = selectedBuilderApp.steps[index];
+    setBuilderAppStepIndex(index);
+    setBuilderOperationId(step.operationId);
+  }
+
   function handleBuilderAppBackStep() {
     if (!selectedBuilderApp || builderAppStepIndex <= 0) {
       return;
@@ -542,6 +564,17 @@ function App() {
     setBuilderStatusText('Step reset. Adjust inputs and run again.');
     setBuilderRawDetails(null);
     setBuilderShowRawDetails(false);
+  }
+
+  function handleBuilderInputChange(inputName: string, value: string) {
+    setBuilderInputValues((prev) => ({
+      ...prev,
+      [inputName]: value,
+    }));
+  }
+
+  function handleBuilderToggleRawDetails() {
+    setBuilderShowRawDetails((current) => !current);
   }
 
   async function runRemoteViewRun(options: {
@@ -659,33 +692,6 @@ function App() {
       }
       return next;
     });
-  }
-
-  function isBuilderAppStepUnlocked(
-    app: MetaAppSummary,
-    targetStep: MetaAppSummary['steps'][number],
-    contexts: Record<string, BuilderAppStepContext>,
-    completed: Record<string, boolean>,
-  ): boolean {
-    const dependsSatisfied = targetStep.blocking.dependsOn.every((stepId) => Boolean(completed[stepId]));
-    if (!dependsSatisfied) {
-      return false;
-    }
-    const scope = buildBuilderAppScope(contexts);
-    const pathsSatisfied = targetStep.blocking.requiresPaths.every((path) => isBuilderTruthy(readBuilderPath(scope, path)));
-    if (!pathsSatisfied) {
-      return false;
-    }
-
-    if (targetStep.stepId === app.entryStepId) {
-      return true;
-    }
-
-    return app.steps.some(
-      (step) =>
-        Boolean(completed[step.stepId]) &&
-        step.transitions.some((transition) => transition.on === 'success' && transition.to === targetStep.stepId),
-    );
   }
 
   function canOpenBuilderAppStep(targetIndex: number): boolean {
@@ -1258,354 +1264,59 @@ function App() {
           </button>
         </div>
 
-        {activeTab === 'builder' ? (
-          <div className="builder-mode-switch builder-mode-switch-global" role="tablist" aria-label="Builder audience mode">
-            <button
-              type="button"
-              className={builderViewMode === 'enduser' ? 'active' : ''}
-              onClick={handleBuilderModeEndUser}
-              disabled={isWorking}
-            >
-              End User
-            </button>
-            <button
-              type="button"
-              className={builderViewMode === 'geek' ? 'active' : ''}
-              onClick={handleBuilderModeGeek}
-              disabled={isWorking}
-            >
-              Geek
-            </button>
-          </div>
-        ) : null}
-
         {activeTab === 'command' ? (
-          <div className="chat-log" aria-live="polite">
-            {messages.map((message) => (
-              <article key={message.id} className={`message ${message.role}`}>
-                <p>{message.text}</p>
-              </article>
-            ))}
-          </div>
-        ) : null}
-
-        {activeTab === 'command' ? (
-          <>
-            <form className="command-form" onSubmit={handleCommandSubmit}>
-              <input
-                type="text"
-                value={commandInput}
-                onChange={(event) => setCommandInput(event.target.value)}
-                placeholder="/meta-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON> --simulate"
-                disabled={isWorking}
-                aria-label="Command input"
-              />
-              <button type="submit" disabled={isWorking}>
-                {isWorking ? 'Running...' : 'Run'}
-              </button>
-            </form>
-            <div className="quick-actions">
-              <button
-                type="button"
-                onClick={() => setCommandInput(QUICK_PREFILL_META_RUN_COMMAND)}
-                disabled={isWorking}
-              >
-                Prefill Meta Run
-              </button>
-            </div>
-          </>
+          <CommandTab
+            messages={messages}
+            isWorking={isWorking}
+            commandInput={commandInput}
+            onCommandInputChange={setCommandInput}
+            onSubmit={handleCommandSubmit}
+            onPrefillMetaRun={() => setCommandInput(QUICK_PREFILL_META_RUN_COMMAND)}
+          />
         ) : (
-          <section className="builder-shell" aria-live="polite">
-            <div className="builder-layout">
-              <div className="builder-main">
-                <div className="builder-grid">
-                  <aside className="builder-list">
-                    <h3>Protocols</h3>
-                    <div className="builder-items">
-                      {builderProtocols.map((protocol) => (
-                        <button
-                          key={protocol.id}
-                          type="button"
-                          className={builderProtocolId === protocol.id ? 'active' : ''}
-                          onClick={() => setBuilderProtocolId(protocol.id)}
-                          disabled={isWorking}
-                        >
-                          {protocol.name}
-                          <small>{protocol.id}</small>
-                        </button>
-                      ))}
-                    </div>
-                  </aside>
-
-                  <aside className="builder-list">
-                    <h3>{builderViewMode === 'enduser' ? 'Apps' : 'Actions'}</h3>
-                    <div className="builder-items">
-                      {builderViewMode === 'enduser'
-                        ? builderApps.length > 0
-                          ? builderApps.map((app) => (
-                              <button
-                                key={app.appId}
-                                type="button"
-                                className={builderAppId === app.appId ? 'active' : ''}
-                                onClick={() => {
-                                  setBuilderAppId(app.appId);
-                                  const entryIndex = app.steps.findIndex((step) => step.stepId === app.entryStepId);
-                                  setBuilderAppStepIndex(entryIndex >= 0 ? entryIndex : 0);
-                                  setBuilderAppStepContexts({});
-                                  setBuilderAppStepCompleted({});
-                                  const entryStep = app.steps.find((step) => step.stepId === app.entryStepId) ?? app.steps[0];
-                                  if (entryStep) {
-                                    setBuilderOperationId(entryStep.operationId);
-                                  }
-                                }}
-                                disabled={isWorking}
-                              >
-                                {app.title}
-                                <small>{app.appId}</small>
-                              </button>
-                            ))
-                          : (
-                              <p className="builder-empty">No end-user apps declared for this protocol.</p>
-                            )
-                        : builderOperations.map((operation) => (
-                            <button
-                              key={operation.operationId}
-                              type="button"
-                              className={builderOperationId === operation.operationId ? 'active' : ''}
-                              onClick={() => setBuilderOperationId(operation.operationId)}
-                              disabled={isWorking}
-                            >
-                              {operation.operationId}
-                              <small>{operation.instruction || 'read-only'}</small>
-                            </button>
-                          ))}
-                    </div>
-                  </aside>
-                </div>
-
-                {selectedBuilderOperation ? (
-                  <form className="builder-form" onSubmit={handleBuilderSubmit}>
-                    <h3>
-                      {builderProtocolId}/{selectedBuilderOperation.operationId}
-                    </h3>
-                    {builderViewMode === 'enduser' && selectedBuilderApp ? (
-                      <>
-                        <p>
-                          app: <strong>{selectedBuilderApp.title}</strong>
-                          {selectedBuilderApp.description ? ` — ${selectedBuilderApp.description}` : ''}
-                        </p>
-                        <div className="builder-step-list">
-                          {selectedBuilderApp.steps.map((step, index) => (
-                            <button
-                              key={step.stepId}
-                              type="button"
-                              className={builderAppStepIndex === index ? 'active' : ''}
-                              disabled={isWorking || !canOpenBuilderAppStep(index)}
-                              onClick={() => {
-                                if (!canOpenBuilderAppStep(index)) {
-                                  return;
-                                }
-                                setBuilderAppStepIndex(index);
-                                setBuilderOperationId(step.operationId);
-                              }}
-                            >
-                              {index + 1}. {step.title}
-                            </button>
-                          ))}
-                        </div>
-                        {builderAppStepIndex > 0 || showBuilderSelectableItems ? (
-                          <button
-                            type="button"
-                            className="builder-back"
-                            onClick={showBuilderSelectableItems ? handleBuilderAppResetCurrentStep : handleBuilderAppBackStep}
-                            disabled={isWorking}
-                          >
-                            {showBuilderSelectableItems ? 'Back to search form' : 'Back to previous step'}
-                          </button>
-                        ) : null}
-                        {selectedBuilderAppStep?.description ? (
-                          <p className="builder-note">{selectedBuilderAppStep.description}</p>
-                        ) : null}
-                      </>
-                    ) : null}
-                    <p>
-                      instruction: <code>{selectedBuilderOperation.instruction || 'read-only'}</code>
-                    </p>
-
-                    {showBuilderSelectableItems ? (
-                      <div className="builder-pool-selection">
-                        <p className="builder-note">
-                          {selectedBuilderAppSelectUi?.title ?? 'Choose one item to unlock the next step.'}
-                        </p>
-                        {selectedBuilderAppSelectUi?.description ? (
-                          <p className="builder-note">{selectedBuilderAppSelectUi.description}</p>
-                        ) : null}
-                        <div className="builder-pool-list">
-                          {selectedBuilderAppSelectableItems.map((item, index) => {
-                            const itemValue =
-                              selectedBuilderAppSelectUi
-                                ? readBuilderPath(item, selectedBuilderAppSelectUi.valuePath)
-                                : undefined;
-                            const isSelected = valuesEqualForSelection(itemValue, selectedBuilderSelectedItemValue);
-                            return (
-                              <button
-                                key={`${String(itemValue ?? index)}-${index}`}
-                                type="button"
-                                className={isSelected ? 'active' : ''}
-                                disabled={isWorking}
-                                onClick={() => handleBuilderAppSelectItem(item)}
-                              >
-                                {selectedBuilderAppSelectUi
-                                  ? formatBuilderSelectableItemLabel(item, index, selectedBuilderAppSelectUi)
-                                  : `${index + 1}. ${String(item)}`}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {hiddenBuilderInputsCount > 0 && builderViewMode === 'enduser' ? (
-                          <p className="builder-note">
-                            {hiddenBuilderInputsCount} field(s) auto-resolved (default/derived/computed). Switch to Geek mode to view them.
-                          </p>
-                        ) : null}
-
-                        <div className="builder-inputs">
-                          {visibleBuilderInputs.map(([inputName, spec]) => {
-                            const editable = isBuilderInputEditable(spec);
-                            const fieldTag = getBuilderInputTag(spec);
-                            return (
-                              <label key={inputName}>
-                                <span>
-                                  {inputName} <code>{spec.type}</code>{' '}
-                                  {spec.required ? <strong>({fieldTag})</strong> : <em>({fieldTag})</em>}
-                                </span>
-                                <input
-                                  type="text"
-                                  value={builderInputValues[inputName] ?? ''}
-                                  onChange={(event) =>
-                                    setBuilderInputValues((prev) => ({
-                                      ...prev,
-                                      [inputName]: event.target.value,
-                                    }))
-                                  }
-                                  placeholder={
-                                    spec.default !== undefined
-                                      ? `default: ${stringifyBuilderDefault(spec.default)}`
-                                      : spec.discover_from
-                                        ? `discover_from: ${spec.discover_from}`
-                                        : ''
-                                  }
-                                  disabled={isWorking || !editable}
-                                />
-                              </label>
-                            );
-                          })}
-                        </div>
-
-                        {isBuilderAppMode ? (
-                          <div className="builder-controls builder-controls-app">
-                            <button
-                              type="button"
-                              className="builder-prefill"
-                              onClick={handleBuilderPrefillExample}
-                              disabled={isWorking}
-                            >
-                              Prefill Example Data
-                            </button>
-                            {selectedBuilderOperation.instruction ? (
-                              <>
-                                <button
-                                  type="submit"
-                                  className="builder-submit"
-                                  disabled={isWorking}
-                                  onClick={() => setBuilderAppSubmitMode('simulate')}
-                                >
-                                  {isWorking && builderAppSubmitMode === 'simulate' ? 'Running...' : 'Run Simulation'}
-                                </button>
-                                <button
-                                  type="submit"
-                                  className="builder-submit builder-submit-secondary"
-                                  disabled={isWorking}
-                                  onClick={() => setBuilderAppSubmitMode('send')}
-                                >
-                                  {isWorking && builderAppSubmitMode === 'send' ? 'Running...' : 'Send Transaction'}
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                type="submit"
-                                className="builder-submit"
-                                disabled={isWorking}
-                              >
-                                {isWorking ? 'Running...' : 'Run'}
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <>
-                            <div className="builder-controls">
-                              <label className="builder-checkbox">
-                                <input
-                                  type="checkbox"
-                                  checked={builderSimulate}
-                                  onChange={(event) => setBuilderSimulate(event.target.checked)}
-                                  disabled={isWorking}
-                                />
-                                simulate only (recommended first)
-                              </label>
-                              <button
-                                type="button"
-                                className="builder-prefill"
-                                onClick={handleBuilderPrefillExample}
-                                disabled={isWorking}
-                              >
-                                Prefill Example Data
-                              </button>
-                            </div>
-
-                            <button type="submit" className="builder-submit" disabled={isWorking}>
-                              {isWorking ? 'Running...' : builderSimulate ? 'Run Simulation' : 'Send Transaction'}
-                            </button>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </form>
-                ) : (
-                  <div className="builder-empty">Select a protocol and action to start.</div>
-                )}
-              </div>
-
-              <aside className="builder-side">
-                <div className="builder-result-card">
-                  <h3 className="builder-result-title">Execution Panel</h3>
-                  {builderStatusText ? (
-                    <>
-                      <pre className="builder-output">{builderStatusText}</pre>
-                      {builderRawDetails ? (
-                        <>
-                          <button
-                            type="button"
-                            className="builder-raw-toggle"
-                            onClick={() => setBuilderShowRawDetails((current) => !current)}
-                          >
-                            {builderShowRawDetails ? 'Hide raw details' : 'Show raw details'}
-                          </button>
-                          {builderShowRawDetails ? <pre className="builder-output">{builderRawDetails}</pre> : null}
-                        </>
-                      ) : null}
-                    </>
-                  ) : (
-                    <p className="builder-result-empty">
-                      Run a simulation or send a transaction to see status, signature, and explorer link here.
-                    </p>
-                  )}
-                </div>
-              </aside>
-            </div>
-          </section>
+          <BuilderTab
+            isWorking={isWorking}
+            builderViewMode={builderViewMode}
+            onModeEndUser={handleBuilderModeEndUser}
+            onModeGeek={handleBuilderModeGeek}
+            builderProtocols={builderProtocols}
+            builderProtocolId={builderProtocolId}
+            onSelectProtocol={handleBuilderProtocolSelect}
+            builderApps={builderApps}
+            builderAppId={builderAppId}
+            onSelectApp={handleBuilderAppSelect}
+            builderOperations={builderOperations}
+            builderOperationId={builderOperationId}
+            onSelectOperation={handleBuilderOperationSelect}
+            selectedBuilderOperation={selectedBuilderOperation}
+            selectedBuilderApp={selectedBuilderApp}
+            selectedBuilderAppStep={selectedBuilderAppStep}
+            builderAppStepIndex={builderAppStepIndex}
+            canOpenBuilderAppStep={canOpenBuilderAppStep}
+            onOpenBuilderAppStep={handleBuilderAppOpenStep}
+            showBuilderSelectableItems={showBuilderSelectableItems}
+            onBackStep={handleBuilderAppBackStep}
+            onResetStep={handleBuilderAppResetCurrentStep}
+            selectedBuilderAppSelectUi={selectedBuilderAppSelectUi}
+            selectedBuilderAppSelectableItems={selectedBuilderAppSelectableItems}
+            selectedBuilderSelectedItemValue={selectedBuilderSelectedItemValue}
+            onSelectItem={handleBuilderAppSelectItem}
+            hiddenBuilderInputsCount={hiddenBuilderInputsCount}
+            visibleBuilderInputs={visibleBuilderInputs}
+            builderInputValues={builderInputValues}
+            onInputChange={handleBuilderInputChange}
+            onPrefillExample={handleBuilderPrefillExample}
+            isBuilderAppMode={isBuilderAppMode}
+            builderAppSubmitMode={builderAppSubmitMode}
+            onSetBuilderAppSubmitMode={setBuilderAppSubmitMode}
+            builderSimulate={builderSimulate}
+            onSetBuilderSimulate={setBuilderSimulate}
+            onSubmit={handleBuilderSubmit}
+            builderStatusText={builderStatusText}
+            builderRawDetails={builderRawDetails}
+            builderShowRawDetails={builderShowRawDetails}
+            onToggleRawDetails={handleBuilderToggleRawDetails}
+          />
         )}
       </section>
     </main>

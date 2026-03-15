@@ -127,6 +127,33 @@ export function resolveBuilderNextStepIndexOnSuccess(
   return nextIndex >= 0 ? nextIndex : null;
 }
 
+export function isBuilderAppStepUnlocked(
+  app: MetaAppSummary,
+  targetStep: MetaAppSummary['steps'][number],
+  contexts: Record<string, BuilderAppStepContext>,
+  completed: Record<string, boolean>,
+): boolean {
+  const dependsSatisfied = targetStep.blocking.dependsOn.every((stepId) => Boolean(completed[stepId]));
+  if (!dependsSatisfied) {
+    return false;
+  }
+  const scope = buildBuilderAppScope(contexts);
+  const pathsSatisfied = targetStep.blocking.requiresPaths.every((path) => isBuilderTruthy(readBuilderPath(scope, path)));
+  if (!pathsSatisfied) {
+    return false;
+  }
+
+  if (targetStep.stepId === app.entryStepId) {
+    return true;
+  }
+
+  return app.steps.some(
+    (step) =>
+      Boolean(completed[step.stepId]) &&
+      step.transitions.some((transition) => transition.on === 'success' && transition.to === targetStep.stepId),
+  );
+}
+
 export function formatBuilderSelectableItemLabel(
   item: unknown,
   index: number,
