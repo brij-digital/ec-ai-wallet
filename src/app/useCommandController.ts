@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { createCloseAccountInstruction } from '@solana/spl-token';
+import {
+  createAssociatedTokenAccountIdempotentInstruction,
+  createCloseAccountInstruction,
+  createSyncNativeInstruction,
+} from '@solana/spl-token';
 import { type WalletContextState } from '@solana/wallet-adapter-react';
-import { type Connection, PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { type Connection, PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import {
   parseCommand,
   type MetaRunCommand,
@@ -71,9 +75,56 @@ function buildMetaPostInstructions(
   });
 }
 
-function buildBuilderPreInstructions(): TransactionInstruction[] {
-  // Command mode remains protocol-agnostic; pre-instructions come from declarative runtime only.
-  return [];
+function buildMetaPreInstructions(
+  preSpecs: Array<
+    | {
+        kind: 'spl_ata_create_idempotent';
+        payer: string;
+        ata: string;
+        owner: string;
+        mint: string;
+        tokenProgram: string;
+        associatedTokenProgram: string;
+      }
+    | {
+        kind: 'system_transfer';
+        from: string;
+        to: string;
+        lamports: string;
+      }
+    | {
+        kind: 'spl_token_sync_native';
+        account: string;
+        tokenProgram: string;
+      }
+  > = [],
+): TransactionInstruction[] {
+  return preSpecs.map((spec) => {
+    if (spec.kind === 'spl_ata_create_idempotent') {
+      return createAssociatedTokenAccountIdempotentInstruction(
+        new PublicKey(spec.payer),
+        new PublicKey(spec.ata),
+        new PublicKey(spec.owner),
+        new PublicKey(spec.mint),
+        new PublicKey(spec.tokenProgram),
+        new PublicKey(spec.associatedTokenProgram),
+      );
+    }
+
+    if (spec.kind === 'system_transfer') {
+      return SystemProgram.transfer({
+        fromPubkey: new PublicKey(spec.from),
+        toPubkey: new PublicKey(spec.to),
+        lamports: Number(spec.lamports),
+      });
+    }
+
+    if (spec.kind === 'spl_token_sync_native') {
+      return createSyncNativeInstruction(new PublicKey(spec.account), new PublicKey(spec.tokenProgram));
+    }
+
+    throw new Error(`Unsupported meta pre instruction kind: ${(spec as { kind?: string }).kind ?? 'unknown'}`);
+  });
 }
 
 function buildOperationEnhancementFromSummary(operation: MetaOperationSummary): OperationEnhancement {
@@ -339,7 +390,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
       return;
     }
 
-    const preInstructions = buildBuilderPreInstructions();
+    const preInstructions = buildMetaPreInstructions(prepared.preInstructions);
     const postInstructions = buildMetaPostInstructions(prepared.postInstructions);
 
     if (value.mode === 'simulate') {

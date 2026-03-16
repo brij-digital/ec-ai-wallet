@@ -101,7 +101,6 @@
           "success": {
             "kind": "operation_ok"
           },
-          "next_on_error": "discover",
           "status_text": {
             "running": "Simulating or sending swap...",
             "success": "Swap step completed.",

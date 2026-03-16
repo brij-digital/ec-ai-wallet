@@ -174,6 +174,106 @@
           "tick_array_2": "$tick_arrays.2",
           "oracle": "$oracle"
         },
+        "pre": [
+          {
+            "kind": "spl_ata_create_idempotent",
+            "payer": "$wallet",
+            "ata": "$token_owner_account_a",
+            "owner": "$wallet",
+            "mint": "$whirlpool_data.token_mint_a"
+          },
+          {
+            "kind": "spl_ata_create_idempotent",
+            "payer": "$wallet",
+            "ata": "$token_owner_account_b",
+            "owner": "$wallet",
+            "mint": "$whirlpool_data.token_mint_b"
+          },
+          {
+            "kind": "system_transfer",
+            "from": "$wallet",
+            "to": "$token_owner_account_a",
+            "lamports": "$param.amount_in",
+            "when": {
+              "all": [
+                {
+                  "equals": [
+                    "$a_to_b",
+                    true
+                  ]
+                },
+                {
+                  "equals": [
+                    "$input.token_in_mint",
+                    "So11111111111111111111111111111111111111112"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "spl_token_sync_native",
+            "account": "$token_owner_account_a",
+            "when": {
+              "all": [
+                {
+                  "equals": [
+                    "$a_to_b",
+                    true
+                  ]
+                },
+                {
+                  "equals": [
+                    "$input.token_in_mint",
+                    "So11111111111111111111111111111111111111112"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "system_transfer",
+            "from": "$wallet",
+            "to": "$token_owner_account_b",
+            "lamports": "$param.amount_in",
+            "when": {
+              "all": [
+                {
+                  "equals": [
+                    "$a_to_b",
+                    false
+                  ]
+                },
+                {
+                  "equals": [
+                    "$input.token_in_mint",
+                    "So11111111111111111111111111111111111111112"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "spl_token_sync_native",
+            "account": "$token_owner_account_b",
+            "when": {
+              "all": [
+                {
+                  "equals": [
+                    "$a_to_b",
+                    false
+                  ]
+                },
+                {
+                  "equals": [
+                    "$input.token_in_mint",
+                    "So11111111111111111111111111111111111111112"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
         "post": [
           {
             "kind": "spl_token_close_account",
@@ -591,7 +691,6 @@
           "success": {
             "kind": "operation_ok"
           },
-          "next_on_error": "discover",
           "status_text": {
             "running": "Simulating or sending swap...",
             "success": "Swap step completed.",
