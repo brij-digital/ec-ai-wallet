@@ -1058,15 +1058,6 @@
           "operation": "list_tokens",
           "title": "List Tokens",
           "description": "Discover Pump AMM tokens from quote mint and choose one token/pool.",
-          "actions": [
-            {
-              "id": "discover_run",
-              "kind": "run",
-              "label": "Find Tokens",
-              "mode": "view",
-              "variant": "primary"
-            }
-          ],
           "blocking": {
             "depends_on": [],
             "requires_paths": []
@@ -1074,12 +1065,6 @@
           "success": {
             "kind": "selection_made",
             "path": "$steps.discover.derived.selected_pool"
-          },
-          "next_on_success": "pool",
-          "status_text": {
-            "running": "Searching Pump AMM pools...",
-            "success": "Token selected. Next: {next_step_title}.",
-            "error": "Discovery failed: {error}"
           },
           "transitions": [
             {
@@ -1110,21 +1095,6 @@
           "operation": "view_pool",
           "title": "Pool Snapshot",
           "description": "Live pool snapshot from RPC before taking action.",
-          "actions": [
-            {
-              "id": "pool_back",
-              "kind": "back",
-              "label": "Back to Tokens",
-              "variant": "ghost"
-            },
-            {
-              "id": "pool_run",
-              "kind": "run",
-              "label": "Refresh Snapshot",
-              "mode": "view",
-              "variant": "primary"
-            }
-          ],
           "blocking": {
             "depends_on": [
               "discover"
@@ -1136,12 +1106,16 @@
           "success": {
             "kind": "operation_ok"
           },
-          "status_text": {
-            "running": "Loading pool snapshot...",
-            "success": "Snapshot ready. Choose Buy or Sell step.",
-            "error": "Pool snapshot failed: {error}"
-          },
-          "transitions": [],
+          "transitions": [
+            {
+              "on": "success",
+              "to": "buy"
+            },
+            {
+              "on": "success",
+              "to": "sell"
+            }
+          ],
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint"
@@ -1153,28 +1127,6 @@
           "operation": "buy",
           "title": "Buy",
           "description": "Simulate then send buy transaction.",
-          "actions": [
-            {
-              "id": "buy_back",
-              "kind": "back",
-              "label": "Back to Snapshot",
-              "variant": "ghost"
-            },
-            {
-              "id": "buy_simulate",
-              "kind": "run",
-              "label": "Simulate Buy",
-              "mode": "simulate",
-              "variant": "primary"
-            },
-            {
-              "id": "buy_send",
-              "kind": "run",
-              "label": "Send Buy",
-              "mode": "send",
-              "variant": "secondary"
-            }
-          ],
           "blocking": {
             "depends_on": [
               "pool"
@@ -1186,18 +1138,7 @@
           "success": {
             "kind": "operation_ok"
           },
-          "next_on_error": "pool",
-          "status_text": {
-            "running": "Executing buy...",
-            "success": "Buy step completed.",
-            "error": "Buy failed: {error}"
-          },
-          "transitions": [
-            {
-              "on": "error",
-              "to": "pool"
-            }
-          ],
+          "transitions": [],
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
@@ -1210,28 +1151,6 @@
           "operation": "sell",
           "title": "Sell",
           "description": "Simulate then send sell transaction.",
-          "actions": [
-            {
-              "id": "sell_back",
-              "kind": "back",
-              "label": "Back to Snapshot",
-              "variant": "ghost"
-            },
-            {
-              "id": "sell_simulate",
-              "kind": "run",
-              "label": "Simulate Sell",
-              "mode": "simulate",
-              "variant": "primary"
-            },
-            {
-              "id": "sell_send",
-              "kind": "run",
-              "label": "Send Sell",
-              "mode": "send",
-              "variant": "secondary"
-            }
-          ],
           "blocking": {
             "depends_on": [
               "pool"
@@ -1243,18 +1162,7 @@
           "success": {
             "kind": "operation_ok"
           },
-          "next_on_error": "pool",
-          "status_text": {
-            "running": "Executing sell...",
-            "success": "Sell step completed.",
-            "error": "Sell failed: {error}"
-          },
-          "transitions": [
-            {
-              "on": "error",
-              "to": "pool"
-            }
-          ],
+          "transitions": [],
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
@@ -1275,33 +1183,12 @@
           "operation": "buy",
           "title": "Buy",
           "description": "Simulate first, then send with the same inputs.",
-          "actions": [
-            {
-              "id": "buy_simulate",
-              "kind": "run",
-              "label": "Simulate Buy",
-              "mode": "simulate",
-              "variant": "primary"
-            },
-            {
-              "id": "buy_send",
-              "kind": "run",
-              "label": "Send Buy",
-              "mode": "send",
-              "variant": "secondary"
-            }
-          ],
           "blocking": {
             "depends_on": [],
             "requires_paths": []
           },
           "success": {
             "kind": "operation_ok"
-          },
-          "status_text": {
-            "running": "Executing buy...",
-            "success": "Buy step completed.",
-            "error": "Buy failed: {error}"
           },
           "transitions": [],
           "label": "Buy"
