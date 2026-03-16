@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://espressocash.com/schemas/meta-idl.core.v0.6.json",
+  "title": "Meta IDL Core v0.6 (Protocol-only)",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "meta-idl.core.v0.6"
+    },
+    "version": {
+      "type": "string"
+    },
+    "protocolId": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "templates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "operations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "version",
+    "protocolId",
+    "label",
+    "operations"
+  ],
+  "additionalProperties": false
+}

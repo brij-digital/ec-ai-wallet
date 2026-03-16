@@ -1,0 +1,32 @@
+{
+  "$schema": "/idl/meta_app.schema.v0.1.json",
+  "schema": "meta-app.v0.1",
+  "version": "0.2.0",
+  "protocolId": "pump-core-mainnet",
+  "label": "Pump Core Mainnet",
+  "apps": {
+    "buy_curve_token": {
+      "title": "Buy Token (Pump Curve)",
+      "description": "Buy non-graduated token on Pump bonding curve.",
+      "entry_step": "buy",
+      "steps": [
+        {
+          "id": "buy",
+          "operation": "buy_exact_sol_in",
+          "title": "Buy",
+          "description": "Simulate first, then send with the same inputs.",
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [],
+          "label": "Buy"
+        }
+      ],
+      "label": "Buy Token (Pump Curve)"
+    }
+  }
+}

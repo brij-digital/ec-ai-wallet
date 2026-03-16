@@ -187,10 +187,21 @@ function resolveBuilderMetaPath(metaPath: string): string {
   return metaPath.startsWith('/') || /^https?:\/\//.test(metaPath) ? metaPath : `/${metaPath}`;
 }
 
+function deriveSplitMetaPaths(metaPath: string | null): { corePath: string | null; appPath: string | null } {
+  if (!metaPath || !metaPath.endsWith('.meta.json')) {
+    return { corePath: null, appPath: null };
+  }
+  return {
+    corePath: metaPath.replace(/\.meta\.json$/, '.meta.core.json'),
+    appPath: metaPath.replace(/\.meta\.json$/, '.app.json'),
+  };
+}
+
 export function useBuilderController() {
   const [builderProtocols, setBuilderProtocols] = useState<BuilderProtocol[]>([]);
   const [builderProtocolLabelsById, setBuilderProtocolLabelsById] = useState<Record<string, string>>({});
-  const [builderProtocolMetaPaths, setBuilderProtocolMetaPaths] = useState<Record<string, string | null>>({});
+  const [builderProtocolMetaCorePaths, setBuilderProtocolMetaCorePaths] = useState<Record<string, string | null>>({});
+  const [builderProtocolAppPaths, setBuilderProtocolAppPaths] = useState<Record<string, string | null>>({});
   const [builderProtocolId, setBuilderProtocolId] = useState('');
   const [builderApps, setBuilderApps] = useState<MetaAppSummary[]>([]);
   const [builderStepActionsByStep, setBuilderStepActionsByStep] = useState<Record<string, BuilderStepAction[]>>({});
@@ -374,8 +385,8 @@ export function useBuilderController() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const registry = await listIdlProtocols();
-      const protocols = registry.protocols.map((protocol) => ({
+      const idlRegistryView = await listIdlProtocols();
+      const protocols = idlRegistryView.protocols.map((protocol) => ({
         id: protocol.id,
         name: protocol.name,
         status: protocol.status,
@@ -386,9 +397,20 @@ export function useBuilderController() {
       }
 
       setBuilderProtocols(protocols);
-      setBuilderProtocolMetaPaths(
+      setBuilderProtocolMetaCorePaths(
         Object.fromEntries(
-          registry.protocols.map((protocol) => [protocol.id, protocol.metaPath ?? null]),
+          idlRegistryView.protocols.map((protocol) => {
+            const split = deriveSplitMetaPaths(protocol.metaPath ?? null);
+            return [protocol.id, split.corePath];
+          }),
+        ),
+      );
+      setBuilderProtocolAppPaths(
+        Object.fromEntries(
+          idlRegistryView.protocols.map((protocol) => {
+            const split = deriveSplitMetaPaths(protocol.metaPath ?? null);
+            return [protocol.id, split.appPath];
+          }),
         ),
       );
       setBuilderProtocolId((current) => current || protocols[0]?.id || '');
@@ -475,7 +497,6 @@ export function useBuilderController() {
         setBuilderOperationEnhancementsByOperation({});
         setBuilderAppUiEnhancementsByApp({});
         setBuilderInputExamplesByOperation({});
-        setBuilderProtocolMetaPaths({});
         setBuilderAppId('');
         setBuilderAppStepIndex(0);
         setBuilderAppStepContexts({});
@@ -498,22 +519,40 @@ export function useBuilderController() {
       setBuilderInputExamplesByOperation({});
       return;
     }
-    const metaPath = builderProtocolMetaPaths[builderProtocolId] ?? null;
-    if (!metaPath || typeof fetch !== 'function') {
+    const metaCorePath = builderProtocolMetaCorePaths[builderProtocolId] ?? null;
+    const appPath = builderProtocolAppPaths[builderProtocolId] ?? null;
+    if (!metaCorePath || !appPath || typeof fetch !== 'function') {
       setBuilderStepActionsByStep({});
       setBuilderOperationEnhancementsByOperation({});
       setBuilderAppUiEnhancementsByApp({});
       setBuilderInputExamplesByOperation({});
+      setBuilderStatusText(
+        `Error: split meta packs are required for ${builderProtocolId} (missing .meta.core.json or .app.json).`,
+      );
+      setBuilderRawDetails(null);
+      setBuilderShowRawDetails(false);
       return;
     }
 
     let cancelled = false;
     void (async () => {
-      const response = await fetch(resolveBuilderMetaPath(metaPath));
-      if (!response.ok) {
-        throw new Error(`Failed to load raw meta IDL (${response.status}).`);
-      }
-      const rawMeta = (await response.json()) as unknown;
+      const fetchJson = async (resourcePath: string): Promise<unknown> => {
+        const response = await fetch(resolveBuilderMetaPath(resourcePath));
+        if (!response.ok) {
+          throw new Error(`Failed to load raw meta IDL (${response.status}).`);
+        }
+        return (await response.json()) as unknown;
+      };
+
+      const rawCore = await fetchJson(metaCorePath);
+      const rawApp = await fetchJson(appPath);
+      const rawMeta =
+        rawApp && typeof rawApp === 'object' && !Array.isArray(rawApp)
+          ? {
+              ...(rawCore as Record<string, unknown>),
+              ...(rawApp as Record<string, unknown>),
+            }
+          : rawCore;
       if (cancelled) {
         return;
       }
@@ -546,7 +585,7 @@ export function useBuilderController() {
     return () => {
       cancelled = true;
     };
-  }, [builderProtocolId, builderProtocolMetaPaths]);
+  }, [builderProtocolId, builderProtocolMetaCorePaths, builderProtocolAppPaths]);
 
   useEffect(() => {
     if (builderViewMode !== 'enduser') {

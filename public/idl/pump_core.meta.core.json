@@ -1,0 +1,174 @@
+{
+  "$schema": "/idl/meta_idl.core.schema.v0.6.json",
+  "schema": "meta-idl.core.v0.6",
+  "version": "0.2.0",
+  "protocolId": "pump-core-mainnet",
+  "label": "Pump Core Mainnet",
+  "templates": {},
+  "operations": {
+    "buy_exact_sol_in": {
+      "instruction": "buy_exact_sol_in",
+      "inputs": {
+        "base_mint": {
+          "type": "pubkey",
+          "required": true,
+          "label": "Base Mint"
+        },
+        "spendable_sol_in": {
+          "type": "u64",
+          "required": true,
+          "label": "Spendable Sol In"
+        },
+        "min_tokens_out": {
+          "type": "u64",
+          "required": false,
+          "default": "1",
+          "label": "Min Tokens Out"
+        },
+        "track_volume": {
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "label": "Track Volume"
+        },
+        "slippage_bps": {
+          "type": "u16",
+          "required": true,
+          "label": "Slippage Bps"
+        }
+      },
+      "derive": [
+        {
+          "name": "wallet",
+          "resolver": "wallet_pubkey"
+        },
+        {
+          "name": "token_program",
+          "resolver": "account_owner",
+          "address": "$input.base_mint"
+        },
+        {
+          "name": "global",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:global"
+          ]
+        },
+        {
+          "name": "global_data",
+          "resolver": "decode_account",
+          "address": "$global",
+          "account_type": "Global"
+        },
+        {
+          "name": "bonding_curve",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:bonding-curve",
+            "$input.base_mint"
+          ]
+        },
+        {
+          "name": "bonding_curve_v2",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:bonding-curve-v2",
+            "$input.base_mint"
+          ]
+        },
+        {
+          "name": "bonding_curve_data",
+          "resolver": "decode_account",
+          "address": "$bonding_curve",
+          "account_type": "BondingCurve"
+        },
+        {
+          "name": "associated_bonding_curve",
+          "resolver": "ata",
+          "owner": "$bonding_curve",
+          "mint": "$input.base_mint",
+          "token_program": "$token_program",
+          "allow_owner_off_curve": true
+        },
+        {
+          "name": "associated_user",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$input.base_mint",
+          "token_program": "$token_program"
+        },
+        {
+          "name": "creator_vault",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:creator-vault",
+            "$bonding_curve_data.creator"
+          ]
+        },
+        {
+          "name": "event_authority",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:__event_authority"
+          ]
+        },
+        {
+          "name": "global_volume_accumulator",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:global_volume_accumulator"
+          ]
+        },
+        {
+          "name": "user_volume_accumulator",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:user_volume_accumulator",
+            "$wallet"
+          ]
+        },
+        {
+          "name": "fee_config",
+          "resolver": "pda",
+          "program_id": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+          "seeds": [
+            "utf8:fee_config",
+            "$protocol.programId"
+          ]
+        }
+      ],
+      "args": {
+        "spendable_sol_in": "$input.spendable_sol_in",
+        "min_tokens_out": "$input.min_tokens_out",
+        "track_volume": "$input.track_volume"
+      },
+      "accounts": {
+        "global": "$global",
+        "fee_recipient": "$global_data.fee_recipient",
+        "mint": "$input.base_mint",
+        "bonding_curve": "$bonding_curve",
+        "bonding_curve_v2": "$bonding_curve_v2",
+        "associated_bonding_curve": "$associated_bonding_curve",
+        "associated_user": "$associated_user",
+        "user": "$wallet",
+        "system_program": "11111111111111111111111111111111",
+        "token_program": "$token_program",
+        "creator_vault": "$creator_vault",
+        "event_authority": "$event_authority",
+        "program": "$protocol.programId",
+        "global_volume_accumulator": "$global_volume_accumulator",
+        "user_volume_accumulator": "$user_volume_accumulator",
+        "fee_config": "$fee_config",
+        "fee_program": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"
+      },
+      "label": "Buy Exact Sol In"
+    }
+  }
+}

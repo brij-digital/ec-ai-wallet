@@ -1,0 +1,75 @@
+{
+  "$schema": "/idl/meta_app.schema.v0.1.json",
+  "schema": "meta-app.v0.1",
+  "version": "0.2.0",
+  "protocolId": "kamino-klend-mainnet",
+  "label": "Kamino Klend Mainnet",
+  "apps": {
+    "view_position": {
+      "title": "View Position",
+      "description": "Read reserve and wallet position details.",
+      "entry_step": "view",
+      "steps": [
+        {
+          "id": "view",
+          "operation": "view_position",
+          "title": "View",
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [],
+          "label": "View"
+        }
+      ],
+      "label": "View Position"
+    },
+    "deposit_liquidity": {
+      "title": "Deposit Liquidity",
+      "description": "Deposit liquidity into a Kamino reserve.",
+      "entry_step": "deposit",
+      "steps": [
+        {
+          "id": "deposit",
+          "operation": "deposit_reserve_liquidity",
+          "title": "Deposit",
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [],
+          "label": "Deposit"
+        }
+      ],
+      "label": "Deposit Liquidity"
+    },
+    "withdraw_liquidity": {
+      "title": "Withdraw Liquidity",
+      "description": "Redeem reserve collateral back to liquidity.",
+      "entry_step": "withdraw",
+      "steps": [
+        {
+          "id": "withdraw",
+          "operation": "redeem_reserve_collateral",
+          "title": "Withdraw",
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [],
+          "label": "Withdraw"
+        }
+      ],
+      "label": "Withdraw Liquidity"
+    }
+  }
+}

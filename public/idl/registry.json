@@ -18,6 +18,8 @@
       "programId": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
       "idlPath": "/idl/orca_whirlpool.json",
       "metaPath": "/idl/orca_whirlpool.meta.json",
+      "metaCorePath": "/idl/orca_whirlpool.meta.core.json",
+      "appPath": "/idl/orca_whirlpool.app.json",
       "transport": "local-orca-whirlpool",
       "supportedCommands": ["/orca-list-pools", "/orca"],
       "status": "active"
@@ -29,6 +31,8 @@
       "programId": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
       "idlPath": "/idl/pump_amm.json",
       "metaPath": "/idl/pump_amm.meta.json",
+      "metaCorePath": "/idl/pump_amm.meta.core.json",
+      "appPath": "/idl/pump_amm.app.json",
       "transport": "local-pump-amm",
       "supportedCommands": ["/pump-amm"],
       "status": "active"
@@ -40,6 +44,8 @@
       "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
       "idlPath": "/idl/pump_core.json",
       "metaPath": "/idl/pump_core.meta.json",
+      "metaCorePath": "/idl/pump_core.meta.core.json",
+      "appPath": "/idl/pump_core.app.json",
       "transport": "local-pump-core",
       "supportedCommands": ["/pump-curve"],
       "status": "active"
@@ -51,6 +57,8 @@
       "programId": "KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD",
       "idlPath": "/idl/kamino_klend.json",
       "metaPath": "/idl/kamino_klend.meta.json",
+      "metaCorePath": "/idl/kamino_klend.meta.core.json",
+      "appPath": "/idl/kamino_klend.app.json",
       "transport": "local-kamino-klend",
       "supportedCommands": ["/kamino-deposit", "/kamino-withdraw", "/kamino-view-position"],
       "status": "active"

@@ -1,0 +1,649 @@
+{
+  "$schema": "/idl/meta_idl.core.schema.v0.6.json",
+  "schema": "meta-idl.core.v0.6",
+  "version": "0.2.0",
+  "protocolId": "kamino-klend-mainnet",
+  "label": "Kamino Klend Mainnet",
+  "templates": {
+    "kamino.resolve_reserve.v1": {
+      "expand": {
+        "inputs": {
+          "reserve_or_vault": {
+            "type": "pubkey"
+          },
+          "token_mint": {
+            "type": "pubkey"
+          }
+        },
+        "discover": [
+          {
+            "name": "reserve_by_address",
+            "discover": "discover.query",
+            "source": "rpc.getProgramAccounts",
+            "program_id": "$protocol.programId",
+            "account_type": "Reserve",
+            "account_pubkeys": "$input.reserve_or_vault",
+            "where": [
+              {
+                "path": "decoded.liquidity.mintPubkey",
+                "op": "==",
+                "value": "$input.token_mint"
+              }
+            ],
+            "select": {
+              "address": "$account.pubkey",
+              "decoded": "$decoded",
+              "resolved_by": "reserve"
+            },
+            "limit": 1
+          },
+          {
+            "name": "reserve_by_liquidity_vault",
+            "discover": "discover.query",
+            "source": "rpc.getProgramAccounts",
+            "program_id": "$protocol.programId",
+            "account_type": "Reserve",
+            "where": [
+              {
+                "path": "decoded.liquidity.mintPubkey",
+                "op": "==",
+                "value": "$input.token_mint"
+              },
+              {
+                "path": "decoded.liquidity.supplyVault",
+                "op": "==",
+                "value": "$input.reserve_or_vault"
+              }
+            ],
+            "select": {
+              "address": "$account.pubkey",
+              "decoded": "$decoded",
+              "resolved_by": "vault"
+            },
+            "limit": 1
+          },
+          {
+            "name": "reserve_by_collateral_vault",
+            "discover": "discover.query",
+            "source": "rpc.getProgramAccounts",
+            "program_id": "$protocol.programId",
+            "account_type": "Reserve",
+            "where": [
+              {
+                "path": "decoded.liquidity.mintPubkey",
+                "op": "==",
+                "value": "$input.token_mint"
+              },
+              {
+                "path": "decoded.collateral.supplyVault",
+                "op": "==",
+                "value": "$input.reserve_or_vault"
+              }
+            ],
+            "select": {
+              "address": "$account.pubkey",
+              "decoded": "$decoded",
+              "resolved_by": "vault"
+            },
+            "limit": 1
+          }
+        ],
+        "compute": [
+          {
+            "name": "reserve_candidate_0",
+            "compute": "list.first",
+            "items": "$reserve_by_address",
+            "allow_empty": true
+          },
+          {
+            "name": "reserve_candidate_1",
+            "compute": "list.first",
+            "items": "$reserve_by_liquidity_vault",
+            "allow_empty": true
+          },
+          {
+            "name": "reserve_candidate_2",
+            "compute": "list.first",
+            "items": "$reserve_by_collateral_vault",
+            "allow_empty": true
+          },
+          {
+            "name": "selected_reserve_raw",
+            "compute": "coalesce",
+            "values": [
+              "$reserve_candidate_0",
+              "$reserve_candidate_1",
+              "$reserve_candidate_2"
+            ]
+          },
+          {
+            "name": "selected_reserve",
+            "compute": "assert.not_null",
+            "value": "$selected_reserve_raw",
+            "message": "No Kamino reserve found for input reserve_or_vault + token_mint."
+          },
+          {
+            "name": "reserve",
+            "compute": "coalesce",
+            "values": [
+              "$selected_reserve.address"
+            ]
+          },
+          {
+            "name": "reserve_data",
+            "compute": "coalesce",
+            "values": [
+              "$selected_reserve.decoded"
+            ]
+          },
+          {
+            "name": "resolved_by",
+            "compute": "coalesce",
+            "values": [
+              "$selected_reserve.resolved_by"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "operations": {
+    "resolve_reserve": {
+      "use": [
+        {
+          "template": "kamino.resolve_reserve.v1"
+        }
+      ],
+      "view": {
+        "bootstrap": {
+          "kind": "query",
+          "steps": [
+            "reserve_by_address",
+            "reserve_by_liquidity_vault",
+            "reserve_by_collateral_vault"
+          ]
+        },
+        "stream": {
+          "kind": "event",
+          "source": "substreams.transactions_by_programid_without_votes",
+          "filter": "program:$protocol.programId",
+          "cursor_path": "$event.slot",
+          "account_keys_paths": [
+            "$event.transaction.message.accountKeys",
+            "$event.meta.loadedWritableAddresses",
+            "$event.meta.loadedReadonlyAddresses"
+          ]
+        },
+        "mapping": {
+          "source": "$derived.selected_reserve",
+          "select": {
+            "address": "$item.address",
+            "resolved_by": "$item.resolved_by",
+            "liquidity_mint": "$item.decoded.liquidity.mintPubkey",
+            "liquidity_vault": "$item.decoded.liquidity.supplyVault",
+            "collateral_vault": "$item.decoded.collateral.supplyVault"
+          }
+        },
+        "entity_keys": [
+          "address"
+        ]
+      },
+      "read_output": {
+        "type": "object",
+        "source": "$derived.selected_reserve",
+        "title": "Resolved reserve"
+      },
+      "label": "Resolve Reserve",
+      "inputs": {}
+    },
+    "deposit_reserve_liquidity": {
+      "instruction": "depositReserveLiquidity",
+      "use": [
+        {
+          "template": "kamino.resolve_reserve.v1"
+        }
+      ],
+      "inputs": {
+        "liquidity_amount": {
+          "type": "u64",
+          "label": "Liquidity Amount"
+        }
+      },
+      "derive": [
+        {
+          "name": "wallet",
+          "resolver": "wallet_pubkey"
+        },
+        {
+          "name": "lending_market_authority",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:lma",
+            "$reserve_data.lendingMarket"
+          ]
+        },
+        {
+          "name": "collateral_token_program",
+          "resolver": "account_owner",
+          "address": "$reserve_data.collateral.mintPubkey"
+        },
+        {
+          "name": "user_source_liquidity",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.liquidity.mintPubkey",
+          "token_program": "$reserve_data.liquidity.tokenProgram"
+        },
+        {
+          "name": "user_destination_collateral",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.collateral.mintPubkey",
+          "token_program": "$collateral_token_program"
+        }
+      ],
+      "args": {
+        "liquidityAmount": "$input.liquidity_amount"
+      },
+      "accounts": {
+        "owner": "$wallet",
+        "reserve": "$reserve",
+        "lendingMarket": "$reserve_data.lendingMarket",
+        "lendingMarketAuthority": "$lending_market_authority",
+        "reserveLiquidityMint": "$reserve_data.liquidity.mintPubkey",
+        "reserveLiquiditySupply": "$reserve_data.liquidity.supplyVault",
+        "reserveCollateralMint": "$reserve_data.collateral.mintPubkey",
+        "userSourceLiquidity": "$user_source_liquidity",
+        "userDestinationCollateral": "$user_destination_collateral",
+        "collateralTokenProgram": "$collateral_token_program",
+        "liquidityTokenProgram": "$reserve_data.liquidity.tokenProgram",
+        "instructionSysvarAccount": "Sysvar1nstructions1111111111111111111111111"
+      },
+      "label": "Deposit Reserve Liquidity"
+    },
+    "redeem_reserve_collateral": {
+      "instruction": "redeemReserveCollateral",
+      "use": [
+        {
+          "template": "kamino.resolve_reserve.v1"
+        }
+      ],
+      "inputs": {
+        "liquidity_amount": {
+          "type": "u64",
+          "label": "Liquidity Amount"
+        }
+      },
+      "derive": [
+        {
+          "name": "wallet",
+          "resolver": "wallet_pubkey"
+        },
+        {
+          "name": "lending_market_authority",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:lma",
+            "$reserve_data.lendingMarket"
+          ]
+        },
+        {
+          "name": "collateral_token_program",
+          "resolver": "account_owner",
+          "address": "$reserve_data.collateral.mintPubkey"
+        },
+        {
+          "name": "user_source_collateral",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.collateral.mintPubkey",
+          "token_program": "$collateral_token_program"
+        },
+        {
+          "name": "user_destination_liquidity",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.liquidity.mintPubkey",
+          "token_program": "$reserve_data.liquidity.tokenProgram"
+        }
+      ],
+      "compute": [
+        {
+          "name": "borrowed_liquidity_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.borrowedAmountSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "protocol_fees_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.accumulatedProtocolFeesSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "referrer_fees_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.accumulatedReferrerFeesSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "pending_referrer_fees_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.pendingReferrerFeesSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "total_liquidity_before_fees",
+          "compute": "math.add",
+          "values": [
+            "$reserve_data.liquidity.availableAmount",
+            "$borrowed_liquidity_native"
+          ]
+        },
+        {
+          "name": "total_liquidity_supply",
+          "compute": "math.sub",
+          "values": [
+            "$total_liquidity_before_fees",
+            "$protocol_fees_native",
+            "$referrer_fees_native",
+            "$pending_referrer_fees_native"
+          ]
+        },
+        {
+          "name": "collateral_numerator",
+          "compute": "math.mul",
+          "values": [
+            "$input.liquidity_amount",
+            "$reserve_data.collateral.mintTotalSupply"
+          ]
+        },
+        {
+          "name": "collateral_den_minus_one",
+          "compute": "math.sub",
+          "values": [
+            "$total_liquidity_supply",
+            "1"
+          ]
+        },
+        {
+          "name": "collateral_numerator_adjusted",
+          "compute": "math.add",
+          "values": [
+            "$collateral_numerator",
+            "$collateral_den_minus_one"
+          ]
+        },
+        {
+          "name": "collateral_amount",
+          "compute": "math.floor_div",
+          "dividend": "$collateral_numerator_adjusted",
+          "divisor": "$total_liquidity_supply"
+        }
+      ],
+      "args": {
+        "collateralAmount": "$collateral_amount"
+      },
+      "accounts": {
+        "owner": "$wallet",
+        "lendingMarket": "$reserve_data.lendingMarket",
+        "reserve": "$reserve",
+        "lendingMarketAuthority": "$lending_market_authority",
+        "reserveLiquidityMint": "$reserve_data.liquidity.mintPubkey",
+        "reserveCollateralMint": "$reserve_data.collateral.mintPubkey",
+        "reserveLiquiditySupply": "$reserve_data.liquidity.supplyVault",
+        "userSourceCollateral": "$user_source_collateral",
+        "userDestinationLiquidity": "$user_destination_liquidity",
+        "collateralTokenProgram": "$collateral_token_program",
+        "liquidityTokenProgram": "$reserve_data.liquidity.tokenProgram",
+        "instructionSysvarAccount": "Sysvar1nstructions1111111111111111111111111"
+      },
+      "label": "Redeem Reserve Collateral"
+    },
+    "view_position": {
+      "use": [
+        {
+          "template": "kamino.resolve_reserve.v1"
+        }
+      ],
+      "view": {
+        "bootstrap": {
+          "kind": "query",
+          "steps": [
+            "reserve_by_address",
+            "reserve_by_liquidity_vault",
+            "reserve_by_collateral_vault"
+          ]
+        },
+        "stream": {
+          "kind": "event",
+          "source": "substreams.transactions_by_programid_without_votes",
+          "filter": "program:$protocol.programId",
+          "cursor_path": "$event.slot",
+          "account_keys_paths": [
+            "$event.transaction.message.accountKeys",
+            "$event.meta.loadedWritableAddresses",
+            "$event.meta.loadedReadonlyAddresses"
+          ]
+        },
+        "mapping": {
+          "source": "$derived",
+          "select": {
+            "reserve": "$item.reserve",
+            "wallet": "$item.wallet",
+            "resolved_by": "$item.resolved_by",
+            "user_liquidity_balance": "$item.user_liquidity_balance",
+            "user_collateral_balance": "$item.user_collateral_balance"
+          }
+        },
+        "entity_keys": [
+          "reserve",
+          "wallet"
+        ]
+      },
+      "read_output": {
+        "type": "object",
+        "source": "$derived",
+        "title": "Position view"
+      },
+      "derive": [
+        {
+          "name": "wallet",
+          "resolver": "wallet_pubkey"
+        },
+        {
+          "name": "collateral_token_program",
+          "resolver": "account_owner",
+          "address": "$reserve_data.collateral.mintPubkey"
+        },
+        {
+          "name": "user_liquidity_ata",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.liquidity.mintPubkey",
+          "token_program": "$reserve_data.liquidity.tokenProgram"
+        },
+        {
+          "name": "user_collateral_ata",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$reserve_data.collateral.mintPubkey",
+          "token_program": "$collateral_token_program"
+        },
+        {
+          "name": "user_liquidity_balance",
+          "resolver": "token_account_balance",
+          "address": "$user_liquidity_ata",
+          "allow_missing": true,
+          "default": "0"
+        },
+        {
+          "name": "user_collateral_balance",
+          "resolver": "token_account_balance",
+          "address": "$user_collateral_ata",
+          "allow_missing": true,
+          "default": "0"
+        }
+      ],
+      "compute": [
+        {
+          "name": "borrowed_liquidity_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.borrowedAmountSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "protocol_fees_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.accumulatedProtocolFeesSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "referrer_fees_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.accumulatedReferrerFeesSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "pending_referrer_fees_native",
+          "compute": "math.floor_div",
+          "dividend": "$reserve_data.liquidity.pendingReferrerFeesSf",
+          "divisor": "1152921504606846976"
+        },
+        {
+          "name": "total_liquidity_before_fees",
+          "compute": "math.add",
+          "values": [
+            "$reserve_data.liquidity.availableAmount",
+            "$borrowed_liquidity_native"
+          ]
+        },
+        {
+          "name": "total_liquidity_supply",
+          "compute": "math.sub",
+          "values": [
+            "$total_liquidity_before_fees",
+            "$protocol_fees_native",
+            "$referrer_fees_native",
+            "$pending_referrer_fees_native"
+          ]
+        },
+        {
+          "name": "supply_is_zero",
+          "compute": "compare.equals",
+          "left": "$total_liquidity_supply",
+          "right": "0"
+        },
+        {
+          "name": "safe_total_liquidity_supply",
+          "compute": "logic.if",
+          "condition": "$supply_is_zero",
+          "then": "1",
+          "else": "$total_liquidity_supply"
+        },
+        {
+          "name": "utilization_numerator",
+          "compute": "math.mul",
+          "values": [
+            "$borrowed_liquidity_native",
+            "10000"
+          ]
+        },
+        {
+          "name": "utilization_bps_raw",
+          "compute": "math.floor_div",
+          "dividend": "$utilization_numerator",
+          "divisor": "$safe_total_liquidity_supply"
+        },
+        {
+          "name": "reserve_utilization_bps",
+          "compute": "logic.if",
+          "condition": "$supply_is_zero",
+          "then": "0",
+          "else": "$utilization_bps_raw"
+        },
+        {
+          "name": "borrow_rate_bps",
+          "compute": "curve.linear_interpolate_bps",
+          "points": "$reserve_data.config.borrowRateCurve.points",
+          "x_bps": "$reserve_utilization_bps"
+        },
+        {
+          "name": "borrow_rate_adjusted_num",
+          "compute": "math.mul",
+          "values": [
+            "$borrow_rate_bps",
+            "1250"
+          ]
+        },
+        {
+          "name": "borrow_rate_adjusted_bps",
+          "compute": "math.floor_div",
+          "dividend": "$borrow_rate_adjusted_num",
+          "divisor": "1000"
+        },
+        {
+          "name": "protocol_take_pct",
+          "compute": "math.sub",
+          "values": [
+            "100",
+            "$reserve_data.config.protocolTakeRatePct"
+          ]
+        },
+        {
+          "name": "supply_apr_numerator",
+          "compute": "math.mul",
+          "values": [
+            "$reserve_utilization_bps",
+            "$borrow_rate_adjusted_bps",
+            "$protocol_take_pct"
+          ]
+        },
+        {
+          "name": "supply_apr_bps",
+          "compute": "math.floor_div",
+          "dividend": "$supply_apr_numerator",
+          "divisor": "1000000"
+        },
+        {
+          "name": "collateral_is_zero",
+          "compute": "compare.equals",
+          "left": "$reserve_data.collateral.mintTotalSupply",
+          "right": "0"
+        },
+        {
+          "name": "safe_collateral_total_supply",
+          "compute": "logic.if",
+          "condition": "$collateral_is_zero",
+          "then": "1",
+          "else": "$reserve_data.collateral.mintTotalSupply"
+        },
+        {
+          "name": "estimated_redeemable_numerator",
+          "compute": "math.mul",
+          "values": [
+            "$user_collateral_balance",
+            "$total_liquidity_supply"
+          ]
+        },
+        {
+          "name": "estimated_redeemable_raw",
+          "compute": "math.floor_div",
+          "dividend": "$estimated_redeemable_numerator",
+          "divisor": "$safe_collateral_total_supply"
+        },
+        {
+          "name": "estimated_redeemable_liquidity",
+          "compute": "logic.if",
+          "condition": "$collateral_is_zero",
+          "then": "0",
+          "else": "$estimated_redeemable_raw"
+        }
+      ],
+      "label": "View Position",
+      "inputs": {}
+    }
+  }
+}

@@ -1,0 +1,497 @@
+{
+  "$schema": "/idl/meta_idl.core.schema.v0.6.json",
+  "schema": "meta-idl.core.v0.6",
+  "version": "0.2.0",
+  "protocolId": "orca-whirlpool-mainnet",
+  "label": "Orca Whirlpool",
+  "templates": {
+    "orca.swap_exact_in.v2": {
+      "params": {
+        "token_in_mint": {
+          "type": "token_mint"
+        },
+        "amount_in": {
+          "type": "u64"
+        },
+        "slippage_bps": {
+          "type": "u16"
+        },
+        "estimated_out": {
+          "type": "u64"
+        }
+      },
+      "expand": {
+        "instruction": "swap_v2",
+        "discover": [],
+        "derive": [
+          {
+            "name": "wallet",
+            "resolver": "wallet_pubkey"
+          },
+          {
+            "name": "whirlpool_data",
+            "resolver": "decode_account",
+            "address": "$input.whirlpool",
+            "account_type": "Whirlpool"
+          },
+          {
+            "name": "token_owner_account_a",
+            "resolver": "ata",
+            "owner": "$wallet",
+            "mint": "$whirlpool_data.token_mint_a"
+          },
+          {
+            "name": "token_owner_account_b",
+            "resolver": "ata",
+            "owner": "$wallet",
+            "mint": "$whirlpool_data.token_mint_b"
+          },
+          {
+            "name": "oracle",
+            "resolver": "pda",
+            "program_id": "$protocol.programId",
+            "seeds": [
+              "utf8:oracle",
+              "$input.whirlpool"
+            ]
+          }
+        ],
+        "compute": [
+          {
+            "name": "a_to_b",
+            "compute": "compare.equals",
+            "left": "$whirlpool_data.token_mint_a",
+            "right": "$param.token_in_mint"
+          },
+          {
+            "name": "tick_array_direction",
+            "compute": "logic.if",
+            "condition": "$a_to_b",
+            "then": -1,
+            "else": 1
+          },
+          {
+            "name": "ticks_per_array",
+            "compute": "math.mul",
+            "values": [
+              "$whirlpool_data.tick_spacing",
+              88
+            ]
+          },
+          {
+            "name": "direction_step",
+            "compute": "math.mul",
+            "values": [
+              "$ticks_per_array",
+              "$tick_array_direction"
+            ]
+          },
+          {
+            "name": "current_array_index",
+            "compute": "math.floor_div",
+            "dividend": "$whirlpool_data.tick_current_index",
+            "divisor": "$ticks_per_array"
+          },
+          {
+            "name": "current_start_index",
+            "compute": "math.mul",
+            "values": [
+              "$current_array_index",
+              "$ticks_per_array"
+            ]
+          },
+          {
+            "name": "tick_array_starts",
+            "compute": "list.range_map",
+            "base": "$current_start_index",
+            "step": "$direction_step",
+            "count": 3
+          },
+          {
+            "name": "tick_arrays",
+            "compute": "pda(seed_spec)",
+            "program_id": "$protocol.programId",
+            "map_over": "$tick_array_starts",
+            "seeds": [
+              {
+                "kind": "utf8",
+                "value": "tick_array"
+              },
+              {
+                "kind": "pubkey",
+                "value": "$input.whirlpool"
+              },
+              {
+                "kind": "item_utf8"
+              }
+            ]
+          },
+          {
+            "name": "slippage_keep_bps",
+            "compute": "math.sub",
+            "values": [
+              "10000",
+              "$param.slippage_bps"
+            ]
+          },
+          {
+            "name": "other_amount_threshold_numerator",
+            "compute": "math.mul",
+            "values": [
+              "$param.estimated_out",
+              "$slippage_keep_bps"
+            ]
+          },
+          {
+            "name": "other_amount_threshold",
+            "compute": "math.floor_div",
+            "dividend": "$other_amount_threshold_numerator",
+            "divisor": "10000"
+          }
+        ],
+        "args": {
+          "amount": "$param.amount_in",
+          "other_amount_threshold": "$other_amount_threshold",
+          "sqrt_price_limit": "0",
+          "amount_specified_is_input": true,
+          "a_to_b": "$a_to_b",
+          "remaining_accounts_info": null
+        },
+        "accounts": {
+          "token_program_a": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "token_program_b": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "memo_program": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+          "token_authority": "$wallet",
+          "whirlpool": "$input.whirlpool",
+          "token_mint_a": "$whirlpool_data.token_mint_a",
+          "token_mint_b": "$whirlpool_data.token_mint_b",
+          "token_owner_account_a": "$token_owner_account_a",
+          "token_vault_a": "$whirlpool_data.token_vault_a",
+          "token_owner_account_b": "$token_owner_account_b",
+          "token_vault_b": "$whirlpool_data.token_vault_b",
+          "tick_array_0": "$tick_arrays.0",
+          "tick_array_1": "$tick_arrays.1",
+          "tick_array_2": "$tick_arrays.2",
+          "oracle": "$oracle"
+        },
+        "post": [
+          {
+            "kind": "spl_token_close_account",
+            "account": "$token_owner_account_a",
+            "destination": "$wallet",
+            "owner": "$wallet",
+            "when": {
+              "all": [
+                {
+                  "equals": [
+                    "$input.unwrap_sol_output",
+                    true
+                  ]
+                },
+                {
+                  "equals": [
+                    "$a_to_b",
+                    false
+                  ]
+                },
+                {
+                  "equals": [
+                    "$input.token_out_mint",
+                    "So11111111111111111111111111111111111111112"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "kind": "spl_token_close_account",
+            "account": "$token_owner_account_b",
+            "destination": "$wallet",
+            "owner": "$wallet",
+            "when": {
+              "all": [
+                {
+                  "equals": [
+                    "$input.unwrap_sol_output",
+                    true
+                  ]
+                },
+                {
+                  "equals": [
+                    "$a_to_b",
+                    true
+                  ]
+                },
+                {
+                  "equals": [
+                    "$input.token_out_mint",
+                    "So11111111111111111111111111111111111111112"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "orca.list_pools.v1": {
+      "params": {
+        "token_in_mint": {
+          "type": "token_mint"
+        },
+        "token_out_mint": {
+          "type": "token_mint"
+        }
+      },
+      "expand": {
+        "discover": [
+          {
+            "name": "pool_candidates",
+            "discover": "discover.query",
+            "source": "rpc.getProgramAccounts",
+            "program_id": "$protocol.programId",
+            "account_type": "Whirlpool",
+            "commitment": "confirmed",
+            "or_filters": [
+              [
+                {
+                  "memcmp": {
+                    "offset": 101,
+                    "bytesFrom": "$param.token_in_mint"
+                  }
+                },
+                {
+                  "memcmp": {
+                    "offset": 181,
+                    "bytesFrom": "$param.token_out_mint"
+                  }
+                }
+              ],
+              [
+                {
+                  "memcmp": {
+                    "offset": 101,
+                    "bytesFrom": "$param.token_out_mint"
+                  }
+                },
+                {
+                  "memcmp": {
+                    "offset": 181,
+                    "bytesFrom": "$param.token_in_mint"
+                  }
+                }
+              ]
+            ],
+            "where": [],
+            "sort": [
+              {
+                "path": "decoded.liquidity",
+                "dir": "desc"
+              }
+            ],
+            "limit": 20,
+            "select": {
+              "whirlpool": "$account.pubkey",
+              "tokenMintA": "$decoded.token_mint_a",
+              "tokenMintB": "$decoded.token_mint_b",
+              "tickSpacing": "$decoded.tick_spacing",
+              "liquidity": "$decoded.liquidity"
+            }
+          }
+        ],
+        "derive": [],
+        "compute": [],
+        "args": {},
+        "accounts": {}
+      }
+    }
+  },
+  "operations": {
+    "swap_exact_in": {
+      "label": "Swap Exact In",
+      "inputs": {
+        "token_in_mint": {
+          "type": "token_mint",
+          "required": true,
+          "label": "Token In",
+          "placeholder": "USDC or mint address",
+          "help": "Input token symbol or mint address.",
+          "group": "market",
+          "display_order": 1
+        },
+        "token_out_mint": {
+          "type": "token_mint",
+          "required": true,
+          "label": "Token Out",
+          "placeholder": "SOL or mint address",
+          "help": "Output token symbol or mint address.",
+          "group": "market",
+          "display_order": 2
+        },
+        "amount_in": {
+          "type": "u64",
+          "required": true,
+          "label": "Amount In (atomic)",
+          "placeholder": "10000",
+          "group": "trade",
+          "display_order": 3,
+          "validate": {
+            "min": "1",
+            "message": "amount_in must be greater than 0."
+          }
+        },
+        "slippage_bps": {
+          "type": "u16",
+          "required": true,
+          "label": "Slippage (bps)",
+          "placeholder": "50",
+          "help": "100 bps = 1%",
+          "group": "trade",
+          "display_order": 4,
+          "validate": {
+            "min": 0,
+            "max": 5000,
+            "message": "slippage_bps must be between 0 and 5000."
+          }
+        },
+        "estimated_out": {
+          "type": "u64",
+          "required": false,
+          "default": "0",
+          "label": "Estimated Out (atomic)",
+          "placeholder": "0",
+          "group": "advanced",
+          "display_order": 5
+        },
+        "whirlpool": {
+          "type": "pubkey",
+          "required": true,
+          "label": "Whirlpool Account",
+          "placeholder": "Whirlpool pubkey",
+          "group": "market",
+          "display_order": 6
+        },
+        "unwrap_sol_output": {
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "label": "Unwrap SOL output",
+          "group": "advanced",
+          "display_order": 7
+        }
+      },
+      "validate": {
+        "cross": [
+          {
+            "kind": "not_equal",
+            "left": "$input.token_in_mint",
+            "right": "$input.token_out_mint",
+            "message": "token_in_mint and token_out_mint must be different."
+          }
+        ]
+      },
+      "use": [
+        {
+          "template": "orca.swap_exact_in.v2",
+          "with": {
+            "token_in_mint": "$input.token_in_mint",
+            "amount_in": "$input.amount_in",
+            "slippage_bps": "$input.slippage_bps",
+            "estimated_out": "$input.estimated_out"
+          }
+        }
+      ]
+    },
+    "list_pools": {
+      "label": "List Pools",
+      "inputs": {
+        "token_in_mint": {
+          "type": "token_mint",
+          "required": true,
+          "label": "Token In",
+          "placeholder": "USDC or mint address",
+          "help": "Search pools that include this input token.",
+          "group": "market",
+          "display_order": 1,
+          "ui_example": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        },
+        "token_out_mint": {
+          "type": "token_mint",
+          "required": true,
+          "label": "Token Out",
+          "placeholder": "SOL or mint address",
+          "help": "Search pools that include this output token.",
+          "group": "market",
+          "display_order": 2,
+          "ui_example": "So11111111111111111111111111111111111111112"
+        }
+      },
+      "validate": {
+        "cross": [
+          {
+            "kind": "not_equal",
+            "left": "$input.token_in_mint",
+            "right": "$input.token_out_mint",
+            "message": "token_in_mint and token_out_mint must be different."
+          }
+        ]
+      },
+      "use": [
+        {
+          "template": "orca.list_pools.v1",
+          "with": {
+            "token_in_mint": "$input.token_in_mint",
+            "token_out_mint": "$input.token_out_mint"
+          }
+        }
+      ],
+      "view": {
+        "bootstrap": {
+          "kind": "query",
+          "steps": [
+            "pool_candidates"
+          ]
+        },
+        "stream": {
+          "kind": "event",
+          "source": "substreams.transactions_by_programid_without_votes",
+          "filter": "program:$protocol.programId",
+          "cursor_path": "$event.slot",
+          "account_keys_paths": [
+            "$event.transaction.message.accountKeys",
+            "$event.meta.loadedWritableAddresses",
+            "$event.meta.loadedReadonlyAddresses"
+          ]
+        },
+        "mapping": {
+          "source": "$derived.pool_candidates",
+          "select": {
+            "whirlpool": "$item.whirlpool",
+            "tokenMintA": "$item.tokenMintA",
+            "tokenMintB": "$item.tokenMintB",
+            "tickSpacing": "$item.tickSpacing",
+            "liquidity": "$item.liquidity"
+          },
+          "transforms": [
+            "sort(liquidity desc)"
+          ]
+        },
+        "entity_keys": [
+          "whirlpool"
+        ]
+      },
+      "read_output": {
+        "type": "array",
+        "source": "$derived.pool_candidates",
+        "title": "Pools found",
+        "empty_text": "No Whirlpool pool found for this pair.",
+        "max_items": 20,
+        "item_label_fields": [
+          "whirlpool",
+          "tickSpacing",
+          "liquidity"
+        ]
+      }
+    }
+  }
+}

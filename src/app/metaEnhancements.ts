@@ -228,14 +228,22 @@ export async function loadRawMetaForProtocol(protocolId: string): Promise<unknow
     const { listIdlProtocols } = await import('@agentform/apppack-runtime/idlDeclarativeRuntime');
     const registry = await listIdlProtocols();
     const protocol = registry.protocols.find((entry) => entry.id === protocolId);
-    if (!protocol || !protocol.metaPath) {
+    if (!protocol) {
       throw new Error(`Meta IDL path not found for protocol ${protocolId}.`);
     }
-    const response = await fetch(resolveMetaPath(protocol.metaPath));
-    if (!response.ok) {
-      throw new Error(`Failed to load raw meta IDL (${response.status}) for ${protocolId}.`);
+    const metaPath = protocol.metaPath;
+    if (!metaPath) {
+      throw new Error(`Meta IDL path not found for protocol ${protocolId}.`);
     }
-    return (await response.json()) as unknown;
+    const metaCorePath = metaPath.endsWith('.meta.json') ? metaPath.replace(/\.meta\.json$/, '.meta.core.json') : null;
+    if (!metaCorePath) {
+      throw new Error(`Split core meta path is required for protocol ${protocolId}.`);
+    }
+    const coreResponse = await fetch(resolveMetaPath(metaCorePath));
+    if (!coreResponse.ok) {
+      throw new Error(`Failed to load core meta IDL (${coreResponse.status}) for ${protocolId}.`);
+    }
+    return (await coreResponse.json()) as unknown;
   })();
 
   rawMetaCache.set(protocolId, promise);

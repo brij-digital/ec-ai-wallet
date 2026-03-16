@@ -1,0 +1,108 @@
+{
+  "$schema": "/idl/meta_app.schema.v0.1.json",
+  "schema": "meta-app.v0.1",
+  "version": "0.2.0",
+  "protocolId": "orca-whirlpool-mainnet",
+  "label": "Orca Whirlpool",
+  "apps": {
+    "swap_from_discovery": {
+      "label": "Discover & Swap",
+      "title": "Discover -> Swap",
+      "description": "List pools for a pair, then execute swap on the selected pool.",
+      "entry_step": "discover",
+      "steps": [
+        {
+          "id": "discover",
+          "label": "Discover Pools",
+          "operation": "list_pools",
+          "title": "Discover Pools",
+          "description": "Fetch Whirlpool candidates sorted by liquidity.",
+          "actions": [
+            {
+              "id": "discover_run",
+              "kind": "run",
+              "label": "Find Pools",
+              "mode": "view",
+              "variant": "primary"
+            }
+          ],
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "selection_made",
+            "path": "$steps.discover.derived.selected_pool"
+          },
+          "transitions": [
+            {
+              "on": "success",
+              "to": "swap"
+            }
+          ],
+          "ui": {
+            "kind": "select_from_derived",
+            "source": "pool_candidates",
+            "bind_to": "selected_pool",
+            "value_path": "whirlpool",
+            "label_fields": [
+              "whirlpool",
+              "tickSpacing",
+              "liquidity"
+            ],
+            "require_selection": true,
+            "auto_advance": true,
+            "title": "Select a pool",
+            "description": "Pick one discovered pool to continue to swap."
+          }
+        },
+        {
+          "id": "swap",
+          "label": "Swap By Pool",
+          "operation": "swap_exact_in",
+          "title": "Swap By Pool",
+          "description": "Run simulation or send on selected Whirlpool.",
+          "actions": [
+            {
+              "id": "swap_back",
+              "kind": "back",
+              "label": "Back to Pools",
+              "variant": "ghost"
+            },
+            {
+              "id": "swap_simulate",
+              "kind": "run",
+              "label": "Simulate Swap",
+              "mode": "simulate",
+              "variant": "primary"
+            },
+            {
+              "id": "swap_send",
+              "kind": "run",
+              "label": "Send Transaction",
+              "mode": "send",
+              "variant": "secondary"
+            }
+          ],
+          "blocking": {
+            "depends_on": [
+              "discover"
+            ],
+            "requires_paths": [
+              "$steps.discover.derived.selected_pool.whirlpool"
+            ]
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [],
+          "input_from": {
+            "token_in_mint": "$steps.discover.input.token_in_mint",
+            "token_out_mint": "$steps.discover.input.token_out_mint",
+            "whirlpool": "$steps.discover.derived.selected_pool.whirlpool"
+          }
+        }
+      ]
+    }
+  }
+}

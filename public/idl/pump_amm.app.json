@@ -1,0 +1,157 @@
+{
+  "$schema": "/idl/meta_app.schema.v0.1.json",
+  "schema": "meta-app.v0.1",
+  "version": "0.2.0",
+  "protocolId": "pump-amm-mainnet",
+  "label": "Pump Amm Mainnet",
+  "apps": {
+    "token_terminal": {
+      "title": "Pump Token Terminal",
+      "description": "Step 1: list tokens. Step 2: pool snapshot. Step 3/4: buy or sell.",
+      "entry_step": "discover",
+      "steps": [
+        {
+          "id": "discover",
+          "operation": "list_tokens",
+          "title": "List Tokens",
+          "description": "Discover Pump AMM tokens from quote mint and choose one token/pool.",
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "selection_made",
+            "path": "$steps.discover.derived.selected_pool"
+          },
+          "transitions": [
+            {
+              "on": "success",
+              "to": "pool"
+            }
+          ],
+          "ui": {
+            "kind": "select_from_derived",
+            "source": "pool_candidates",
+            "bind_to": "selected_pool",
+            "value_path": "pool",
+            "label_fields": [
+              "baseMint",
+              "pool",
+              "index",
+              "lpSupply"
+            ],
+            "require_selection": true,
+            "auto_advance": true,
+            "title": "Select a token/pool",
+            "description": "Pick one discovered token to open its pool details and trading actions."
+          },
+          "label": "List Tokens"
+        },
+        {
+          "id": "pool",
+          "operation": "view_pool",
+          "title": "Pool Snapshot",
+          "description": "Live pool snapshot from RPC before taking action.",
+          "blocking": {
+            "depends_on": [
+              "discover"
+            ],
+            "requires_paths": [
+              "$steps.discover.derived.selected_pool.pool"
+            ]
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [
+            {
+              "on": "success",
+              "to": "buy"
+            },
+            {
+              "on": "success",
+              "to": "sell"
+            }
+          ],
+          "input_from": {
+            "base_mint": "$steps.discover.derived.selected_pool.baseMint",
+            "quote_mint": "$steps.discover.derived.selected_pool.quoteMint"
+          },
+          "label": "Pool Snapshot"
+        },
+        {
+          "id": "buy",
+          "operation": "buy",
+          "title": "Buy",
+          "description": "Simulate then send buy transaction.",
+          "blocking": {
+            "depends_on": [
+              "pool"
+            ],
+            "requires_paths": [
+              "$steps.discover.derived.selected_pool.pool"
+            ]
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [],
+          "input_from": {
+            "base_mint": "$steps.discover.derived.selected_pool.baseMint",
+            "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
+            "pool": "$steps.discover.derived.selected_pool.pool"
+          },
+          "label": "Buy"
+        },
+        {
+          "id": "sell",
+          "operation": "sell",
+          "title": "Sell",
+          "description": "Simulate then send sell transaction.",
+          "blocking": {
+            "depends_on": [
+              "pool"
+            ],
+            "requires_paths": [
+              "$steps.discover.derived.selected_pool.pool"
+            ]
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [],
+          "input_from": {
+            "base_mint": "$steps.discover.derived.selected_pool.baseMint",
+            "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
+            "pool": "$steps.discover.derived.selected_pool.pool"
+          },
+          "label": "Sell"
+        }
+      ],
+      "label": "Pump Token Terminal"
+    },
+    "buy_token": {
+      "title": "Buy Token (Pump AMM)",
+      "description": "Buy a graduated token directly on Pump AMM.",
+      "entry_step": "buy",
+      "steps": [
+        {
+          "id": "buy",
+          "operation": "buy",
+          "title": "Buy",
+          "description": "Simulate first, then send with the same inputs.",
+          "blocking": {
+            "depends_on": [],
+            "requires_paths": []
+          },
+          "success": {
+            "kind": "operation_ok"
+          },
+          "transitions": [],
+          "label": "Buy"
+        }
+      ],
+      "label": "Buy Token (Pump AMM)"
+    }
+  }
+}
