@@ -189,6 +189,23 @@
 .builder-side {
   position: sticky;
   top: 0.85rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.builder-dev-tools {
+  border: 1px solid #dce4f4;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.builder-dev-tools h3 {
+  margin: 0;
+  color: #16284d;
+  font-size: 0.94rem;
 }
 
 .builder-result-card {
