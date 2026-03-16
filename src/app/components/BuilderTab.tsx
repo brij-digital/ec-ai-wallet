@@ -416,15 +416,13 @@ export function BuilderTab(props: BuilderTabProps) {
           </div>
 
           <aside className="builder-side">
-            {builderViewMode === 'geek' ? (
-              <div className="builder-dev-tools">
-                <h3>Developer Tools</h3>
-                <p className="builder-note">Use sample inputs for quick protocol debugging.</p>
-                <button type="button" className="builder-prefill" onClick={onPrefillExample} disabled={isWorking}>
-                  Use Example Market
-                </button>
-              </div>
-            ) : null}
+            <div className="builder-dev-tools">
+              <h3>Developer Tools</h3>
+              <p className="builder-note">Use sample inputs for quick protocol debugging.</p>
+              <button type="button" className="builder-prefill" onClick={onPrefillExample} disabled={isWorking}>
+                Use Example Market
+              </button>
+            </div>
             <div className="builder-result-card">
               <h3 className="builder-result-title">Execution Panel</h3>
               {builderStatusText ? (
