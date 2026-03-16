@@ -15,6 +15,7 @@ import {
   parseBuilderInputValue,
   readBuilderPath,
 } from './builderHelpers';
+import { validateOperationInput, type OperationEnhancement } from './metaEnhancements';
 import type { BuilderPreparedStepResult, BuilderViewMode } from './useBuilderController';
 
 type RemoteViewRunResponse = {
@@ -32,6 +33,7 @@ type UseBuilderSubmitControllerOptions = {
   setIsBuilderWorking: (value: boolean) => void;
   builderProtocolId: string;
   selectedBuilderOperation: MetaOperationSummary | null;
+  selectedBuilderOperationEnhancement: OperationEnhancement | null;
   builderInputValues: Record<string, string>;
   builderViewMode: BuilderViewMode;
   selectedBuilderAppStep: { stepId: string } | null;
@@ -196,6 +198,14 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         }
 
         const executionInput = { ...inputPayload };
+        const validationErrors = validateOperationInput({
+          operation: options.selectedBuilderOperation,
+          input: executionInput,
+          enhancement: options.selectedBuilderOperationEnhancement ?? undefined,
+        });
+        if (validationErrors.length > 0) {
+          throw new Error(validationErrors[0]);
+        }
         if (isReadOnlyOperation) {
           if (!options.selectedBuilderOperation.readOutput) {
             throw new Error(

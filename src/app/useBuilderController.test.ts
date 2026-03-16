@@ -214,4 +214,44 @@ describe('useBuilderController', () => {
     expect(result.current.builderInputValues.token_in_mint).toBe('USDC_EXAMPLE');
     expect(result.current.builderInputValues.token_out_mint).toBe('SOL_EXAMPLE');
   });
+
+  it('prefers declarative labels from raw meta when provided', async () => {
+    vi.mocked(listIdlProtocols).mockResolvedValue({
+      protocols: [{ id: 'orca-whirlpool-mainnet', name: 'Orca', status: 'active', metaPath: '/idl/orca.meta.json' }],
+    } as never);
+    globalThis.fetch = vi.fn(async () => {
+      return {
+        ok: true,
+        json: async () => ({
+          label: 'Orca Whirlpool',
+          operations: {
+            list_pools: {
+              label: 'List Pools',
+              inputs: {
+                token_in_mint: { type: 'token_mint', label: 'Token In', display_order: 2 },
+                token_out_mint: { type: 'token_mint', label: 'Token Out', display_order: 1 },
+              },
+            },
+          },
+          apps: {
+            discover_then_swap: {
+              label: 'Discover & Swap',
+              steps: [{ id: 'discover', label: 'Discover Pools' }],
+            },
+          },
+        }),
+      } as Response;
+    }) as typeof fetch;
+
+    const { result } = renderHook(() => useBuilderController());
+
+    await waitFor(() => {
+      expect(result.current.builderProtocolLabelsById['orca-whirlpool-mainnet']).toBe('Orca Whirlpool');
+      expect(result.current.builderOperationLabelsByOperationId.list_pools).toBe('List Pools');
+      expect(result.current.builderAppLabelsByAppId.discover_then_swap).toBe('Discover & Swap');
+      expect(result.current.builderStepLabelsByAppStepKey['discover_then_swap:discover']).toBe('Discover Pools');
+    });
+
+    expect(result.current.visibleBuilderInputs.map(([name]) => name)).toEqual(['token_out_mint', 'token_in_mint']);
+  });
 });

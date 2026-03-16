@@ -10,6 +10,7 @@ import {
   valuesEqualForSelection,
 } from '../builderHelpers';
 import type { BuilderStepAction } from '../useBuilderController';
+import type { OperationEnhancement } from '../metaEnhancements';
 
 type BuilderViewMode = 'enduser' | 'geek';
 type BuilderAppSubmitMode = 'simulate' | 'send';
@@ -29,6 +30,7 @@ type BuilderTabProps = {
   onModeEndUser: () => void;
   onModeGeek: () => void;
   builderProtocols: BuilderProtocol[];
+  builderProtocolLabelsById: Record<string, string>;
   builderProtocolId: string;
   onSelectProtocol: (protocolId: string) => void;
   builderApps: MetaAppSummary[];
@@ -38,8 +40,12 @@ type BuilderTabProps = {
   builderOperationId: string;
   onSelectOperation: (operationId: string) => void;
   selectedBuilderOperation: MetaOperationSummary | null;
+  selectedBuilderOperationEnhancement: OperationEnhancement | null;
+  builderOperationLabelsByOperationId: Record<string, string>;
   selectedBuilderApp: MetaAppSummary | null;
+  builderAppLabelsByAppId: Record<string, string>;
   selectedBuilderAppStep: BuilderStep | null;
+  builderStepLabelsByAppStepKey: Record<string, string>;
   selectedBuilderStepActions: BuilderStepAction[];
   builderAppStepIndex: number;
   canOpenBuilderAppStep: (index: number) => boolean;
@@ -75,6 +81,7 @@ export function BuilderTab(props: BuilderTabProps) {
     onModeEndUser,
     onModeGeek,
     builderProtocols,
+    builderProtocolLabelsById,
     builderProtocolId,
     onSelectProtocol,
     builderApps,
@@ -84,8 +91,12 @@ export function BuilderTab(props: BuilderTabProps) {
     builderOperationId,
     onSelectOperation,
     selectedBuilderOperation,
+    selectedBuilderOperationEnhancement,
+    builderOperationLabelsByOperationId,
     selectedBuilderApp,
+    builderAppLabelsByAppId,
     selectedBuilderAppStep,
+    builderStepLabelsByAppStepKey,
     selectedBuilderStepActions,
     builderAppStepIndex,
     canOpenBuilderAppStep,
@@ -114,6 +125,10 @@ export function BuilderTab(props: BuilderTabProps) {
     onToggleRawDetails,
   } = props;
   const visibleStepActions = isBuilderAppMode ? selectedBuilderStepActions : [];
+  const selectedOperationDisplayLabel =
+    (selectedBuilderOperation && builderOperationLabelsByOperationId[selectedBuilderOperation.operationId]) ||
+    selectedBuilderOperation?.operationId ||
+    '';
   const supportedTokens = listSupportedTokens();
 
   const actionClassName = (action: BuilderStepAction): string => {
@@ -166,7 +181,7 @@ export function BuilderTab(props: BuilderTabProps) {
                       onClick={() => onSelectProtocol(protocol.id)}
                       disabled={isWorking}
                     >
-                      {protocol.name}
+                      {builderProtocolLabelsById[protocol.id] ?? protocol.name}
                       <small>{protocol.id}</small>
                     </button>
                   ))}
@@ -186,7 +201,7 @@ export function BuilderTab(props: BuilderTabProps) {
                             onClick={() => onSelectApp(app)}
                             disabled={isWorking}
                           >
-                            {app.title}
+                            {builderAppLabelsByAppId[app.appId] ?? app.title}
                             <small>{app.appId}</small>
                           </button>
                         ))
@@ -201,7 +216,7 @@ export function BuilderTab(props: BuilderTabProps) {
                           onClick={() => onSelectOperation(operation.operationId)}
                           disabled={isWorking}
                         >
-                          {operation.operationId}
+                          {builderOperationLabelsByOperationId[operation.operationId] ?? operation.operationId}
                           <small>{operation.instruction || 'read-only'}</small>
                         </button>
                       ))}
@@ -212,7 +227,7 @@ export function BuilderTab(props: BuilderTabProps) {
             {selectedBuilderOperation ? (
               <form className="builder-form" onSubmit={onSubmit}>
                 <h3>
-                  {builderProtocolId}/{selectedBuilderOperation.operationId}
+                  {builderProtocolId}/{selectedOperationDisplayLabel}
                 </h3>
                 {builderViewMode === 'enduser' && selectedBuilderApp ? (
                   <>
@@ -229,7 +244,8 @@ export function BuilderTab(props: BuilderTabProps) {
                           disabled={isWorking || !canOpenBuilderAppStep(index)}
                           onClick={() => onOpenBuilderAppStep(index)}
                         >
-                          {index + 1}. {step.title}
+                          {index + 1}.{' '}
+                          {builderStepLabelsByAppStepKey[`${selectedBuilderApp.appId}:${step.stepId}`] ?? step.title}
                         </button>
                       ))}
                     </div>
@@ -301,7 +317,11 @@ export function BuilderTab(props: BuilderTabProps) {
                         return (
                           <label key={inputName}>
                             <span>
-                              {inputName} <code>{spec.type}</code>{' '}
+                              {selectedBuilderOperationEnhancement?.inputUi[inputName]?.group ? (
+                                <em>[{selectedBuilderOperationEnhancement.inputUi[inputName].group}] </em>
+                              ) : null}
+                              {selectedBuilderOperationEnhancement?.inputUi[inputName]?.label ?? inputName}{' '}
+                              <code>{spec.type}</code>{' '}
                               {spec.required ? <strong>({fieldTag})</strong> : <em>({fieldTag})</em>}
                             </span>
                             <input
@@ -309,11 +329,12 @@ export function BuilderTab(props: BuilderTabProps) {
                               value={value}
                               onChange={(event) => onInputChange(inputName, event.target.value)}
                               placeholder={
-                                spec.default !== undefined
+                                selectedBuilderOperationEnhancement?.inputUi[inputName]?.placeholder ??
+                                (spec.default !== undefined
                                   ? `default: ${stringifyBuilderDefault(spec.default)}`
                                   : spec.discover_from
                                     ? `discover_from: ${spec.discover_from}`
-                                    : ''
+                                    : '')
                               }
                               disabled={isWorking || !editable}
                             />
@@ -340,6 +361,11 @@ export function BuilderTab(props: BuilderTabProps) {
                                 {resolvedToken
                                   ? `ticker: ${resolvedToken.symbol} | decimals: ${resolvedToken.decimals} | mint: ${resolvedToken.mint}`
                                   : 'Known market tokens: SOL, USDC'}
+                              </small>
+                            ) : null}
+                            {selectedBuilderOperationEnhancement?.inputUi[inputName]?.help ? (
+                              <small className="builder-input-help">
+                                {selectedBuilderOperationEnhancement.inputUi[inputName].help}
                               </small>
                             ) : null}
                           </label>

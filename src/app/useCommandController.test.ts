@@ -16,6 +16,7 @@ vi.mock('@agentform/apppack-runtime/idlDeclarativeRuntime', async () => {
 vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
   return {
     explainMetaOperation: vi.fn(),
+    listMetaOperations: vi.fn(),
     prepareMetaOperation: vi.fn(),
   };
 });

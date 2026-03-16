@@ -18,6 +18,12 @@ import {
   writeBuilderPath,
   type BuilderAppStepContext,
 } from './builderHelpers';
+import {
+  extractAppUiEnhancements,
+  extractOperationEnhancements,
+  type AppUiEnhancement,
+  type OperationEnhancement,
+} from './metaEnhancements';
 
 export type BuilderProtocol = {
   id: string;
@@ -180,10 +186,17 @@ function resolveBuilderMetaPath(metaPath: string): string {
 
 export function useBuilderController() {
   const [builderProtocols, setBuilderProtocols] = useState<BuilderProtocol[]>([]);
+  const [builderProtocolLabelsById, setBuilderProtocolLabelsById] = useState<Record<string, string>>({});
   const [builderProtocolMetaPaths, setBuilderProtocolMetaPaths] = useState<Record<string, string | null>>({});
   const [builderProtocolId, setBuilderProtocolId] = useState('');
   const [builderApps, setBuilderApps] = useState<MetaAppSummary[]>([]);
   const [builderStepActionsByStep, setBuilderStepActionsByStep] = useState<Record<string, BuilderStepAction[]>>({});
+  const [builderOperationEnhancementsByOperation, setBuilderOperationEnhancementsByOperation] = useState<
+    Record<string, OperationEnhancement>
+  >({});
+  const [builderAppUiEnhancementsByApp, setBuilderAppUiEnhancementsByApp] = useState<
+    Record<string, AppUiEnhancement>
+  >({});
   const [builderInputExamplesByOperation, setBuilderInputExamplesByOperation] = useState<
     Record<string, Record<string, string>>
   >({});
@@ -265,6 +278,33 @@ export function useBuilderController() {
     const key = `${selectedBuilderApp.appId}:${selectedBuilderAppStep.stepId}`;
     return builderStepActionsByStep[key] ?? [];
   }, [selectedBuilderApp, selectedBuilderAppStep, builderStepActionsByStep]);
+  const builderOperationLabelsByOperationId = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(builderOperationEnhancementsByOperation)
+          .filter(([, enhancement]) => typeof enhancement.label === 'string' && enhancement.label.length > 0)
+          .map(([operationId, enhancement]) => [operationId, enhancement.label as string]),
+      ),
+    [builderOperationEnhancementsByOperation],
+  );
+  const builderAppLabelsByAppId = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(builderAppUiEnhancementsByApp)
+          .filter(([, enhancement]) => typeof enhancement.label === 'string' && enhancement.label.length > 0)
+          .map(([appId, enhancement]) => [appId, enhancement.label as string]),
+      ),
+    [builderAppUiEnhancementsByApp],
+  );
+  const builderStepLabelsByAppStepKey = useMemo(() => {
+    const output: Record<string, string> = {};
+    for (const [appId, enhancement] of Object.entries(builderAppUiEnhancementsByApp)) {
+      for (const [stepId, label] of Object.entries(enhancement.stepLabels)) {
+        output[`${appId}:${stepId}`] = label;
+      }
+    }
+    return output;
+  }, [builderAppUiEnhancementsByApp]);
   const effectiveBuilderOperationId = useMemo(
     () =>
       builderViewMode === 'enduser'
@@ -276,12 +316,19 @@ export function useBuilderController() {
     () => builderOperations.find((entry) => entry.operationId === effectiveBuilderOperationId) ?? null,
     [builderOperations, effectiveBuilderOperationId],
   );
+  const selectedBuilderOperationEnhancement = useMemo(
+    () =>
+      selectedBuilderOperation
+        ? builderOperationEnhancementsByOperation[selectedBuilderOperation.operationId] ?? null
+        : null,
+    [selectedBuilderOperation, builderOperationEnhancementsByOperation],
+  );
   const visibleBuilderInputs = useMemo(() => {
     if (!selectedBuilderOperation) {
       return [] as Array<[string, MetaOperationSummary['inputs'][string]]>;
     }
 
-    return Object.entries(selectedBuilderOperation.inputs).filter(([, spec]) => {
+    const filtered = Object.entries(selectedBuilderOperation.inputs).filter(([, spec]) => {
       if (builderViewMode === 'geek') {
         return true;
       }
@@ -301,7 +348,23 @@ export function useBuilderController() {
 
       return spec.required && !autoResolved;
     });
-  }, [selectedBuilderOperation, builderViewMode]);
+
+    const hintsByInput = selectedBuilderOperationEnhancement?.inputUi ?? {};
+    return filtered.sort(([leftInput], [rightInput]) => {
+      const leftOrder = hintsByInput[leftInput]?.displayOrder;
+      const rightOrder = hintsByInput[rightInput]?.displayOrder;
+      if (leftOrder !== undefined && rightOrder !== undefined) {
+        return leftOrder - rightOrder;
+      }
+      if (leftOrder !== undefined) {
+        return -1;
+      }
+      if (rightOrder !== undefined) {
+        return 1;
+      }
+      return leftInput.localeCompare(rightInput);
+    });
+  }, [selectedBuilderOperation, builderViewMode, selectedBuilderOperationEnhancement]);
   const hiddenBuilderInputsCount = selectedBuilderOperation
     ? Object.keys(selectedBuilderOperation.inputs).length - visibleBuilderInputs.length
     : 0;
@@ -407,6 +470,8 @@ export function useBuilderController() {
         setBuilderRawDetails(null);
         setBuilderApps([]);
         setBuilderStepActionsByStep({});
+        setBuilderOperationEnhancementsByOperation({});
+        setBuilderAppUiEnhancementsByApp({});
         setBuilderInputExamplesByOperation({});
         setBuilderProtocolMetaPaths({});
         setBuilderAppId('');
@@ -426,12 +491,16 @@ export function useBuilderController() {
   useEffect(() => {
     if (!builderProtocolId) {
       setBuilderStepActionsByStep({});
+      setBuilderOperationEnhancementsByOperation({});
+      setBuilderAppUiEnhancementsByApp({});
       setBuilderInputExamplesByOperation({});
       return;
     }
     const metaPath = builderProtocolMetaPaths[builderProtocolId] ?? null;
     if (!metaPath || typeof fetch !== 'function') {
       setBuilderStepActionsByStep({});
+      setBuilderOperationEnhancementsByOperation({});
+      setBuilderAppUiEnhancementsByApp({});
       setBuilderInputExamplesByOperation({});
       return;
     }
@@ -446,11 +515,23 @@ export function useBuilderController() {
       if (cancelled) {
         return;
       }
+      const rawMetaRecord = asRecord(rawMeta);
+      const rawProtocolLabel = rawMetaRecord ? rawMetaRecord.label : undefined;
+      if (typeof rawProtocolLabel === 'string' && rawProtocolLabel.trim().length > 0) {
+        setBuilderProtocolLabelsById((prev) => ({
+          ...prev,
+          [builderProtocolId]: rawProtocolLabel.trim(),
+        }));
+      }
       setBuilderStepActionsByStep(extractBuilderStepActionsByStep(rawMeta));
+      setBuilderOperationEnhancementsByOperation(extractOperationEnhancements(rawMeta));
+      setBuilderAppUiEnhancementsByApp(extractAppUiEnhancements(rawMeta));
       setBuilderInputExamplesByOperation(extractBuilderInputExamplesByOperation(rawMeta));
     })().catch(() => {
       if (!cancelled) {
         setBuilderStepActionsByStep({});
+        setBuilderOperationEnhancementsByOperation({});
+        setBuilderAppUiEnhancementsByApp({});
         setBuilderInputExamplesByOperation({});
       }
     });
@@ -755,6 +836,7 @@ export function useBuilderController() {
 
   return {
     builderProtocols,
+    builderProtocolLabelsById,
     builderProtocolId,
     builderApps,
     builderAppId,
@@ -783,6 +865,10 @@ export function useBuilderController() {
     selectedBuilderAppSelectableItems,
     selectedBuilderSelectedItemValue,
     selectedBuilderStepActions,
+    selectedBuilderOperationEnhancement,
+    builderOperationLabelsByOperationId,
+    builderAppLabelsByAppId,
+    builderStepLabelsByAppStepKey,
     selectedBuilderOperation,
     isBuilderAppMode,
     visibleBuilderInputs,

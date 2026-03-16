@@ -1,5 +1,6 @@
 {
   "kind": "aidl.v0.1",
+  "label": "Orca Whirlpool",
   "target": {
     "output": "public/idl/orca_whirlpool.meta.json",
     "schema": "meta-idl.v0.6",
@@ -311,37 +312,87 @@
   },
   "operations": {
     "swap_exact_in": {
+      "label": "Swap Exact In",
       "inputs": {
         "token_in_mint": {
           "type": "token_mint",
-          "required": true
+          "required": true,
+          "label": "Token In",
+          "placeholder": "USDC or mint address",
+          "help": "Input token symbol or mint address.",
+          "group": "market",
+          "display_order": 1
         },
         "token_out_mint": {
           "type": "token_mint",
-          "required": true
+          "required": true,
+          "label": "Token Out",
+          "placeholder": "SOL or mint address",
+          "help": "Output token symbol or mint address.",
+          "group": "market",
+          "display_order": 2
         },
         "amount_in": {
           "type": "u64",
-          "required": true
+          "required": true,
+          "label": "Amount In (atomic)",
+          "placeholder": "10000",
+          "group": "trade",
+          "display_order": 3,
+          "validate": {
+            "min": "1",
+            "message": "amount_in must be greater than 0."
+          }
         },
         "slippage_bps": {
           "type": "u16",
-          "required": true
+          "required": true,
+          "label": "Slippage (bps)",
+          "placeholder": "50",
+          "help": "100 bps = 1%",
+          "group": "trade",
+          "display_order": 4,
+          "validate": {
+            "min": 0,
+            "max": 5000,
+            "message": "slippage_bps must be between 0 and 5000."
+          }
         },
         "estimated_out": {
           "type": "u64",
           "required": false,
-          "default": "0"
+          "default": "0",
+          "label": "Estimated Out (atomic)",
+          "placeholder": "0",
+          "group": "advanced",
+          "display_order": 5
         },
         "whirlpool": {
           "type": "pubkey",
-          "required": true
+          "required": true,
+          "label": "Whirlpool Account",
+          "placeholder": "Whirlpool pubkey",
+          "group": "market",
+          "display_order": 6
         },
         "unwrap_sol_output": {
           "type": "bool",
           "required": false,
-          "default": true
+          "default": true,
+          "label": "Unwrap SOL output",
+          "group": "advanced",
+          "display_order": 7
         }
+      },
+      "validate": {
+        "cross": [
+          {
+            "kind": "not_equal",
+            "left": "$input.token_in_mint",
+            "right": "$input.token_out_mint",
+            "message": "token_in_mint and token_out_mint must be different."
+          }
+        ]
       },
       "useTemplate": [
         {
@@ -356,17 +407,38 @@
       ]
     },
     "list_pools": {
+      "label": "List Pools",
       "inputs": {
         "token_in_mint": {
           "type": "token_mint",
           "required": true,
+          "label": "Token In",
+          "placeholder": "USDC or mint address",
+          "help": "Search pools that include this input token.",
+          "group": "market",
+          "display_order": 1,
           "ui_example": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
         },
         "token_out_mint": {
           "type": "token_mint",
           "required": true,
+          "label": "Token Out",
+          "placeholder": "SOL or mint address",
+          "help": "Search pools that include this output token.",
+          "group": "market",
+          "display_order": 2,
           "ui_example": "So11111111111111111111111111111111111111112"
         }
+      },
+      "validate": {
+        "cross": [
+          {
+            "kind": "not_equal",
+            "left": "$input.token_in_mint",
+            "right": "$input.token_out_mint",
+            "message": "token_in_mint and token_out_mint must be different."
+          }
+        ]
       },
       "use": [
         {
@@ -424,12 +496,14 @@
   },
   "apps": {
     "swap_from_discovery": {
+      "label": "Discover & Swap",
       "title": "Discover -> Swap",
       "description": "List pools for a pair, then execute swap on the selected pool.",
       "entry_step": "discover",
       "steps": [
         {
           "id": "discover",
+          "label": "Discover Pools",
           "operation": "list_pools",
           "title": "Discover Pools",
           "description": "Fetch Whirlpool candidates sorted by liquidity.",
@@ -474,6 +548,7 @@
         },
         {
           "id": "swap",
+          "label": "Swap By Pool",
           "operation": "swap_exact_in",
           "title": "Swap By Pool",
           "description": "Run simulation or send on selected Whirlpool.",

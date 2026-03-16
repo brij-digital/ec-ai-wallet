@@ -13,6 +13,9 @@
     "protocolId": {
       "type": "string"
     },
+    "label": {
+      "type": "string"
+    },
     "sources": {
       "type": "object",
       "additionalProperties": {
@@ -99,12 +102,30 @@
         "type": {
           "type": "string"
         },
+        "label": {
+          "type": "string"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "help": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "display_order": {
+          "type": "number"
+        },
         "required": {
           "type": "boolean"
         },
         "default": {},
         "discover_from": {
           "type": "string"
+        },
+        "validate": {
+          "$ref": "#/$defs/inputValidationSpec"
         },
         "ui_tier": {
           "enum": [
@@ -114,6 +135,76 @@
         },
         "ui_editable": {
           "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "inputValidationSpec": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "min": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "max": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "operationValidationCrossRule": {
+      "type": "object",
+      "required": [
+        "kind",
+        "left",
+        "right"
+      ],
+      "properties": {
+        "kind": {
+          "const": "not_equal"
+        },
+        "left": {
+          "type": "string"
+        },
+        "right": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "operationValidationSpec": {
+      "type": "object",
+      "properties": {
+        "cross": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/operationValidationCrossRule"
+          }
         }
       },
       "additionalProperties": false
@@ -386,6 +477,9 @@
         "title": {
           "type": "string"
         },
+        "label": {
+          "type": "string"
+        },
         "description": {
           "type": "string"
         },
@@ -467,6 +561,9 @@
       ],
       "properties": {
         "title": {
+          "type": "string"
+        },
+        "label": {
           "type": "string"
         },
         "description": {
@@ -1586,6 +1683,9 @@
         "instruction": {
           "type": "string"
         },
+        "label": {
+          "type": "string"
+        },
         "inputs": {
           "type": "object",
           "additionalProperties": {
@@ -1633,6 +1733,9 @@
         "read_output": {
           "$ref": "#/$defs/readOutputSpec"
         },
+        "validate": {
+          "$ref": "#/$defs/operationValidationSpec"
+        },
         "view": {
           "$ref": "#/$defs/viewSpec"
         }
@@ -1643,6 +1746,9 @@
       "type": "object",
       "properties": {
         "instruction": {
+          "type": "string"
+        },
+        "label": {
           "type": "string"
         },
         "inputs": {
@@ -1694,6 +1800,9 @@
         },
         "view": {
           "$ref": "#/$defs/viewSpec"
+        },
+        "validate": {
+          "$ref": "#/$defs/operationValidationSpec"
         },
         "use": {
           "type": "array",

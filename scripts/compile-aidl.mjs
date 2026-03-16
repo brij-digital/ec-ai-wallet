@@ -223,6 +223,7 @@ function compileAidl(source, sourceFile) {
   const schemaPath = asString(target.schemaPath, `${sourceFile}.target.schemaPath`);
   const version = asString(target.version, `${sourceFile}.target.version`);
   const protocolId = asString(target.protocolId, `${sourceFile}.target.protocolId`);
+  const rootLabel = source.label === undefined ? undefined : asString(source.label, `${sourceFile}.label`);
 
   const templatesRaw = asObject(source.templates, `${sourceFile}.templates`);
   const operationsRaw = asObject(source.operations, `${sourceFile}.operations`);
@@ -251,6 +252,7 @@ function compileAidl(source, sourceFile) {
     schema,
     version,
     protocolId,
+    ...(rootLabel ? { label: rootLabel } : {}),
     ...(sourcesRaw ? { sources: sourcesRaw } : {}),
     templates,
     operations,

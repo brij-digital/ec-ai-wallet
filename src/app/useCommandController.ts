@@ -17,9 +17,16 @@ import {
 } from '@agentform/apppack-runtime/idlDeclarativeRuntime';
 import {
   explainMetaOperation,
+  listMetaOperations,
   prepareMetaOperation,
 } from '@agentform/apppack-runtime/metaIdlRuntime';
 import { asPrettyJson, renderMetaExplain } from './builderHelpers';
+import { resolveToken } from '../constants/tokens';
+import {
+  extractOperationEnhancements,
+  loadRawMetaForProtocol,
+  validateOperationInput,
+} from './metaEnhancements';
 import type { CommandMessage } from './components/CommandTab';
 
 type RemoteViewRunResponse = {
@@ -190,10 +197,49 @@ export function useCommandController(options: UseCommandControllerOptions) {
       throw new Error('Connect wallet first to execute MetaIDL operations.');
     }
 
+    const operationsView = await listMetaOperations({
+      protocolId: value.protocolId,
+    });
+    const operation = operationsView.operations.find((entry) => entry.operationId === value.operationId);
+    if (!operation) {
+      throw new Error(`Operation ${value.operationId} not found in protocol ${value.protocolId}.`);
+    }
+
+    const normalizedInput: Record<string, unknown> = { ...value.input };
+    for (const [inputName, spec] of Object.entries(operation.inputs)) {
+      if (spec.type.toLowerCase() !== 'token_mint') {
+        continue;
+      }
+      const raw = normalizedInput[inputName];
+      if (typeof raw !== 'string') {
+        continue;
+      }
+      const token = resolveToken(raw);
+      if (token) {
+        normalizedInput[inputName] = token.mint;
+      }
+    }
+
+    let enhancement = undefined;
+    try {
+      const rawMeta = await loadRawMetaForProtocol(value.protocolId);
+      enhancement = extractOperationEnhancements(rawMeta)[value.operationId];
+    } catch {
+      enhancement = undefined;
+    }
+    const validationErrors = validateOperationInput({
+      operation,
+      input: normalizedInput,
+      enhancement,
+    });
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors[0]);
+    }
+
     const prepared = await prepareMetaOperation({
       protocolId: value.protocolId,
       operationId: value.operationId,
-      input: value.input,
+      input: normalizedInput,
       connection,
       walletPublicKey: wallet.publicKey,
     });
@@ -206,7 +252,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
           'Read-only operation (no instruction to execute).',
           '',
           asPrettyJson({
-            input: value.input,
+            input: normalizedInput,
             derived: prepared.derived,
             args: prepared.args,
             accounts: prepared.accounts,
@@ -242,7 +288,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
           `error: ${simulation.error ?? 'none'}`,
           '',
           asPrettyJson({
-            input: value.input,
+            input: normalizedInput,
             derived: prepared.derived,
             args: prepared.args,
             accounts: prepared.accounts,

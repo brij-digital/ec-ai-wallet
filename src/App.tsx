@@ -28,6 +28,7 @@ function App() {
   const builder = useBuilderController();
   const {
     builderProtocols,
+    builderProtocolLabelsById,
     builderProtocolId,
     builderApps,
     builderAppId,
@@ -36,6 +37,10 @@ function App() {
     selectedBuilderApp,
     selectedBuilderAppStep,
     selectedBuilderStepActions,
+    selectedBuilderOperationEnhancement,
+    builderOperationLabelsByOperationId,
+    builderAppLabelsByAppId,
+    builderStepLabelsByAppStepKey,
     selectedBuilderAppSelectUi,
     selectedBuilderAppSelectableItems,
     selectedBuilderSelectedItemValue,
@@ -106,6 +111,7 @@ function App() {
     setIsBuilderWorking,
     builderProtocolId,
     selectedBuilderOperation,
+    selectedBuilderOperationEnhancement,
     builderInputValues,
     builderViewMode,
     selectedBuilderAppStep,
@@ -173,6 +179,7 @@ function App() {
             onModeEndUser={handleBuilderModeEndUser}
             onModeGeek={handleBuilderModeGeek}
             builderProtocols={builderProtocols}
+            builderProtocolLabelsById={builderProtocolLabelsById}
             builderProtocolId={builderProtocolId}
             onSelectProtocol={handleBuilderProtocolSelect}
             builderApps={builderApps}
@@ -185,6 +192,10 @@ function App() {
             selectedBuilderApp={selectedBuilderApp}
             selectedBuilderAppStep={selectedBuilderAppStep}
             selectedBuilderStepActions={selectedBuilderStepActions}
+            selectedBuilderOperationEnhancement={selectedBuilderOperationEnhancement}
+            builderOperationLabelsByOperationId={builderOperationLabelsByOperationId}
+            builderAppLabelsByAppId={builderAppLabelsByAppId}
+            builderStepLabelsByAppStepKey={builderStepLabelsByAppStepKey}
             builderAppStepIndex={builderAppStepIndex}
             canOpenBuilderAppStep={canOpenBuilderAppStep}
             onOpenBuilderAppStep={handleBuilderAppOpenStep}
