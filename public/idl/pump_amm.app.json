@@ -12,9 +12,19 @@
       "steps": [
         {
           "id": "discover",
+          "label": "List Tokens",
           "operation": "list_tokens",
           "title": "List Tokens",
           "description": "Discover Pump AMM tokens from quote mint and choose one token/pool.",
+          "actions": [
+            {
+              "id": "discover_run",
+              "kind": "run",
+              "label": "Find Tokens",
+              "mode": "view",
+              "variant": "primary"
+            }
+          ],
           "blocking": {
             "depends_on": [],
             "requires_paths": []
@@ -22,6 +32,12 @@
           "success": {
             "kind": "selection_made",
             "path": "$steps.discover.derived.selected_pool"
+          },
+          "next_on_success": "pool",
+          "status_text": {
+            "running": "Searching Pump AMM pools...",
+            "success": "Token selected. Next: {next_step_title}.",
+            "error": "Discovery failed: {error}"
           },
           "transitions": [
             {
@@ -44,14 +60,29 @@
             "auto_advance": true,
             "title": "Select a token/pool",
             "description": "Pick one discovered token to open its pool details and trading actions."
-          },
-          "label": "List Tokens"
+          }
         },
         {
           "id": "pool",
+          "label": "Pool Snapshot",
           "operation": "view_pool",
           "title": "Pool Snapshot",
           "description": "Live pool snapshot from RPC before taking action.",
+          "actions": [
+            {
+              "id": "pool_back",
+              "kind": "back",
+              "label": "Back to Tokens",
+              "variant": "ghost"
+            },
+            {
+              "id": "pool_run",
+              "kind": "run",
+              "label": "Refresh Snapshot",
+              "mode": "view",
+              "variant": "primary"
+            }
+          ],
           "blocking": {
             "depends_on": [
               "discover"
@@ -63,27 +94,45 @@
           "success": {
             "kind": "operation_ok"
           },
-          "transitions": [
-            {
-              "on": "success",
-              "to": "buy"
-            },
-            {
-              "on": "success",
-              "to": "sell"
-            }
-          ],
+          "status_text": {
+            "running": "Loading pool snapshot...",
+            "success": "Snapshot refreshed. Continue with Buy or Sell.",
+            "error": "Pool snapshot failed: {error}"
+          },
+          "transitions": [],
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint"
-          },
-          "label": "Pool Snapshot"
+          }
         },
         {
           "id": "buy",
+          "label": "Buy",
           "operation": "buy",
           "title": "Buy",
           "description": "Simulate then send buy transaction.",
+          "actions": [
+            {
+              "id": "buy_back",
+              "kind": "back",
+              "label": "Back to Snapshot",
+              "variant": "ghost"
+            },
+            {
+              "id": "buy_simulate",
+              "kind": "run",
+              "label": "Simulate Buy",
+              "mode": "simulate",
+              "variant": "primary"
+            },
+            {
+              "id": "buy_send",
+              "kind": "run",
+              "label": "Send Buy",
+              "mode": "send",
+              "variant": "secondary"
+            }
+          ],
           "blocking": {
             "depends_on": [
               "pool"
@@ -95,19 +144,46 @@
           "success": {
             "kind": "operation_ok"
           },
+          "status_text": {
+            "running": "Executing buy...",
+            "success": "Buy step completed.",
+            "error": "Buy failed: {error}"
+          },
           "transitions": [],
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
             "pool": "$steps.discover.derived.selected_pool.pool"
-          },
-          "label": "Buy"
+          }
         },
         {
           "id": "sell",
+          "label": "Sell",
           "operation": "sell",
           "title": "Sell",
           "description": "Simulate then send sell transaction.",
+          "actions": [
+            {
+              "id": "sell_back",
+              "kind": "back",
+              "label": "Back to Snapshot",
+              "variant": "ghost"
+            },
+            {
+              "id": "sell_simulate",
+              "kind": "run",
+              "label": "Simulate Sell",
+              "mode": "simulate",
+              "variant": "primary"
+            },
+            {
+              "id": "sell_send",
+              "kind": "run",
+              "label": "Send Sell",
+              "mode": "send",
+              "variant": "secondary"
+            }
+          ],
           "blocking": {
             "depends_on": [
               "pool"
@@ -119,13 +195,17 @@
           "success": {
             "kind": "operation_ok"
           },
+          "status_text": {
+            "running": "Executing sell...",
+            "success": "Sell step completed.",
+            "error": "Sell failed: {error}"
+          },
           "transitions": [],
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
             "pool": "$steps.discover.derived.selected_pool.pool"
-          },
-          "label": "Sell"
+          }
         }
       ],
       "label": "Pump Token Terminal"
@@ -137,9 +217,26 @@
       "steps": [
         {
           "id": "buy",
+          "label": "Buy",
           "operation": "buy",
           "title": "Buy",
           "description": "Simulate first, then send with the same inputs.",
+          "actions": [
+            {
+              "id": "buy_simulate",
+              "kind": "run",
+              "label": "Simulate Buy",
+              "mode": "simulate",
+              "variant": "primary"
+            },
+            {
+              "id": "buy_send",
+              "kind": "run",
+              "label": "Send Buy",
+              "mode": "send",
+              "variant": "secondary"
+            }
+          ],
           "blocking": {
             "depends_on": [],
             "requires_paths": []
@@ -147,8 +244,12 @@
           "success": {
             "kind": "operation_ok"
           },
-          "transitions": [],
-          "label": "Buy"
+          "status_text": {
+            "running": "Executing buy...",
+            "success": "Buy step completed.",
+            "error": "Buy failed: {error}"
+          },
+          "transitions": []
         }
       ],
       "label": "Buy Token (Pump AMM)"
