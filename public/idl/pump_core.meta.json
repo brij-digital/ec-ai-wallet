@@ -180,12 +180,33 @@
           "operation": "buy_exact_sol_in",
           "title": "Buy",
           "description": "Simulate first, then send with the same inputs.",
+          "actions": [
+            {
+              "id": "buy_simulate",
+              "kind": "run",
+              "label": "Simulate Buy",
+              "mode": "simulate",
+              "variant": "primary"
+            },
+            {
+              "id": "buy_send",
+              "kind": "run",
+              "label": "Send Buy",
+              "mode": "send",
+              "variant": "secondary"
+            }
+          ],
           "blocking": {
             "depends_on": [],
             "requires_paths": []
           },
           "success": {
             "kind": "operation_ok"
+          },
+          "status_text": {
+            "running": "Executing buy on bonding curve...",
+            "success": "Buy step completed.",
+            "error": "Buy failed: {error}"
           },
           "transitions": [],
           "label": "Buy"

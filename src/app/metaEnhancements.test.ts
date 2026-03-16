@@ -6,6 +6,7 @@ function operationWithInputs(inputs: MetaOperationSummary['inputs']): MetaOperat
   return {
     operationId: 'test_op',
     instruction: 'test_ix',
+    executionKind: 'write',
     inputs,
   };
 }

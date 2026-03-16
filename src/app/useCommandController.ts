@@ -19,13 +19,13 @@ import {
   explainMetaOperation,
   listMetaOperations,
   prepareMetaOperation,
+  type MetaOperationSummary,
 } from '@agentform/apppack-runtime/metaIdlRuntime';
 import { asPrettyJson, renderMetaExplain } from './builderHelpers';
 import { resolveToken } from '../constants/tokens';
 import {
-  extractOperationEnhancements,
-  loadRawMetaForProtocol,
   validateOperationInput,
+  type OperationEnhancement,
 } from './metaEnhancements';
 import type { CommandMessage } from './components/CommandTab';
 
@@ -76,6 +76,82 @@ function buildBuilderPreInstructions(): TransactionInstruction[] {
   return [];
 }
 
+function buildOperationEnhancementFromSummary(operation: MetaOperationSummary): OperationEnhancement {
+  const operationRecord = operation as unknown as Record<string, unknown>;
+  const operationLabel =
+    typeof operationRecord.label === 'string' && operationRecord.label.trim().length > 0
+      ? operationRecord.label.trim()
+      : operation.operationId;
+
+  const inputUi: OperationEnhancement['inputUi'] = {};
+  const inputValidation: OperationEnhancement['inputValidation'] = {};
+  for (const [inputName, inputSpec] of Object.entries(operation.inputs)) {
+    const specRecord = inputSpec as unknown as Record<string, unknown>;
+    const inputLabel =
+      typeof specRecord.label === 'string' && specRecord.label.trim().length > 0
+        ? specRecord.label.trim()
+        : inputName;
+    inputUi[inputName] = {
+      label: inputLabel,
+      ...(typeof specRecord.placeholder === 'string' && specRecord.placeholder.trim().length > 0
+        ? { placeholder: specRecord.placeholder.trim() }
+        : {}),
+      ...(typeof specRecord.help === 'string' && specRecord.help.trim().length > 0
+        ? { help: specRecord.help.trim() }
+        : {}),
+      ...(typeof specRecord.group === 'string' && specRecord.group.trim().length > 0
+        ? { group: specRecord.group.trim() }
+        : {}),
+      ...(typeof specRecord.display_order === 'number' && Number.isFinite(specRecord.display_order)
+        ? { displayOrder: specRecord.display_order }
+        : {}),
+    };
+    const validate =
+      specRecord.validate && typeof specRecord.validate === 'object' && !Array.isArray(specRecord.validate)
+        ? (specRecord.validate as Record<string, unknown>)
+        : null;
+    inputValidation[inputName] = {
+      ...(validate && typeof validate.required === 'boolean' ? { required: validate.required } : {}),
+      ...(validate && (typeof validate.min === 'string' || typeof validate.min === 'number')
+        ? { min: validate.min }
+        : {}),
+      ...(validate && (typeof validate.max === 'string' || typeof validate.max === 'number')
+        ? { max: validate.max }
+        : {}),
+      ...(validate && typeof validate.pattern === 'string' && validate.pattern.trim().length > 0
+        ? { pattern: validate.pattern.trim() }
+        : {}),
+      ...(validate && typeof validate.message === 'string' && validate.message.trim().length > 0
+        ? { message: validate.message.trim() }
+        : {}),
+    };
+  }
+
+  const crossValidationRaw = Array.isArray(operationRecord.crossValidation)
+    ? operationRecord.crossValidation
+    : [];
+  const crossValidation = crossValidationRaw
+    .map((rule) => (rule && typeof rule === 'object' && !Array.isArray(rule) ? (rule as Record<string, unknown>) : null))
+    .filter((rule): rule is Record<string, unknown> => rule !== null)
+    .filter((rule) => rule.kind === 'not_equal')
+    .map((rule) => ({
+      kind: 'not_equal' as const,
+      left: String(rule.left ?? ''),
+      right: String(rule.right ?? ''),
+      ...(typeof rule.message === 'string' && rule.message.trim().length > 0
+        ? { message: rule.message.trim() }
+        : {}),
+    }))
+    .filter((rule) => rule.left.length > 0 && rule.right.length > 0);
+
+  return {
+    label: operationLabel,
+    inputUi,
+    inputValidation,
+    crossValidation,
+  };
+}
+
 export function useCommandController(options: UseCommandControllerOptions) {
   const {
     connection,
@@ -112,6 +188,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
         'Notes:',
         'Use /meta-run for protocol-agnostic operation execution from MetaIDL.',
         `Pool discovery runs through View API (${defaultViewApiBaseUrl}) with no local fallback.`,
+        'For write operations, /meta-run requires explicit mode: --simulate or --send.',
         'Use --simulate first, then --send with same input for deterministic execution.',
         '',
         'Examples:',
@@ -220,13 +297,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
       }
     }
 
-    let enhancement = undefined;
-    try {
-      const rawMeta = await loadRawMetaForProtocol(value.protocolId);
-      enhancement = extractOperationEnhancements(rawMeta)[value.operationId];
-    } catch {
-      enhancement = undefined;
-    }
+    const enhancement = buildOperationEnhancementFromSummary(operation);
     const validationErrors = validateOperationInput({
       operation,
       input: normalizedInput,
@@ -244,12 +315,23 @@ export function useCommandController(options: UseCommandControllerOptions) {
       walletPublicKey: wallet.publicKey,
     });
 
-    if (!prepared.instructionName) {
+    const instructionName = prepared.instructionName;
+    const isReadOnlyOperation = !instructionName;
+    if (!isReadOnlyOperation && value.mode === 'auto') {
+      throw new Error(
+        `Operation ${value.protocolId}/${value.operationId} is executable. Specify --simulate or --send explicitly.`,
+      );
+    }
+    if (isReadOnlyOperation && value.mode === 'send') {
+      throw new Error(`Operation ${value.protocolId}/${value.operationId} is read-only and cannot be sent.`);
+    }
+
+    if (isReadOnlyOperation) {
       pushMessage(
         'assistant',
         [
-          `Meta run (${value.protocolId}/${value.operationId}):`,
-          'Read-only operation (no instruction to execute).',
+          `Meta read (${value.protocolId}/${value.operationId}):`,
+          'Read-only operation (no transaction execution).',
           '',
           asPrettyJson({
             input: normalizedInput,
@@ -265,10 +347,10 @@ export function useCommandController(options: UseCommandControllerOptions) {
     const preInstructions = buildBuilderPreInstructions();
     const postInstructions = buildMetaPostInstructions(prepared.postInstructions);
 
-    if (value.simulate) {
+    if (value.mode === 'simulate') {
       const simulation = await simulateIdlInstruction({
         protocolId: prepared.protocolId,
-        instructionName: prepared.instructionName,
+        instructionName,
         args: prepared.args,
         accounts: prepared.accounts,
         remainingAccounts: prepared.remainingAccounts,
@@ -282,7 +364,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
         'assistant',
         [
           `Meta simulate (${value.protocolId}/${value.operationId}):`,
-          `instruction: ${prepared.instructionName}`,
+          `instruction: ${instructionName}`,
           `status: ${simulation.ok ? 'success' : 'failed'}`,
           `units: ${simulation.unitsConsumed ?? 'n/a'}`,
           `error: ${simulation.error ?? 'none'}`,
@@ -301,7 +383,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
 
     const sent = await sendIdlInstruction({
       protocolId: prepared.protocolId,
-      instructionName: prepared.instructionName,
+      instructionName,
       args: prepared.args,
       accounts: prepared.accounts,
       remainingAccounts: prepared.remainingAccounts,
@@ -315,7 +397,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
       'assistant',
       [
         `Meta tx sent (${value.protocolId}/${value.operationId}):`,
-        `instruction: ${prepared.instructionName}`,
+        `instruction: ${instructionName}`,
         sent.signature,
         sent.explorerUrl,
       ].join('\n'),

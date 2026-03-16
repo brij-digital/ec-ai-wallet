@@ -53,10 +53,11 @@ describe('useBuilderSubmitController', () => {
       operations: [
         {
           operationId: 'list_pools',
+          label: 'List Pools',
           instruction: '',
           inputs: {
-            token_in_mint: { type: 'pubkey', required: true },
-            token_out_mint: { type: 'pubkey', required: true },
+            token_in_mint: { type: 'pubkey', required: true, label: 'Token In' },
+            token_out_mint: { type: 'pubkey', required: true, label: 'Token Out' },
           },
           readOutput: {
             source: '$derived.pool_candidates',
@@ -69,9 +70,10 @@ describe('useBuilderSubmitController', () => {
         },
         {
           operationId: 'swap_exact_in',
+          label: 'Swap Exact In',
           instruction: 'swap_v2',
           inputs: {
-            amount_in: { type: 'u64', required: true },
+            amount_in: { type: 'u64', required: true, label: 'Amount In' },
           },
         },
       ],
@@ -81,13 +83,17 @@ describe('useBuilderSubmitController', () => {
       apps: [
         {
           appId: 'discover_then_swap',
+          label: 'Discover & Swap',
           title: 'Discover -> Swap',
           entryStepId: 'discover',
           steps: [
             {
               stepId: 'discover',
+              label: 'Discover',
               operationId: 'list_pools',
               title: 'Discover pools',
+              nextOnSuccess: 'swap',
+              actions: [{ actionId: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' }],
               inputFrom: {},
               transitions: [{ on: 'success', to: 'swap' }],
               blocking: { dependsOn: [], requiresPaths: [] },
@@ -104,8 +110,10 @@ describe('useBuilderSubmitController', () => {
             },
             {
               stepId: 'swap',
+              label: 'Swap',
               operationId: 'swap_exact_in',
               title: 'Swap',
+              actions: [{ actionId: 'swap_run', kind: 'run', label: 'Run Swap', mode: 'simulate', variant: 'primary' }],
               inputFrom: {
                 pool: '$steps.discover.derived.selected_pool.whirlpool',
               },
@@ -292,10 +300,11 @@ describe('useBuilderSubmitController', () => {
       operations: [
         {
           operationId: 'broken_read',
+          label: 'Broken Read',
           instruction: '',
           inputs: {
-            token_in_mint: { type: 'pubkey', required: true },
-            token_out_mint: { type: 'pubkey', required: true },
+            token_in_mint: { type: 'pubkey', required: true, label: 'Token In' },
+            token_out_mint: { type: 'pubkey', required: true, label: 'Token Out' },
           },
           readOutput: {
             source: '$input.missing',
@@ -313,13 +322,16 @@ describe('useBuilderSubmitController', () => {
       apps: [
         {
           appId: 'broken-read-app',
+          label: 'Broken Read',
           title: 'Broken read',
           entryStepId: 'broken_step',
           steps: [
             {
               stepId: 'broken_step',
+              label: 'Broken Step',
               operationId: 'broken_read',
               title: 'Broken step',
+              actions: [{ actionId: 'broken_run', kind: 'run', label: 'Run', mode: 'view', variant: 'primary' }],
               inputFrom: {},
               transitions: [],
               blocking: { dependsOn: [], requiresPaths: [] },

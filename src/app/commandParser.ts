@@ -37,7 +37,7 @@ export type MetaRunCommand = {
   protocolId: string;
   operationId: string;
   input: Record<string, unknown>;
-  simulate: boolean;
+  mode: 'auto' | 'simulate' | 'send';
 };
 
 export type ParsedCommand =
@@ -157,14 +157,20 @@ function parseViewRunCommand(trimmed: string): ParsedCommand {
 
 function parseMetaRunCommand(trimmed: string): ParsedCommand {
   let payload = trimmed.slice('/meta-run'.length).trim();
-  let simulate = true;
+  let mode: 'auto' | 'simulate' | 'send' = 'auto';
 
-  if (payload.endsWith('--send')) {
+  const hasTrailingSend = payload.endsWith('--send');
+  const hasTrailingSimulate = payload.endsWith('--simulate');
+  if (hasTrailingSend && hasTrailingSimulate) {
+    throw new Error('Usage: /meta-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON> [--simulate|--send]');
+  }
+
+  if (hasTrailingSend) {
     payload = payload.slice(0, -'--send'.length).trim();
-    simulate = false;
-  } else if (payload.endsWith('--simulate')) {
+    mode = 'send';
+  } else if (hasTrailingSimulate) {
     payload = payload.slice(0, -'--simulate'.length).trim();
-    simulate = true;
+    mode = 'simulate';
   }
 
   if (payload.length === 0) {
@@ -194,7 +200,7 @@ function parseMetaRunCommand(trimmed: string): ParsedCommand {
       protocolId,
       operationId,
       input: parseJsonObject<Record<string, unknown>>(inputRaw, 'input'),
-      simulate,
+      mode,
     },
   };
 }

@@ -655,12 +655,27 @@
           "id": "view",
           "operation": "view_position",
           "title": "View",
+          "description": "Read the current position snapshot.",
+          "actions": [
+            {
+              "id": "view_run",
+              "kind": "run",
+              "label": "Refresh Position",
+              "mode": "view",
+              "variant": "primary"
+            }
+          ],
           "blocking": {
             "depends_on": [],
             "requires_paths": []
           },
           "success": {
             "kind": "operation_ok"
+          },
+          "status_text": {
+            "running": "Loading position...",
+            "success": "Position loaded.",
+            "error": "Position read failed: {error}"
           },
           "transitions": [],
           "label": "View"
@@ -677,12 +692,34 @@
           "id": "deposit",
           "operation": "deposit_reserve_liquidity",
           "title": "Deposit",
+          "description": "Simulate first, then send deposit.",
+          "actions": [
+            {
+              "id": "deposit_simulate",
+              "kind": "run",
+              "label": "Simulate Deposit",
+              "mode": "simulate",
+              "variant": "primary"
+            },
+            {
+              "id": "deposit_send",
+              "kind": "run",
+              "label": "Send Deposit",
+              "mode": "send",
+              "variant": "secondary"
+            }
+          ],
           "blocking": {
             "depends_on": [],
             "requires_paths": []
           },
           "success": {
             "kind": "operation_ok"
+          },
+          "status_text": {
+            "running": "Executing deposit...",
+            "success": "Deposit completed.",
+            "error": "Deposit failed: {error}"
           },
           "transitions": [],
           "label": "Deposit"
@@ -699,12 +736,34 @@
           "id": "withdraw",
           "operation": "redeem_reserve_collateral",
           "title": "Withdraw",
+          "description": "Simulate first, then send withdrawal.",
+          "actions": [
+            {
+              "id": "withdraw_simulate",
+              "kind": "run",
+              "label": "Simulate Withdraw",
+              "mode": "simulate",
+              "variant": "primary"
+            },
+            {
+              "id": "withdraw_send",
+              "kind": "run",
+              "label": "Send Withdraw",
+              "mode": "send",
+              "variant": "secondary"
+            }
+          ],
           "blocking": {
             "depends_on": [],
             "requires_paths": []
           },
           "success": {
             "kind": "operation_ok"
+          },
+          "status_text": {
+            "running": "Executing withdrawal...",
+            "success": "Withdrawal completed.",
+            "error": "Withdrawal failed: {error}"
           },
           "transitions": [],
           "label": "Withdraw"

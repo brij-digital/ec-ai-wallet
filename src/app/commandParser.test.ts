@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseCommand } from './commandParser';
 
 describe('command parser', () => {
-  it('parses /meta-run with default simulate=true', () => {
+  it('parses /meta-run with default mode=auto', () => {
     const parsed = parseCommand('/meta-run orca-whirlpool-mainnet swap_exact_in {"amount_in":"1000"}');
     expect(parsed.kind).toBe('meta-run');
     if (parsed.kind !== 'meta-run') {
@@ -10,19 +10,28 @@ describe('command parser', () => {
     }
     expect(parsed.value.protocolId).toBe('orca-whirlpool-mainnet');
     expect(parsed.value.operationId).toBe('swap_exact_in');
-    expect(parsed.value.simulate).toBe(true);
+    expect(parsed.value.mode).toBe('auto');
     expect(parsed.value.input).toEqual({ amount_in: '1000' });
   });
 
-  it('parses /meta-run --send with simulate=false', () => {
+  it('parses /meta-run --send', () => {
     const parsed = parseCommand('/meta-run pump-amm-mainnet buy {"quote_amount_in":"1000"} --send');
     expect(parsed.kind).toBe('meta-run');
     if (parsed.kind !== 'meta-run') {
       return;
     }
-    expect(parsed.value.simulate).toBe(false);
+    expect(parsed.value.mode).toBe('send');
     expect(parsed.value.protocolId).toBe('pump-amm-mainnet');
     expect(parsed.value.operationId).toBe('buy');
+  });
+
+  it('parses /meta-run --simulate', () => {
+    const parsed = parseCommand('/meta-run pump-amm-mainnet buy {"quote_amount_in":"1000"} --simulate');
+    expect(parsed.kind).toBe('meta-run');
+    if (parsed.kind !== 'meta-run') {
+      return;
+    }
+    expect(parsed.value.mode).toBe('simulate');
   });
 
   it('parses /view-run with JSON input', () => {
@@ -48,4 +57,3 @@ describe('command parser', () => {
     );
   });
 });
-

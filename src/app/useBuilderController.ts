@@ -98,8 +98,6 @@ function parseBuilderStepFlow(step: MetaAppSummary['steps'][number] | null): Bui
   if (!step) {
     return { statusText: {} };
   }
-  const transitionSuccess = step.transitions.find((entry) => entry.on === 'success')?.to;
-  const transitionError = step.transitions.find((entry) => entry.on === 'error')?.to;
   const rawStatus = asRecord(step.statusText ?? null);
   const statusText: BuilderStepStatusTextTemplates = {
     ...(rawStatus && typeof rawStatus.idle === 'string' && rawStatus.idle.trim().length > 0
@@ -116,8 +114,8 @@ function parseBuilderStepFlow(step: MetaAppSummary['steps'][number] | null): Bui
       : {}),
   };
   return {
-    ...(step.nextOnSuccess ?? transitionSuccess ? { nextOnSuccess: step.nextOnSuccess ?? transitionSuccess } : {}),
-    ...(step.nextOnError ?? transitionError ? { nextOnError: step.nextOnError ?? transitionError } : {}),
+    ...(step.nextOnSuccess ? { nextOnSuccess: step.nextOnSuccess } : {}),
+    ...(step.nextOnError ? { nextOnError: step.nextOnError } : {}),
     statusText,
   };
 }

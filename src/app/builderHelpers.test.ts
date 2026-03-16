@@ -6,6 +6,7 @@ function opWithInputs(inputs: MetaOperationSummary['inputs']): MetaOperationSumm
   return {
     operationId: 'test_op',
     instruction: 'test_ix',
+    executionKind: 'write',
     inputs,
   };
 }
@@ -72,4 +73,3 @@ describe('buildDerivedFromReadOutputSource', () => {
     );
   });
 });
-
