@@ -328,6 +328,44 @@
         }
       ]
     },
+    "userAppActionSpec": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "run",
+            "back",
+            "reset"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "view",
+            "simulate",
+            "send"
+          ]
+        },
+        "variant": {
+          "enum": [
+            "primary",
+            "secondary",
+            "ghost"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "userAppStepSpec": {
       "type": "object",
       "required": [
@@ -366,6 +404,12 @@
         },
         "success": {
           "$ref": "#/$defs/userAppSuccessSpec"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/userAppActionSpec"
+          }
         },
         "ui": {
           "type": "object",

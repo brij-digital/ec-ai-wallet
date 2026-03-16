@@ -34,10 +34,112 @@ export type BuilderPreparedStepResult = {
   instructionName: string | null;
 };
 
+export type BuilderStepActionKind = 'run' | 'back' | 'reset';
+export type BuilderStepActionMode = 'view' | 'simulate' | 'send';
+export type BuilderStepActionVariant = 'primary' | 'secondary' | 'ghost';
+
+export type BuilderStepAction = {
+  actionId: string;
+  kind: BuilderStepActionKind;
+  label: string;
+  mode?: BuilderStepActionMode;
+  variant: BuilderStepActionVariant;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function parseBuilderStepAction(rawAction: unknown, fallbackId: string): BuilderStepAction | null {
+  const action = asRecord(rawAction);
+  if (!action) {
+    return null;
+  }
+
+  const kind = action.kind;
+  if (kind !== 'run' && kind !== 'back' && kind !== 'reset') {
+    return null;
+  }
+
+  const rawLabel = action.label;
+  if (typeof rawLabel !== 'string' || rawLabel.trim().length === 0) {
+    return null;
+  }
+
+  const rawId = action.id;
+  const actionId = typeof rawId === 'string' && rawId.trim().length > 0 ? rawId.trim() : fallbackId;
+
+  const rawVariant = action.variant;
+  const variant: BuilderStepActionVariant =
+    rawVariant === 'primary' || rawVariant === 'secondary' || rawVariant === 'ghost'
+      ? rawVariant
+      : kind === 'run'
+        ? 'primary'
+        : 'ghost';
+
+  const rawMode = action.mode;
+  const mode: BuilderStepActionMode | undefined =
+    rawMode === 'view' || rawMode === 'simulate' || rawMode === 'send' ? rawMode : undefined;
+
+  return {
+    actionId,
+    kind,
+    label: rawLabel.trim(),
+    ...(kind === 'run' && mode ? { mode } : {}),
+    variant,
+  };
+}
+
+function extractBuilderStepActionsByStep(rawMeta: unknown): Record<string, BuilderStepAction[]> {
+  const meta = asRecord(rawMeta);
+  if (!meta) {
+    return {};
+  }
+
+  const apps = asRecord(meta.apps);
+  if (!apps) {
+    return {};
+  }
+
+  const actionsByStep: Record<string, BuilderStepAction[]> = {};
+  for (const [appId, rawApp] of Object.entries(apps)) {
+    const app = asRecord(rawApp);
+    if (!app || !Array.isArray(app.steps)) {
+      continue;
+    }
+
+    for (const rawStep of app.steps) {
+      const step = asRecord(rawStep);
+      const stepId = step && typeof step.id === 'string' && step.id.length > 0 ? step.id : null;
+      if (!step || !stepId || !Array.isArray(step.actions)) {
+        continue;
+      }
+
+      const normalized = step.actions
+        .map((rawAction, index) => parseBuilderStepAction(rawAction, `${stepId}_action_${index + 1}`))
+        .filter((action): action is BuilderStepAction => action !== null);
+      if (normalized.length > 0) {
+        actionsByStep[`${appId}:${stepId}`] = normalized;
+      }
+    }
+  }
+
+  return actionsByStep;
+}
+
+function resolveBuilderMetaPath(metaPath: string): string {
+  return metaPath.startsWith('/') || /^https?:\/\//.test(metaPath) ? metaPath : `/${metaPath}`;
+}
+
 export function useBuilderController() {
   const [builderProtocols, setBuilderProtocols] = useState<BuilderProtocol[]>([]);
+  const [builderProtocolMetaPaths, setBuilderProtocolMetaPaths] = useState<Record<string, string | null>>({});
   const [builderProtocolId, setBuilderProtocolId] = useState('');
   const [builderApps, setBuilderApps] = useState<MetaAppSummary[]>([]);
+  const [builderStepActionsByStep, setBuilderStepActionsByStep] = useState<Record<string, BuilderStepAction[]>>({});
   const [builderAppId, setBuilderAppId] = useState('');
   const [builderAppStepIndex, setBuilderAppStepIndex] = useState(0);
   const [builderAppStepContexts, setBuilderAppStepContexts] = useState<Record<string, BuilderAppStepContext>>({});
@@ -109,6 +211,13 @@ export function useBuilderController() {
     }
     return readBuilderPath(selectedItem, selectedBuilderAppSelectUi.valuePath);
   }, [selectedBuilderAppStepContext, selectedBuilderAppSelectUi]);
+  const selectedBuilderStepActions = useMemo(() => {
+    if (!selectedBuilderApp || !selectedBuilderAppStep) {
+      return [] as BuilderStepAction[];
+    }
+    const key = `${selectedBuilderApp.appId}:${selectedBuilderAppStep.stepId}`;
+    return builderStepActionsByStep[key] ?? [];
+  }, [selectedBuilderApp, selectedBuilderAppStep, builderStepActionsByStep]);
   const effectiveBuilderOperationId = useMemo(
     () =>
       builderViewMode === 'enduser'
@@ -165,6 +274,11 @@ export function useBuilderController() {
       }
 
       setBuilderProtocols(protocols);
+      setBuilderProtocolMetaPaths(
+        Object.fromEntries(
+          registry.protocols.map((protocol) => [protocol.id, protocol.metaPath ?? null]),
+        ),
+      );
       setBuilderProtocolId((current) => current || protocols[0]?.id || '');
     })().catch((error) => {
       if (!cancelled) {
@@ -245,6 +359,8 @@ export function useBuilderController() {
         setBuilderStatusText(`Error: ${message}`);
         setBuilderRawDetails(null);
         setBuilderApps([]);
+        setBuilderStepActionsByStep({});
+        setBuilderProtocolMetaPaths({});
         setBuilderAppId('');
         setBuilderAppStepIndex(0);
         setBuilderAppStepContexts({});
@@ -258,6 +374,39 @@ export function useBuilderController() {
       cancelled = true;
     };
   }, [builderProtocolId, builderViewMode]);
+
+  useEffect(() => {
+    if (!builderProtocolId) {
+      setBuilderStepActionsByStep({});
+      return;
+    }
+    const metaPath = builderProtocolMetaPaths[builderProtocolId] ?? null;
+    if (!metaPath || typeof fetch !== 'function') {
+      setBuilderStepActionsByStep({});
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const response = await fetch(resolveBuilderMetaPath(metaPath));
+      if (!response.ok) {
+        throw new Error(`Failed to load raw meta IDL (${response.status}).`);
+      }
+      const rawMeta = (await response.json()) as unknown;
+      if (cancelled) {
+        return;
+      }
+      setBuilderStepActionsByStep(extractBuilderStepActionsByStep(rawMeta));
+    })().catch(() => {
+      if (!cancelled) {
+        setBuilderStepActionsByStep({});
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [builderProtocolId, builderProtocolMetaPaths]);
 
   useEffect(() => {
     if (builderViewMode !== 'enduser') {
@@ -576,6 +725,7 @@ export function useBuilderController() {
     selectedBuilderAppSelectUi,
     selectedBuilderAppSelectableItems,
     selectedBuilderSelectedItemValue,
+    selectedBuilderStepActions,
     selectedBuilderOperation,
     isBuilderAppMode,
     visibleBuilderInputs,

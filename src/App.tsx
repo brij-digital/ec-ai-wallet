@@ -35,6 +35,7 @@ function App() {
     setBuilderAppStepCompleted,
     selectedBuilderApp,
     selectedBuilderAppStep,
+    selectedBuilderStepActions,
     selectedBuilderAppSelectUi,
     selectedBuilderAppSelectableItems,
     selectedBuilderSelectedItemValue,
@@ -183,6 +184,7 @@ function App() {
             selectedBuilderOperation={selectedBuilderOperation}
             selectedBuilderApp={selectedBuilderApp}
             selectedBuilderAppStep={selectedBuilderAppStep}
+            selectedBuilderStepActions={selectedBuilderStepActions}
             builderAppStepIndex={builderAppStepIndex}
             canOpenBuilderAppStep={canOpenBuilderAppStep}
             onOpenBuilderAppStep={handleBuilderAppOpenStep}

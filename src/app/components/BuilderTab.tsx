@@ -8,6 +8,7 @@ import {
   stringifyBuilderDefault,
   valuesEqualForSelection,
 } from '../builderHelpers';
+import type { BuilderStepAction } from '../useBuilderController';
 
 type BuilderViewMode = 'enduser' | 'geek';
 type BuilderAppSubmitMode = 'simulate' | 'send';
@@ -38,6 +39,7 @@ type BuilderTabProps = {
   selectedBuilderOperation: MetaOperationSummary | null;
   selectedBuilderApp: MetaAppSummary | null;
   selectedBuilderAppStep: BuilderStep | null;
+  selectedBuilderStepActions: BuilderStepAction[];
   builderAppStepIndex: number;
   canOpenBuilderAppStep: (index: number) => boolean;
   onOpenBuilderAppStep: (index: number) => void;
@@ -83,6 +85,7 @@ export function BuilderTab(props: BuilderTabProps) {
     selectedBuilderOperation,
     selectedBuilderApp,
     selectedBuilderAppStep,
+    selectedBuilderStepActions,
     builderAppStepIndex,
     canOpenBuilderAppStep,
     onOpenBuilderAppStep,
@@ -109,6 +112,17 @@ export function BuilderTab(props: BuilderTabProps) {
     builderShowRawDetails,
     onToggleRawDetails,
   } = props;
+  const visibleStepActions = isBuilderAppMode ? selectedBuilderStepActions : [];
+
+  const actionClassName = (action: BuilderStepAction): string => {
+    if (action.variant === 'secondary') {
+      return 'builder-submit builder-submit-secondary';
+    }
+    if (action.variant === 'ghost') {
+      return 'builder-back';
+    }
+    return 'builder-submit';
+  };
 
   return (
     <>
@@ -301,15 +315,55 @@ export function BuilderTab(props: BuilderTabProps) {
 
                     {isBuilderAppMode ? (
                       <div className="builder-controls builder-controls-app">
-                        <button
-                          type="button"
-                          className="builder-prefill"
-                          onClick={onPrefillExample}
-                          disabled={isWorking}
-                        >
-                          Prefill Example Data
-                        </button>
-                        {selectedBuilderOperation.instruction ? (
+                        {visibleStepActions.length > 0 ? (
+                          visibleStepActions.map((action) => {
+                            if (action.kind === 'back') {
+                              return (
+                                <button
+                                  key={action.actionId}
+                                  type="button"
+                                  className={actionClassName(action)}
+                                  onClick={onBackStep}
+                                  disabled={isWorking || builderAppStepIndex <= 0}
+                                >
+                                  {action.label}
+                                </button>
+                              );
+                            }
+                            if (action.kind === 'reset') {
+                              return (
+                                <button
+                                  key={action.actionId}
+                                  type="button"
+                                  className={actionClassName(action)}
+                                  onClick={onResetStep}
+                                  disabled={isWorking}
+                                >
+                                  {action.label}
+                                </button>
+                              );
+                            }
+                            return (
+                              <button
+                                key={action.actionId}
+                                type="submit"
+                                className={actionClassName(action)}
+                                disabled={isWorking}
+                                onClick={() => {
+                                  if (selectedBuilderOperation.instruction) {
+                                    onSetBuilderAppSubmitMode(action.mode === 'send' ? 'send' : 'simulate');
+                                  }
+                                }}
+                              >
+                                {isWorking &&
+                                selectedBuilderOperation.instruction &&
+                                builderAppSubmitMode === (action.mode === 'send' ? 'send' : 'simulate')
+                                  ? 'Running...'
+                                  : action.label}
+                              </button>
+                            );
+                          })
+                        ) : selectedBuilderOperation.instruction ? (
                           <>
                             <button
                               type="submit"
@@ -396,4 +450,3 @@ export function BuilderTab(props: BuilderTabProps) {
     </>
   );
 }
-

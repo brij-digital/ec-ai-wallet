@@ -431,6 +431,15 @@
           "operation": "list_pools",
           "title": "Discover Pools",
           "description": "Fetch Whirlpool candidates sorted by liquidity.",
+          "actions": [
+            {
+              "id": "discover_run",
+              "kind": "run",
+              "label": "Find Pools",
+              "mode": "view",
+              "variant": "primary"
+            }
+          ],
           "blocking": {
             "depends_on": [],
             "requires_paths": []
@@ -466,6 +475,28 @@
           "operation": "swap_exact_in",
           "title": "Swap By Pool",
           "description": "Run simulation or send on selected Whirlpool.",
+          "actions": [
+            {
+              "id": "swap_back",
+              "kind": "back",
+              "label": "Back to Pools",
+              "variant": "ghost"
+            },
+            {
+              "id": "swap_simulate",
+              "kind": "run",
+              "label": "Simulate Swap",
+              "mode": "simulate",
+              "variant": "primary"
+            },
+            {
+              "id": "swap_send",
+              "kind": "run",
+              "label": "Send Transaction",
+              "mode": "send",
+              "variant": "secondary"
+            }
+          ],
           "blocking": {
             "depends_on": ["discover"],
             "requires_paths": ["$steps.discover.derived.selected_pool.whirlpool"]

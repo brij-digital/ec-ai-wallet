@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useBuilderController } from './useBuilderController';
+import { listIdlProtocols } from '@agentform/apppack-runtime/idlDeclarativeRuntime';
 
 vi.mock('@agentform/apppack-runtime/idlDeclarativeRuntime', async () => {
   return {
@@ -79,6 +80,12 @@ vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
 });
 
 describe('useBuilderController', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
   it('loads protocol/app and starts on entry step operation', async () => {
     const { result } = renderHook(() => useBuilderController());
 
@@ -124,5 +131,43 @@ describe('useBuilderController', () => {
       expect(result.current.canOpenBuilderAppStep(1)).toBe(true);
     });
   });
-});
 
+  it('loads step actions from raw app meta', async () => {
+    vi.mocked(listIdlProtocols).mockResolvedValue({
+      protocols: [{ id: 'orca-whirlpool-mainnet', name: 'Orca', status: 'active', metaPath: '/idl/orca.meta.json' }],
+    } as never);
+    globalThis.fetch = vi.fn(async () => {
+      return {
+        ok: true,
+        json: async () => ({
+          apps: {
+            discover_then_swap: {
+              steps: [
+                {
+                  id: 'discover',
+                  actions: [
+                    { id: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' },
+                  ],
+                },
+              ],
+            },
+          },
+        }),
+      } as Response;
+    }) as typeof fetch;
+
+    const { result } = renderHook(() => useBuilderController());
+
+    await waitFor(() => {
+      expect(result.current.selectedBuilderStepActions).toEqual([
+        {
+          actionId: 'discover_run',
+          kind: 'run',
+          label: 'Find Pools',
+          mode: 'view',
+          variant: 'primary',
+        },
+      ]);
+    });
+  });
+});
