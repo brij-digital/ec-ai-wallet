@@ -13,7 +13,7 @@ import {
   evaluateBuilderStepSuccess,
   isBuilderAppStepUnlocked,
   readBuilderPath,
-  resolveBuilderNextStepIndexOnSuccess,
+  findBuilderAppStepIndexById,
   stringifyBuilderDefault,
   writeBuilderPath,
   type BuilderAppStepContext,
@@ -50,6 +50,21 @@ export type BuilderStepAction = {
   label: string;
   mode?: BuilderStepActionMode;
   variant: BuilderStepActionVariant;
+};
+
+type BuilderStepStatus = 'idle' | 'running' | 'success' | 'error';
+
+type BuilderStepStatusTextTemplates = {
+  idle?: string;
+  running?: string;
+  success?: string;
+  error?: string;
+};
+
+type BuilderStepFlow = {
+  nextOnSuccess?: string;
+  nextOnError?: string;
+  statusText: BuilderStepStatusTextTemplates;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -183,6 +198,75 @@ function extractBuilderInputExamplesByOperation(rawMeta: unknown): Record<string
   return output;
 }
 
+function parseBuilderStepFlow(rawStep: unknown): BuilderStepFlow {
+  const step = asRecord(rawStep);
+  if (!step) {
+    return { statusText: {} };
+  }
+  const nextOnSuccess =
+    typeof step.next_on_success === 'string' && step.next_on_success.trim().length > 0
+      ? step.next_on_success.trim()
+      : undefined;
+  const nextOnError =
+    typeof step.next_on_error === 'string' && step.next_on_error.trim().length > 0
+      ? step.next_on_error.trim()
+      : undefined;
+  const rawStatus = asRecord(step.status_text);
+  const statusText: BuilderStepStatusTextTemplates = {
+    ...(rawStatus && typeof rawStatus.idle === 'string' && rawStatus.idle.trim().length > 0
+      ? { idle: rawStatus.idle.trim() }
+      : {}),
+    ...(rawStatus && typeof rawStatus.running === 'string' && rawStatus.running.trim().length > 0
+      ? { running: rawStatus.running.trim() }
+      : {}),
+    ...(rawStatus && typeof rawStatus.success === 'string' && rawStatus.success.trim().length > 0
+      ? { success: rawStatus.success.trim() }
+      : {}),
+    ...(rawStatus && typeof rawStatus.error === 'string' && rawStatus.error.trim().length > 0
+      ? { error: rawStatus.error.trim() }
+      : {}),
+  };
+  return {
+    ...(nextOnSuccess ? { nextOnSuccess } : {}),
+    ...(nextOnError ? { nextOnError } : {}),
+    statusText,
+  };
+}
+
+function extractBuilderStepFlowByStep(rawMeta: unknown): Record<string, BuilderStepFlow> {
+  const meta = asRecord(rawMeta);
+  if (!meta) {
+    return {};
+  }
+  const apps = asRecord(meta.apps);
+  if (!apps) {
+    return {};
+  }
+  const output: Record<string, BuilderStepFlow> = {};
+  for (const [appId, rawApp] of Object.entries(apps)) {
+    const app = asRecord(rawApp);
+    if (!app || !Array.isArray(app.steps)) {
+      continue;
+    }
+    for (const rawStep of app.steps) {
+      const step = asRecord(rawStep);
+      const stepId = step && typeof step.id === 'string' && step.id.length > 0 ? step.id : null;
+      if (!stepId) {
+        continue;
+      }
+      output[`${appId}:${stepId}`] = parseBuilderStepFlow(rawStep);
+    }
+  }
+  return output;
+}
+
+function renderBuilderStepStatusTemplate(
+  template: string,
+  values: Record<string, string>,
+): string {
+  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key: string) => values[key] ?? `{${key}}`);
+}
+
 function resolveBuilderMetaPath(metaPath: string): string {
   return metaPath.startsWith('/') || /^https?:\/\//.test(metaPath) ? metaPath : `/${metaPath}`;
 }
@@ -205,6 +289,7 @@ export function useBuilderController() {
   const [builderProtocolId, setBuilderProtocolId] = useState('');
   const [builderApps, setBuilderApps] = useState<MetaAppSummary[]>([]);
   const [builderStepActionsByStep, setBuilderStepActionsByStep] = useState<Record<string, BuilderStepAction[]>>({});
+  const [builderStepFlowByStep, setBuilderStepFlowByStep] = useState<Record<string, BuilderStepFlow>>({});
   const [builderOperationEnhancementsByOperation, setBuilderOperationEnhancementsByOperation] = useState<
     Record<string, OperationEnhancement>
   >({});
@@ -292,6 +377,13 @@ export function useBuilderController() {
     const key = `${selectedBuilderApp.appId}:${selectedBuilderAppStep.stepId}`;
     return builderStepActionsByStep[key] ?? [];
   }, [selectedBuilderApp, selectedBuilderAppStep, builderStepActionsByStep]);
+  const selectedBuilderStepFlow = useMemo(() => {
+    if (!selectedBuilderApp || !selectedBuilderAppStep) {
+      return null;
+    }
+    const key = `${selectedBuilderApp.appId}:${selectedBuilderAppStep.stepId}`;
+    return builderStepFlowByStep[key] ?? null;
+  }, [selectedBuilderApp, selectedBuilderAppStep, builderStepFlowByStep]);
   const builderOperationLabelsByOperationId = useMemo(
     () =>
       Object.fromEntries(
@@ -494,6 +586,7 @@ export function useBuilderController() {
         setBuilderRawDetails(null);
         setBuilderApps([]);
         setBuilderStepActionsByStep({});
+        setBuilderStepFlowByStep({});
         setBuilderOperationEnhancementsByOperation({});
         setBuilderAppUiEnhancementsByApp({});
         setBuilderInputExamplesByOperation({});
@@ -514,6 +607,7 @@ export function useBuilderController() {
   useEffect(() => {
     if (!builderProtocolId) {
       setBuilderStepActionsByStep({});
+      setBuilderStepFlowByStep({});
       setBuilderOperationEnhancementsByOperation({});
       setBuilderAppUiEnhancementsByApp({});
       setBuilderInputExamplesByOperation({});
@@ -523,6 +617,7 @@ export function useBuilderController() {
     const appPath = builderProtocolAppPaths[builderProtocolId] ?? null;
     if (!metaCorePath || !appPath || typeof fetch !== 'function') {
       setBuilderStepActionsByStep({});
+      setBuilderStepFlowByStep({});
       setBuilderOperationEnhancementsByOperation({});
       setBuilderAppUiEnhancementsByApp({});
       setBuilderInputExamplesByOperation({});
@@ -565,12 +660,14 @@ export function useBuilderController() {
         }));
       }
       setBuilderStepActionsByStep(extractBuilderStepActionsByStep(rawMeta));
+      setBuilderStepFlowByStep(extractBuilderStepFlowByStep(rawMeta));
       setBuilderOperationEnhancementsByOperation(extractOperationEnhancements(rawMeta));
       setBuilderAppUiEnhancementsByApp(extractAppUiEnhancements(rawMeta));
       setBuilderInputExamplesByOperation(extractBuilderInputExamplesByOperation(rawMeta));
     })().catch(() => {
       if (!cancelled) {
         setBuilderStepActionsByStep({});
+        setBuilderStepFlowByStep({});
         setBuilderOperationEnhancementsByOperation({});
         setBuilderAppUiEnhancementsByApp({});
         setBuilderInputExamplesByOperation({});
@@ -760,6 +857,46 @@ export function useBuilderController() {
     setBuilderOperationId(previousStep.operationId);
   }
 
+  function getBuilderStepStatusText(
+    status: BuilderStepStatus,
+    fallbackText: string,
+    options?: {
+      nextStepTitle?: string;
+      error?: string;
+    },
+  ): string {
+    if (!selectedBuilderAppStep) {
+      return fallbackText;
+    }
+    const template = selectedBuilderStepFlow?.statusText?.[status];
+    if (!template) {
+      return fallbackText;
+    }
+    const values: Record<string, string> = {
+      step_id: selectedBuilderAppStep.stepId,
+      step_title: selectedBuilderAppStep.title,
+      ...(options?.nextStepTitle ? { next_step_title: options.nextStepTitle } : {}),
+      ...(options?.error ? { error: options.error } : {}),
+    };
+    return renderBuilderStepStatusTemplate(template, values);
+  }
+
+  function resolveBuilderNextStepIndexByOutcome(
+    outcome: 'success' | 'error',
+  ): number | null {
+    if (!selectedBuilderApp || !selectedBuilderAppStep) {
+      return null;
+    }
+    const targetStepId = outcome === 'success'
+      ? selectedBuilderStepFlow?.nextOnSuccess
+      : selectedBuilderStepFlow?.nextOnError;
+    if (!targetStepId) {
+      return null;
+    }
+    const index = findBuilderAppStepIndexById(selectedBuilderApp, targetStepId);
+    return index >= 0 ? index : null;
+  }
+
   function handleBuilderAppSelectItem(item: unknown) {
     if (!selectedBuilderAppStep || !selectedBuilderApp || !selectedBuilderAppSelectUi) {
       return;
@@ -792,9 +929,7 @@ export function useBuilderController() {
     setBuilderAppStepCompleted(nextCompleted);
 
     const selectedValue = readBuilderPath(item, selectedBuilderAppSelectUi.valuePath);
-    const nextIndex = stepCompleted
-      ? resolveBuilderNextStepIndexOnSuccess(selectedBuilderApp, selectedBuilderAppStep)
-      : null;
+    const nextIndex = stepCompleted ? resolveBuilderNextStepIndexByOutcome('success') : null;
     if (stepCompleted && nextIndex !== null) {
       const nextStep = selectedBuilderApp.steps[nextIndex];
       const nextUnlocked = isBuilderAppStepUnlocked(selectedBuilderApp, nextStep, nextContexts, nextCompleted);
@@ -803,11 +938,11 @@ export function useBuilderController() {
         setBuilderOperationId(nextStep.operationId);
       }
       setBuilderStatusText(
-        `Selected item: ${selectedValue === undefined ? 'n/a' : String(selectedValue)}. ${
+        getBuilderStepStatusText('success', `Selected item: ${selectedValue === undefined ? 'n/a' : String(selectedValue)}. ${
           selectedBuilderAppSelectUi.autoAdvance && nextUnlocked
             ? `Continue on step ${nextIndex + 1}: ${nextStep.title}.`
             : 'Selection saved. Proceed to the next declared step.'
-        }`,
+        }`, { nextStepTitle: nextStep.title }),
       );
       setBuilderRawDetails(null);
       setBuilderShowRawDetails(false);
@@ -855,28 +990,44 @@ export function useBuilderController() {
 
   function applyBuilderAppStepResult(options: {
     executionInput: Record<string, unknown>;
-    prepared: BuilderPreparedStepResult;
+    prepared?: BuilderPreparedStepResult;
     operationSucceeded: boolean;
+    errorMessage?: string;
   }): boolean {
     if (builderViewMode !== 'enduser' || !selectedBuilderAppStep) {
       return options.operationSucceeded;
     }
+    const previousContext = builderAppStepContexts[selectedBuilderAppStep.stepId];
     const nextContexts = {
       ...builderAppStepContexts,
       [selectedBuilderAppStep.stepId]: {
         input: options.executionInput,
-        derived: options.prepared.derived,
-        args: options.prepared.args,
-        accounts: options.prepared.accounts,
-        instructionName: options.prepared.instructionName,
+        derived: options.prepared?.derived ?? previousContext?.derived ?? {},
+        args: options.prepared?.args ?? previousContext?.args ?? {},
+        accounts: options.prepared?.accounts ?? previousContext?.accounts ?? {},
+        instructionName: options.prepared?.instructionName ?? previousContext?.instructionName ?? null,
       },
     };
     setBuilderAppStepContexts(nextContexts);
     const completed = evaluateBuilderStepSuccess(selectedBuilderAppStep, nextContexts, options.operationSucceeded);
+    const nextCompleted = {
+      ...builderAppStepCompleted,
+      [selectedBuilderAppStep.stepId]: completed,
+    };
     setBuilderAppStepCompleted((prev) => ({
       ...prev,
       [selectedBuilderAppStep.stepId]: completed,
     }));
+    const outcome: 'success' | 'error' = options.operationSucceeded && completed ? 'success' : 'error';
+    const nextIndex = resolveBuilderNextStepIndexByOutcome(outcome);
+    if (nextIndex !== null && selectedBuilderApp) {
+      const nextStep = selectedBuilderApp.steps[nextIndex];
+      const nextUnlocked = isBuilderAppStepUnlocked(selectedBuilderApp, nextStep, nextContexts, nextCompleted);
+      if (nextUnlocked) {
+        setBuilderAppStepIndex(nextIndex);
+        setBuilderOperationId(nextStep.operationId);
+      }
+    }
     return completed;
   }
 
@@ -911,6 +1062,7 @@ export function useBuilderController() {
     selectedBuilderAppSelectableItems,
     selectedBuilderSelectedItemValue,
     selectedBuilderStepActions,
+    selectedBuilderStepFlow,
     selectedBuilderOperationEnhancement,
     builderOperationLabelsByOperationId,
     builderAppLabelsByAppId,
@@ -923,6 +1075,7 @@ export function useBuilderController() {
     canOpenBuilderAppStep,
     clearBuilderAppProgressFrom,
     setBuilderResult,
+    getBuilderStepStatusText,
     applyBuilderAppStepResult,
     handleBuilderPrefillExample,
     handleBuilderModeEndUser,

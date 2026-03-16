@@ -19,7 +19,7 @@
     "apps": {
       "type": "object",
       "additionalProperties": {
-        "type": "object"
+        "$ref": "#/$defs/userAppSpec"
       }
     }
   },
@@ -30,5 +30,291 @@
     "label",
     "apps"
   ],
+  "$defs": {
+    "userAppTransitionSpec": {
+      "type": "object",
+      "required": [
+        "on",
+        "to"
+      ],
+      "properties": {
+        "on": {
+          "enum": [
+            "success",
+            "error",
+            "manual"
+          ]
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "userAppBlockingSpec": {
+      "type": "object",
+      "required": [
+        "depends_on"
+      ],
+      "properties": {
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requires_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "userAppSuccessSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "operation_ok"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "path"
+          ],
+          "properties": {
+            "kind": {
+              "const": "selection_made"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "path"
+          ],
+          "properties": {
+            "kind": {
+              "const": "path_truthy"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "userAppActionSpec": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "run",
+            "back",
+            "reset"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "view",
+            "simulate",
+            "send"
+          ]
+        },
+        "variant": {
+          "enum": [
+            "primary",
+            "secondary",
+            "ghost"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "userAppStatusTextSpec": {
+      "type": "object",
+      "properties": {
+        "idle": {
+          "type": "string"
+        },
+        "running": {
+          "type": "string"
+        },
+        "success": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "userAppStepUiSpec": {
+      "type": "object",
+      "required": [
+        "kind",
+        "source",
+        "bind_to",
+        "value_path",
+        "require_selection",
+        "auto_advance"
+      ],
+      "properties": {
+        "kind": {
+          "const": "select_from_derived"
+        },
+        "source": {
+          "type": "string"
+        },
+        "bind_to": {
+          "type": "string"
+        },
+        "value_path": {
+          "type": "string"
+        },
+        "label_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "require_selection": {
+          "type": "boolean"
+        },
+        "auto_advance": {
+          "type": "boolean"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "userAppStepSpec": {
+      "type": "object",
+      "required": [
+        "id",
+        "operation",
+        "title",
+        "label",
+        "transitions",
+        "blocking",
+        "success"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "next_on_success": {
+          "type": "string"
+        },
+        "next_on_error": {
+          "type": "string"
+        },
+        "status_text": {
+          "$ref": "#/$defs/userAppStatusTextSpec"
+        },
+        "input_from": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/userAppTransitionSpec"
+          }
+        },
+        "blocking": {
+          "$ref": "#/$defs/userAppBlockingSpec"
+        },
+        "success": {
+          "$ref": "#/$defs/userAppSuccessSpec"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/userAppActionSpec"
+          }
+        },
+        "ui": {
+          "$ref": "#/$defs/userAppStepUiSpec"
+        }
+      },
+      "additionalProperties": false
+    },
+    "userAppSpec": {
+      "type": "object",
+      "required": [
+        "title",
+        "label",
+        "entry_step",
+        "steps"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "entry_step": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/userAppStepSpec"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
   "additionalProperties": false
 }

@@ -3,7 +3,6 @@ import type { MetaAppSummary } from '@agentform/apppack-runtime/metaIdlRuntime';
 import {
   evaluateBuilderStepSuccess,
   isBuilderAppStepUnlocked,
-  resolveBuilderNextStepIndexOnSuccess,
   type BuilderAppStepContext,
 } from './builderHelpers';
 
@@ -76,11 +75,6 @@ describe('builder app step transitions and unlock rules', () => {
     expect(isBuilderAppStepUnlocked(app, swapStep, contextsWithSelection, completedOnly)).toBe(true);
   });
 
-  it('resolves next step index from success transition', () => {
-    const next = resolveBuilderNextStepIndexOnSuccess(app, app.steps[0]!);
-    expect(next).toBe(1);
-  });
-
   it('evaluates operation_ok and path_truthy success kinds', () => {
     const discoverStep = app.steps[0]!;
     const swapStep = app.steps[1]!;
@@ -98,4 +92,3 @@ describe('builder app step transitions and unlock rules', () => {
     expect(evaluateBuilderStepSuccess(swapStep, contexts, true)).toBe(true);
   });
 });
-

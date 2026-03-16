@@ -45,6 +45,10 @@ describe('useBuilderSubmitController', () => {
   });
 
   it('runs list_pools -> select item -> swap simulate in end-user app flow', async () => {
+    vi.mocked(listIdlProtocols).mockResolvedValue({
+      protocols: [{ id: 'orca-whirlpool-mainnet', name: 'Orca', status: 'active', metaPath: '/idl/orca.meta.json' }],
+    } as never);
+
     vi.mocked(listMetaOperations).mockResolvedValue({
       operations: [
         {
@@ -134,7 +138,54 @@ describe('useBuilderSubmitController', () => {
       logs: ['ok'],
     } as never);
 
-    globalThis.fetch = vi.fn(async () => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/idl/orca.meta.core.json')) {
+        return {
+          ok: true,
+          json: async () => ({
+            label: 'Orca',
+            operations: {
+              list_pools: {
+                label: 'List Pools',
+                inputs: {
+                  token_in_mint: { type: 'pubkey', label: 'Token In' },
+                  token_out_mint: { type: 'pubkey', label: 'Token Out' },
+                },
+              },
+              swap_exact_in: {
+                label: 'Swap',
+                inputs: {
+                  amount_in: { type: 'u64', label: 'Amount In' },
+                },
+              },
+            },
+          }),
+        } as Response;
+      }
+      if (url.includes('/idl/orca.app.json')) {
+        return {
+          ok: true,
+          json: async () => ({
+            apps: {
+              discover_then_swap: {
+                label: 'Discover & Swap',
+                steps: [
+                  {
+                    id: 'discover',
+                    label: 'Discover',
+                    next_on_success: 'swap',
+                  },
+                  {
+                    id: 'swap',
+                    label: 'Swap',
+                  },
+                ],
+              },
+            },
+          }),
+        } as Response;
+      }
       return {
         ok: true,
         text: async () =>
@@ -177,6 +228,7 @@ describe('useBuilderSubmitController', () => {
         setBuilderRawDetails: builder.setBuilderRawDetails,
         setBuilderShowRawDetails: builder.setBuilderShowRawDetails,
         applyBuilderAppStepResult: builder.applyBuilderAppStepResult,
+        getBuilderStepStatusText: builder.getBuilderStepStatusText,
         setBuilderResult: builder.setBuilderResult,
         isBuilderAppMode: builder.isBuilderAppMode,
         builderAppSubmitMode: builder.builderAppSubmitMode,
@@ -316,6 +368,7 @@ describe('useBuilderSubmitController', () => {
         setBuilderRawDetails: builder.setBuilderRawDetails,
         setBuilderShowRawDetails: builder.setBuilderShowRawDetails,
         applyBuilderAppStepResult: builder.applyBuilderAppStepResult,
+        getBuilderStepStatusText: builder.getBuilderStepStatusText,
         setBuilderResult: builder.setBuilderResult,
         isBuilderAppMode: builder.isBuilderAppMode,
         builderAppSubmitMode: builder.builderAppSubmitMode,

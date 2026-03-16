@@ -36,7 +36,7 @@ type UseBuilderSubmitControllerOptions = {
   selectedBuilderOperationEnhancement: OperationEnhancement | null;
   builderInputValues: Record<string, string>;
   builderViewMode: BuilderViewMode;
-  selectedBuilderAppStep: { stepId: string } | null;
+  selectedBuilderAppStep: { stepId: string; title: string } | null;
   selectedBuilderApp: unknown | null;
   builderAppStepIndex: number;
   setBuilderAppStepCompleted: (updater: (prev: Record<string, boolean>) => Record<string, boolean>) => void;
@@ -46,9 +46,18 @@ type UseBuilderSubmitControllerOptions = {
   setBuilderShowRawDetails: (value: boolean) => void;
   applyBuilderAppStepResult: (options: {
     executionInput: Record<string, unknown>;
-    prepared: BuilderPreparedStepResult;
+    prepared?: BuilderPreparedStepResult;
     operationSucceeded: boolean;
+    errorMessage?: string;
   }) => boolean;
+  getBuilderStepStatusText: (
+    status: 'idle' | 'running' | 'success' | 'error',
+    fallbackText: string,
+    options?: {
+      nextStepTitle?: string;
+      error?: string;
+    },
+  ) => string;
   setBuilderResult: (lines: string[], raw?: unknown) => void;
   isBuilderAppMode: boolean;
   builderAppSubmitMode: 'simulate' | 'send';
@@ -171,6 +180,11 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
       options.setBuilderStatusText(null);
       options.setBuilderRawDetails(null);
       options.setBuilderShowRawDetails(false);
+      if (options.isBuilderAppMode && options.selectedBuilderAppStep) {
+        options.setBuilderStatusText(
+          options.getBuilderStepStatusText('running', `Running ${options.selectedBuilderAppStep.title}...`),
+        );
+      }
 
       if (options.builderViewMode === 'enduser' && options.selectedBuilderAppStep && options.selectedBuilderApp) {
         options.clearBuilderAppProgressFrom(options.builderAppStepIndex);
@@ -355,6 +369,11 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
             `Builder simulate (${options.builderProtocolId}/${options.selectedBuilderOperation.operationId}):`,
             `instruction: ${prepared.instructionName}`,
             `status: ${simulation.ok ? 'success' : 'failed'}`,
+            options.getBuilderStepStatusText(
+              simulation.ok ? 'success' : 'error',
+              simulation.ok ? 'Step completed.' : 'Step failed.',
+              simulation.ok ? undefined : { error: simulation.error ?? 'unknown simulation error' },
+            ),
             `units: ${simulation.unitsConsumed ?? 'n/a'}`,
             ...(builderNotes.length > 0 ? builderNotes : []),
             `error: ${simulation.error ?? 'none'}`,
@@ -379,6 +398,13 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
               prepared,
               operationSucceeded: true,
             });
+          } else {
+            options.applyBuilderAppStepResult({
+              executionInput,
+              prepared,
+              operationSucceeded: false,
+              errorMessage: simulation.error ?? 'unknown simulation error',
+            });
           }
           options.pushMessage('assistant', resultLines.join('\n'));
           return;
@@ -399,6 +425,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         const resultLines = [
           `Builder tx sent (${options.builderProtocolId}/${options.selectedBuilderOperation.operationId}):`,
           `instruction: ${prepared.instructionName}`,
+          options.getBuilderStepStatusText('success', 'Step completed.'),
           ...(builderNotes.length > 0 ? builderNotes : []),
           `signature: ${sent.signature}`,
           `explorer: ${sent.explorerUrl}`,
@@ -412,8 +439,13 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         options.pushMessage('assistant', resultLines.join('\n'));
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown builder error.';
+        options.applyBuilderAppStepResult({
+          executionInput: {},
+          operationSucceeded: false,
+          errorMessage: message,
+        });
         const text = `Error: ${message}`;
-        options.setBuilderStatusText(text);
+        options.setBuilderStatusText(options.getBuilderStepStatusText('error', text, { error: message }));
         options.setBuilderRawDetails(null);
         options.setBuilderShowRawDetails(false);
         options.pushMessage('assistant', text);

@@ -116,18 +116,6 @@ export function findBuilderAppStepIndexById(app: MetaAppSummary, stepId: string)
   return app.steps.findIndex((step) => step.stepId === stepId);
 }
 
-export function resolveBuilderNextStepIndexOnSuccess(
-  app: MetaAppSummary,
-  step: MetaAppSummary['steps'][number],
-): number | null {
-  const nextTransition = step.transitions.find((transition) => transition.on === 'success');
-  if (!nextTransition) {
-    return null;
-  }
-  const nextIndex = findBuilderAppStepIndexById(app, nextTransition.to);
-  return nextIndex >= 0 ? nextIndex : null;
-}
-
 export function isBuilderAppStepUnlocked(
   app: MetaAppSummary,
   targetStep: MetaAppSummary['steps'][number],
@@ -147,12 +135,7 @@ export function isBuilderAppStepUnlocked(
   if (targetStep.stepId === app.entryStepId) {
     return true;
   }
-
-  return app.steps.some(
-    (step) =>
-      Boolean(completed[step.stepId]) &&
-      step.transitions.some((transition) => transition.on === 'success' && transition.to === targetStep.stepId),
-  );
+  return true;
 }
 
 export function formatBuilderSelectableItemLabel(

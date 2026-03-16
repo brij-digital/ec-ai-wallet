@@ -344,9 +344,31 @@
       ],
       "properties": {
         "on": {
-          "const": "success"
+          "enum": [
+            "success",
+            "error",
+            "manual"
+          ]
         },
         "to": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "userAppStatusTextSpec": {
+      "type": "object",
+      "properties": {
+        "idle": {
+          "type": "string"
+        },
+        "running": {
+          "type": "string"
+        },
+        "success": {
+          "type": "string"
+        },
+        "error": {
           "type": "string"
         }
       },
@@ -485,6 +507,15 @@
         },
         "description": {
           "type": "string"
+        },
+        "next_on_success": {
+          "type": "string"
+        },
+        "next_on_error": {
+          "type": "string"
+        },
+        "status_text": {
+          "$ref": "#/$defs/userAppStatusTextSpec"
         },
         "input_from": {
           "type": "object",

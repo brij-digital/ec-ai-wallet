@@ -524,6 +524,12 @@
             "kind": "selection_made",
             "path": "$steps.discover.derived.selected_pool"
           },
+          "next_on_success": "swap",
+          "status_text": {
+            "running": "Searching pools...",
+            "success": "Pool selected. Next: {next_step_title}.",
+            "error": "Pool discovery failed: {error}"
+          },
           "transitions": [
             {
               "on": "success",
@@ -584,6 +590,12 @@
           },
           "success": {
             "kind": "operation_ok"
+          },
+          "next_on_error": "discover",
+          "status_text": {
+            "running": "Simulating or sending swap...",
+            "success": "Swap step completed.",
+            "error": "Swap failed: {error}"
           },
           "transitions": [],
           "input_from": {
