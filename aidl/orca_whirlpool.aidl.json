@@ -359,11 +359,13 @@
       "inputs": {
         "token_in_mint": {
           "type": "pubkey",
-          "required": true
+          "required": true,
+          "ui_example": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
         },
         "token_out_mint": {
           "type": "pubkey",
-          "required": true
+          "required": true,
+          "ui_example": "So11111111111111111111111111111111111111112"
         }
       },
       "use": [
