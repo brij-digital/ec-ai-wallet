@@ -7,8 +7,12 @@
     "kamino.resolve_reserve.v1": {
       "expand": {
         "inputs": {
-          "reserve_or_vault": { "type": "pubkey" },
-          "token_mint": { "type": "pubkey" }
+          "reserve_or_vault": {
+            "type": "pubkey"
+          },
+          "token_mint": {
+            "type": "pubkey"
+          }
         },
         "discover": [
           {
@@ -120,17 +124,23 @@
           {
             "name": "reserve",
             "compute": "coalesce",
-            "values": ["$selected_reserve.address"]
+            "values": [
+              "$selected_reserve.address"
+            ]
           },
           {
             "name": "reserve_data",
             "compute": "coalesce",
-            "values": ["$selected_reserve.decoded"]
+            "values": [
+              "$selected_reserve.decoded"
+            ]
           },
           {
             "name": "resolved_by",
             "compute": "coalesce",
-            "values": ["$selected_reserve.resolved_by"]
+            "values": [
+              "$selected_reserve.resolved_by"
+            ]
           }
         ]
       }
@@ -181,7 +191,9 @@
         "type": "object",
         "source": "$derived.selected_reserve",
         "title": "Resolved reserve"
-      }
+      },
+      "label": "Resolve Reserve",
+      "inputs": {}
     },
     "deposit_reserve_liquidity": {
       "instruction": "depositReserveLiquidity",
@@ -191,7 +203,10 @@
         }
       ],
       "inputs": {
-        "liquidity_amount": { "type": "u64" }
+        "liquidity_amount": {
+          "type": "u64",
+          "label": "Liquidity Amount"
+        }
       },
       "derive": [
         {
@@ -202,7 +217,10 @@
           "name": "lending_market_authority",
           "resolver": "pda",
           "program_id": "$protocol.programId",
-          "seeds": ["utf8:lma", "$reserve_data.lendingMarket"]
+          "seeds": [
+            "utf8:lma",
+            "$reserve_data.lendingMarket"
+          ]
         },
         {
           "name": "collateral_token_program",
@@ -240,7 +258,8 @@
         "collateralTokenProgram": "$collateral_token_program",
         "liquidityTokenProgram": "$reserve_data.liquidity.tokenProgram",
         "instructionSysvarAccount": "Sysvar1nstructions1111111111111111111111111"
-      }
+      },
+      "label": "Deposit Reserve Liquidity"
     },
     "redeem_reserve_collateral": {
       "instruction": "redeemReserveCollateral",
@@ -250,7 +269,10 @@
         }
       ],
       "inputs": {
-        "liquidity_amount": { "type": "u64" }
+        "liquidity_amount": {
+          "type": "u64",
+          "label": "Liquidity Amount"
+        }
       },
       "derive": [
         {
@@ -261,7 +283,10 @@
           "name": "lending_market_authority",
           "resolver": "pda",
           "program_id": "$protocol.programId",
-          "seeds": ["utf8:lma", "$reserve_data.lendingMarket"]
+          "seeds": [
+            "utf8:lma",
+            "$reserve_data.lendingMarket"
+          ]
         },
         {
           "name": "collateral_token_program",
@@ -373,7 +398,8 @@
         "collateralTokenProgram": "$collateral_token_program",
         "liquidityTokenProgram": "$reserve_data.liquidity.tokenProgram",
         "instructionSysvarAccount": "Sysvar1nstructions1111111111111111111111111"
-      }
+      },
+      "label": "Redeem Reserve Collateral"
     },
     "view_position": {
       "use": [
@@ -614,7 +640,9 @@
           "then": "0",
           "else": "$estimated_redeemable_raw"
         }
-      ]
+      ],
+      "label": "View Position",
+      "inputs": {}
     }
   },
   "apps": {
@@ -634,9 +662,11 @@
           "success": {
             "kind": "operation_ok"
           },
-          "transitions": []
+          "transitions": [],
+          "label": "View"
         }
-      ]
+      ],
+      "label": "View Position"
     },
     "deposit_liquidity": {
       "title": "Deposit Liquidity",
@@ -654,9 +684,11 @@
           "success": {
             "kind": "operation_ok"
           },
-          "transitions": []
+          "transitions": [],
+          "label": "Deposit"
         }
-      ]
+      ],
+      "label": "Deposit Liquidity"
     },
     "withdraw_liquidity": {
       "title": "Withdraw Liquidity",
@@ -674,9 +706,12 @@
           "success": {
             "kind": "operation_ok"
           },
-          "transitions": []
+          "transitions": [],
+          "label": "Withdraw"
         }
-      ]
+      ],
+      "label": "Withdraw Liquidity"
     }
-  }
+  },
+  "label": "Kamino Klend Mainnet"
 }

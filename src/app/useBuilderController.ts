@@ -59,7 +59,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function parseBuilderStepAction(rawAction: unknown, fallbackId: string): BuilderStepAction | null {
+function parseBuilderStepAction(rawAction: unknown): BuilderStepAction | null {
   const action = asRecord(rawAction);
   if (!action) {
     return null;
@@ -76,7 +76,10 @@ function parseBuilderStepAction(rawAction: unknown, fallbackId: string): Builder
   }
 
   const rawId = action.id;
-  const actionId = typeof rawId === 'string' && rawId.trim().length > 0 ? rawId.trim() : fallbackId;
+  if (typeof rawId !== 'string' || rawId.trim().length === 0) {
+    return null;
+  }
+  const actionId = rawId.trim();
 
   const rawVariant = action.variant;
   const variant: BuilderStepActionVariant =
@@ -125,7 +128,7 @@ function extractBuilderStepActionsByStep(rawMeta: unknown): Record<string, Build
       }
 
       const normalized = step.actions
-        .map((rawAction, index) => parseBuilderStepAction(rawAction, `${stepId}_action_${index + 1}`))
+        .map((rawAction) => parseBuilderStepAction(rawAction))
         .filter((action): action is BuilderStepAction => action !== null);
       if (normalized.length > 0) {
         actionsByStep[`${appId}:${stepId}`] = normalized;
@@ -281,18 +284,17 @@ export function useBuilderController() {
   const builderOperationLabelsByOperationId = useMemo(
     () =>
       Object.fromEntries(
-        Object.entries(builderOperationEnhancementsByOperation)
-          .filter(([, enhancement]) => typeof enhancement.label === 'string' && enhancement.label.length > 0)
-          .map(([operationId, enhancement]) => [operationId, enhancement.label as string]),
+        Object.entries(builderOperationEnhancementsByOperation).map(([operationId, enhancement]) => [
+          operationId,
+          enhancement.label,
+        ]),
       ),
     [builderOperationEnhancementsByOperation],
   );
   const builderAppLabelsByAppId = useMemo(
     () =>
       Object.fromEntries(
-        Object.entries(builderAppUiEnhancementsByApp)
-          .filter(([, enhancement]) => typeof enhancement.label === 'string' && enhancement.label.length > 0)
-          .map(([appId, enhancement]) => [appId, enhancement.label as string]),
+        Object.entries(builderAppUiEnhancementsByApp).map(([appId, enhancement]) => [appId, enhancement.label]),
       ),
     [builderAppUiEnhancementsByApp],
   );
@@ -533,6 +535,11 @@ export function useBuilderController() {
         setBuilderOperationEnhancementsByOperation({});
         setBuilderAppUiEnhancementsByApp({});
         setBuilderInputExamplesByOperation({});
+        setBuilderStatusText(
+          `Error: ${builderProtocolId} raw meta does not satisfy required app label rules (strict mode).`,
+        );
+        setBuilderRawDetails(null);
+        setBuilderShowRawDetails(false);
       }
     });
 

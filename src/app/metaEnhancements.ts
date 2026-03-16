@@ -4,7 +4,7 @@ import { readBuilderPath } from './builderHelpers';
 type JsonRecord = Record<string, unknown>;
 
 export type InputUiHints = {
-  label?: string;
+  label: string;
   placeholder?: string;
   help?: string;
   group?: string;
@@ -27,14 +27,14 @@ export type CrossValidationRule = {
 };
 
 export type OperationEnhancement = {
-  label?: string;
+  label: string;
   inputUi: Record<string, InputUiHints>;
   inputValidation: Record<string, InputValidationHints>;
   crossValidation: CrossValidationRule[];
 };
 
 export type AppUiEnhancement = {
-  label?: string;
+  label: string;
   stepLabels: Record<string, string>;
 };
 
@@ -49,6 +49,14 @@ function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 }
 
+function asRequiredString(value: unknown, label: string): string {
+  const parsed = asString(value);
+  if (!parsed) {
+    throw new Error(`${label} must be a non-empty string.`);
+  }
+  return parsed;
+}
+
 function asNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -56,18 +64,18 @@ function asNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-function parseInputUiHints(rawInputSpec: unknown): InputUiHints {
+function parseInputUiHints(rawInputSpec: unknown, inputPath: string): InputUiHints {
   const inputSpec = asRecord(rawInputSpec);
   if (!inputSpec) {
-    return {};
+    throw new Error(`${inputPath} must be an object.`);
   }
-  const label = asString(inputSpec.label);
+  const label = asRequiredString(inputSpec.label, `${inputPath}.label`);
   const placeholder = asString(inputSpec.placeholder);
   const help = asString(inputSpec.help);
   const group = asString(inputSpec.group);
   const displayOrder = asNumber(inputSpec.display_order);
   return {
-    ...(label ? { label } : {}),
+    label,
     ...(placeholder ? { placeholder } : {}),
     ...(help ? { help } : {}),
     ...(group ? { group } : {}),
@@ -134,32 +142,32 @@ function parseCrossValidation(rawOperation: JsonRecord): CrossValidationRule[] {
 export function extractOperationEnhancements(rawMeta: unknown): Record<string, OperationEnhancement> {
   const meta = asRecord(rawMeta);
   if (!meta) {
-    return {};
+    throw new Error('meta must be an object.');
   }
   const operations = asRecord(meta.operations);
   if (!operations) {
-    return {};
+    throw new Error('meta.operations must be an object.');
   }
 
   const output: Record<string, OperationEnhancement> = {};
   for (const [operationId, rawOperation] of Object.entries(operations)) {
     const operation = asRecord(rawOperation);
     if (!operation) {
-      continue;
+      throw new Error(`operation ${operationId} must be an object.`);
     }
+    const label = asRequiredString(operation.label, `operations.${operationId}.label`);
     const inputs = asRecord(operation.inputs);
     const inputUi: Record<string, InputUiHints> = {};
     const inputValidation: Record<string, InputValidationHints> = {};
     if (inputs) {
       for (const [inputName, rawInputSpec] of Object.entries(inputs)) {
-        inputUi[inputName] = parseInputUiHints(rawInputSpec);
+        inputUi[inputName] = parseInputUiHints(rawInputSpec, `operations.${operationId}.inputs.${inputName}`);
         inputValidation[inputName] = parseInputValidationHints(rawInputSpec);
       }
     }
 
-    const label = asString(operation.label);
     output[operationId] = {
-      ...(label ? { label } : {}),
+      label,
       inputUi,
       inputValidation,
       crossValidation: parseCrossValidation(operation),
@@ -171,35 +179,33 @@ export function extractOperationEnhancements(rawMeta: unknown): Record<string, O
 export function extractAppUiEnhancements(rawMeta: unknown): Record<string, AppUiEnhancement> {
   const meta = asRecord(rawMeta);
   if (!meta) {
-    return {};
+    throw new Error('meta must be an object.');
   }
   const apps = asRecord(meta.apps);
   if (!apps) {
-    return {};
+    throw new Error('meta.apps must be an object.');
   }
   const output: Record<string, AppUiEnhancement> = {};
   for (const [appId, rawApp] of Object.entries(apps)) {
     const app = asRecord(rawApp);
     if (!app) {
-      continue;
+      throw new Error(`app ${appId} must be an object.`);
     }
     const stepLabels: Record<string, string> = {};
     if (Array.isArray(app.steps)) {
       for (const rawStep of app.steps) {
         const step = asRecord(rawStep);
         if (!step) {
-          continue;
+          throw new Error(`app ${appId} step must be an object.`);
         }
-        const stepId = asString(step.id);
-        const stepLabel = asString(step.label);
-        if (stepId && stepLabel) {
-          stepLabels[stepId] = stepLabel;
-        }
+        const stepId = asRequiredString(step.id, `apps.${appId}.steps[].id`);
+        const stepLabel = asRequiredString(step.label, `apps.${appId}.steps[].label`);
+        stepLabels[stepId] = stepLabel;
       }
     }
-    const label = asString(app.label);
+    const label = asRequiredString(app.label, `apps.${appId}.label`);
     output[appId] = {
-      ...(label ? { label } : {}),
+      label,
       stepLabels,
     };
   }

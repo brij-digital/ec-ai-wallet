@@ -38,6 +38,20 @@ describe('extractOperationEnhancements', () => {
       displayOrder: 1,
     });
   });
+
+  it('throws when operation/input labels are missing in strict mode', () => {
+    expect(() =>
+      extractOperationEnhancements({
+        operations: {
+          list_pools: {
+            inputs: {
+              token_in_mint: { type: 'token_mint' },
+            },
+          },
+        },
+      }),
+    ).toThrow(/label/);
+  });
 });
 
 describe('validateOperationInput', () => {
@@ -53,6 +67,7 @@ describe('validateOperationInput', () => {
         slippage_bps: '5001',
       },
       enhancement: {
+        label: 'Swap',
         inputUi: {},
         inputValidation: {
           amount_in: { min: '1', message: 'amount_in must be > 0' },
@@ -76,6 +91,7 @@ describe('validateOperationInput', () => {
         token_out_mint: 'A',
       },
       enhancement: {
+        label: 'Swap',
         inputUi: {},
         inputValidation: {},
         crossValidation: [

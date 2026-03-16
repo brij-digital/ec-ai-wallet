@@ -140,11 +140,23 @@ describe('useBuilderController', () => {
       return {
         ok: true,
         json: async () => ({
+          label: 'Orca Whirlpool',
+          operations: {
+            list_pools: {
+              label: 'List Pools',
+              inputs: {
+                token_in_mint: { type: 'pubkey', label: 'Token In' },
+                token_out_mint: { type: 'pubkey', label: 'Token Out' },
+              },
+            },
+          },
           apps: {
             discover_then_swap: {
+              label: 'Discover & Swap',
               steps: [
                 {
                   id: 'discover',
+                  label: 'Discover Pools',
                   actions: [
                     { id: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' },
                   ],
@@ -179,19 +191,23 @@ describe('useBuilderController', () => {
       return {
         ok: true,
         json: async () => ({
+          label: 'Orca Whirlpool',
           operations: {
             list_pools: {
+              label: 'List Pools',
               inputs: {
-                token_in_mint: { type: 'pubkey', required: true, ui_example: 'USDC_EXAMPLE' },
-                token_out_mint: { type: 'pubkey', required: true, ui_example: 'SOL_EXAMPLE' },
+                token_in_mint: { type: 'pubkey', label: 'Token In', required: true, ui_example: 'USDC_EXAMPLE' },
+                token_out_mint: { type: 'pubkey', label: 'Token Out', required: true, ui_example: 'SOL_EXAMPLE' },
               },
             },
           },
           apps: {
             discover_then_swap: {
+              label: 'Discover & Swap',
               steps: [
                 {
                   id: 'discover',
+                  label: 'Discover Pools',
                   actions: [{ id: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view' }],
                 },
               ],

@@ -3,6 +3,7 @@
   "schema": "meta-idl.v0.6",
   "version": "0.2.0",
   "protocolId": "pump-amm-mainnet",
+  "label": "Pump Amm Mainnet",
   "templates": {
     "pump.buy.v1": {
       "params": {
@@ -863,7 +864,8 @@
         "quote_mint": {
           "type": "pubkey",
           "required": false,
-          "default": "So11111111111111111111111111111111111111112"
+          "default": "So11111111111111111111111111111111111111112",
+          "label": "Quote Mint"
         }
       },
       "view": {
@@ -886,6 +888,7 @@
         "maxItems": 20,
         "emptyText": "No Pump AMM token found for this quote mint."
       },
+      "label": "List Tokens",
       "use": [
         {
           "template": "pump.list_tokens.v1",
@@ -900,13 +903,15 @@
         "base_mint": {
           "type": "pubkey",
           "required": true,
-          "ui_editable": false
+          "ui_editable": false,
+          "label": "Base Mint"
         },
         "quote_mint": {
           "type": "pubkey",
           "required": false,
           "default": "So11111111111111111111111111111111111111112",
-          "ui_editable": false
+          "ui_editable": false,
+          "label": "Quote Mint"
         }
       },
       "view": {
@@ -930,6 +935,7 @@
         "maxItems": 1,
         "emptyText": "Pool not found."
       },
+      "label": "View Pool",
       "use": [
         {
           "template": "pump.view_pool.v1",
@@ -945,34 +951,41 @@
         "base_mint": {
           "type": "pubkey",
           "required": true,
-          "ui_editable": false
+          "ui_editable": false,
+          "label": "Base Mint"
         },
         "quote_mint": {
           "type": "pubkey",
           "required": false,
           "default": "So11111111111111111111111111111111111111112",
-          "ui_editable": false
+          "ui_editable": false,
+          "label": "Quote Mint"
         },
         "quote_amount_in": {
           "type": "u64",
-          "required": true
+          "required": true,
+          "label": "Quote Amount In"
         },
         "track_volume": {
           "type": "bool",
           "required": false,
           "default": true,
-          "ui_tier": "geek"
+          "ui_tier": "geek",
+          "label": "Track Volume"
         },
         "pool": {
           "type": "pubkey",
           "required": false,
-          "ui_editable": false
+          "ui_editable": false,
+          "label": "Pool"
         },
         "slippage_bps": {
           "type": "u16",
-          "required": true
+          "required": true,
+          "label": "Slippage Bps"
         }
       },
+      "label": "Buy",
       "use": [
         {
           "template": "pump.buy.v1",
@@ -991,30 +1004,36 @@
         "base_mint": {
           "type": "pubkey",
           "required": true,
-          "ui_editable": false
+          "ui_editable": false,
+          "label": "Base Mint"
         },
         "quote_mint": {
           "type": "pubkey",
           "required": false,
           "default": "So11111111111111111111111111111111111111112",
-          "ui_editable": false
+          "ui_editable": false,
+          "label": "Quote Mint"
         },
         "pool": {
           "type": "pubkey",
           "required": false,
-          "ui_editable": false
+          "ui_editable": false,
+          "label": "Pool"
         },
         "base_amount_in": {
           "type": "u64",
-          "required": true
+          "required": true,
+          "label": "Base Amount In"
         },
         "min_quote_amount_out": {
           "type": "u64",
           "required": false,
           "default": "1",
-          "ui_tier": "geek"
+          "ui_tier": "geek",
+          "label": "Min Quote Amount Out"
         }
       },
+      "label": "Sell",
       "use": [
         {
           "template": "pump.sell.v1",
@@ -1068,7 +1087,8 @@
             "auto_advance": true,
             "title": "Select a token/pool",
             "description": "Pick one discovered token to open its pool details and trading actions."
-          }
+          },
+          "label": "List Tokens"
         },
         {
           "id": "pool",
@@ -1099,7 +1119,8 @@
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint"
-          }
+          },
+          "label": "Pool Snapshot"
         },
         {
           "id": "buy",
@@ -1122,7 +1143,8 @@
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
             "pool": "$steps.discover.derived.selected_pool.pool"
-          }
+          },
+          "label": "Buy"
         },
         {
           "id": "sell",
@@ -1145,9 +1167,11 @@
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
             "pool": "$steps.discover.derived.selected_pool.pool"
-          }
+          },
+          "label": "Sell"
         }
-      ]
+      ],
+      "label": "Pump Token Terminal"
     },
     "buy_token": {
       "title": "Buy Token (Pump AMM)",
@@ -1166,9 +1190,11 @@
           "success": {
             "kind": "operation_ok"
           },
-          "transitions": []
+          "transitions": [],
+          "label": "Buy"
         }
-      ]
+      ],
+      "label": "Buy Token (Pump AMM)"
     }
   }
 }

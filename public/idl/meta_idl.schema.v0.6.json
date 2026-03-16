@@ -45,6 +45,7 @@
     "schema",
     "version",
     "protocolId",
+    "label",
     "operations",
     "apps"
   ],
@@ -96,7 +97,8 @@
     "actionInputSpec": {
       "type": "object",
       "required": [
-        "type"
+        "type",
+        "label"
       ],
       "properties": {
         "type": {
@@ -463,6 +465,7 @@
         "id",
         "operation",
         "title",
+        "label",
         "transitions",
         "blocking",
         "success"
@@ -556,6 +559,7 @@
       "type": "object",
       "required": [
         "title",
+        "label",
         "entry_step",
         "steps"
       ],
@@ -1744,6 +1748,9 @@
     },
     "actionSpec": {
       "type": "object",
+      "required": [
+        "label"
+      ],
       "properties": {
         "instruction": {
           "type": "string"

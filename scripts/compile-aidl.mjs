@@ -223,11 +223,11 @@ function compileAidl(source, sourceFile) {
   const schemaPath = asString(target.schemaPath, `${sourceFile}.target.schemaPath`);
   const version = asString(target.version, `${sourceFile}.target.version`);
   const protocolId = asString(target.protocolId, `${sourceFile}.target.protocolId`);
-  const rootLabel = source.label === undefined ? undefined : asString(source.label, `${sourceFile}.label`);
+  const rootLabel = asString(source.label, `${sourceFile}.label`);
 
   const templatesRaw = asObject(source.templates, `${sourceFile}.templates`);
   const operationsRaw = asObject(source.operations, `${sourceFile}.operations`);
-  const appsRaw = source.apps === undefined ? undefined : asObject(source.apps, `${sourceFile}.apps`);
+  const appsRaw = asObject(source.apps, `${sourceFile}.apps`);
   const sourcesRaw = source.sources === undefined ? undefined : asObject(source.sources, `${sourceFile}.sources`);
   if (source.user_forms !== undefined) {
     fail(`${sourceFile}.user_forms is no longer supported. Use apps (schema v0.6 app-first).`);
@@ -242,9 +242,48 @@ function compileAidl(source, sourceFile) {
   /** @type {Record<string, unknown>} */
   const operations = {};
   for (const [operationName, operationValue] of Object.entries(operationsRaw)) {
-    operations[operationName] = compileOperation(
+    const compiled = compileOperation(
       asObject(operationValue, `${sourceFile}.operations.${operationName}`),
     );
+    asString(compiled.label, `${sourceFile}.operations.${operationName}.label`);
+    const inputs = asObject(compiled.inputs, `${sourceFile}.operations.${operationName}.inputs`);
+    for (const [inputName, inputSpecValue] of Object.entries(inputs)) {
+      const inputSpec = asObject(
+        inputSpecValue,
+        `${sourceFile}.operations.${operationName}.inputs.${inputName}`,
+      );
+      asString(
+        inputSpec.label,
+        `${sourceFile}.operations.${operationName}.inputs.${inputName}.label`,
+      );
+    }
+    operations[operationName] = compiled;
+  }
+
+  for (const [appName, appValue] of Object.entries(appsRaw)) {
+    const app = asObject(appValue, `${sourceFile}.apps.${appName}`);
+    asString(app.label, `${sourceFile}.apps.${appName}.label`);
+    const steps = asArray(app.steps, `${sourceFile}.apps.${appName}.steps`);
+    steps.forEach((rawStep, stepIndex) => {
+      const step = asObject(rawStep, `${sourceFile}.apps.${appName}.steps[${stepIndex}]`);
+      asString(step.label, `${sourceFile}.apps.${appName}.steps[${stepIndex}].label`);
+      if (Array.isArray(step.actions)) {
+        step.actions.forEach((rawAction, actionIndex) => {
+          const action = asObject(
+            rawAction,
+            `${sourceFile}.apps.${appName}.steps[${stepIndex}].actions[${actionIndex}]`,
+          );
+          asString(
+            action.label,
+            `${sourceFile}.apps.${appName}.steps[${stepIndex}].actions[${actionIndex}].label`,
+          );
+          asString(
+            action.id,
+            `${sourceFile}.apps.${appName}.steps[${stepIndex}].actions[${actionIndex}].id`,
+          );
+        });
+      }
+    });
   }
 
   const output = {
@@ -252,11 +291,11 @@ function compileAidl(source, sourceFile) {
     schema,
     version,
     protocolId,
-    ...(rootLabel ? { label: rootLabel } : {}),
+    label: rootLabel,
     ...(sourcesRaw ? { sources: sourcesRaw } : {}),
     templates,
     operations,
-    ...(appsRaw ? { apps: appsRaw } : {}),
+    apps: appsRaw,
   };
 
   return {
