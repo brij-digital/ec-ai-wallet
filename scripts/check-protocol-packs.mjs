@@ -374,10 +374,10 @@ function validateApps(meta, protocolId, operations) {
 
       const success = asObject(step.success, `${protocolId}.apps.${appId}.steps.${stepId}.success`);
       const kind = asString(success.kind, `${protocolId}.apps.${appId}.steps.${stepId}.success.kind`);
-      if (!['operation_ok', 'selection_made', 'path_truthy'].includes(kind)) {
+      if (!['operation_ok', 'value_present'].includes(kind)) {
         fail(`${protocolId}.apps.${appId}.steps.${stepId}.success.kind invalid: ${kind}`);
       }
-      if (kind === 'selection_made' || kind === 'path_truthy') {
+      if (kind === 'value_present') {
         asString(success.path, `${protocolId}.apps.${appId}.steps.${stepId}.success.path`);
       }
     }

@@ -92,8 +92,8 @@ function validateNextOnRules(stepLabel, step, knownStepIds) {
     const transition = asObject(raw, `${stepLabel}.transitions[${index}]`);
     const on = asNonEmptyString(transition.on, `${stepLabel}.transitions[${index}].on`);
     const to = asNonEmptyString(transition.to, `${stepLabel}.transitions[${index}].to`);
-    if (!['success', 'error', 'manual'].includes(on)) {
-      fail(`${stepLabel}.transitions[${index}].on must be success|error|manual.`);
+    if (on !== 'success') {
+      fail(`${stepLabel}.transitions[${index}].on must be success.`);
     }
     if (!knownStepIds.has(to)) {
       fail(`${stepLabel}.transitions[${index}].to references unknown step ${to}.`);
@@ -114,17 +114,8 @@ function validateNextOnRules(stepLabel, step, knownStepIds) {
     fail(`${stepLabel}.next_on_success provided without success transition.`);
   }
 
-  const errorTransitions = transitions.filter((entry) => entry.on === 'error');
-  if (errorTransitions.length > 1) {
-    fail(`${stepLabel}.transitions defines multiple error targets. Use one explicit error target.`);
-  }
-  if (errorTransitions.length === 1) {
-    const next = asNonEmptyString(step.next_on_error, `${stepLabel}.next_on_error`);
-    if (next !== errorTransitions[0].to) {
-      fail(`${stepLabel}.next_on_error must match error transition target ${errorTransitions[0].to}.`);
-    }
-  } else if (step.next_on_error !== undefined) {
-    fail(`${stepLabel}.next_on_error provided without error transition.`);
+  if (step.next_on_error !== undefined) {
+    fail(`${stepLabel}.next_on_error is not supported.`);
   }
 }
 

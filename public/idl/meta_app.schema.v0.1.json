@@ -40,9 +40,7 @@
       "properties": {
         "on": {
           "enum": [
-            "success",
-            "error",
-            "manual"
+            "success"
           ]
         },
         "to": {
@@ -94,23 +92,7 @@
           ],
           "properties": {
             "kind": {
-              "const": "selection_made"
-            },
-            "path": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "kind",
-            "path"
-          ],
-          "properties": {
-            "kind": {
-              "const": "path_truthy"
+              "const": "value_present"
             },
             "path": {
               "type": "string"
@@ -279,9 +261,6 @@
           "type": "string"
         },
         "next_on_success": {
-          "type": "string"
-        },
-        "next_on_error": {
           "type": "string"
         },
         "status_text": {

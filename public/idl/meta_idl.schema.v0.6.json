@@ -358,9 +358,7 @@
       "properties": {
         "on": {
           "enum": [
-            "success",
-            "error",
-            "manual"
+            "success"
           ]
         },
         "to": {
@@ -430,23 +428,7 @@
           ],
           "properties": {
             "kind": {
-              "const": "selection_made"
-            },
-            "path": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "kind",
-            "path"
-          ],
-          "properties": {
-            "kind": {
-              "const": "path_truthy"
+              "const": "value_present"
             },
             "path": {
               "type": "string"
@@ -522,9 +504,6 @@
           "type": "string"
         },
         "next_on_success": {
-          "type": "string"
-        },
-        "next_on_error": {
           "type": "string"
         },
         "status_text": {
@@ -626,53 +605,6 @@
           "items": {
             "$ref": "#/$defs/userAppStepSpec"
           }
-        }
-      },
-      "additionalProperties": false
-    },
-    "resolverBase": {
-      "type": "object",
-      "required": [
-        "resolver"
-      ],
-      "properties": {
-        "resolver": {
-          "enum": [
-            "wallet_pubkey",
-            "decode_account",
-            "account_owner",
-            "token_supply",
-            "token_account_balance",
-            "ata",
-            "pda",
-            "lookup",
-            "unix_timestamp"
-          ]
-        },
-        "address": {},
-        "account_type": {
-          "type": "string"
-        },
-        "owner": {},
-        "mint": {},
-        "allow_owner_off_curve": {
-          "type": "boolean"
-        },
-        "program_id": {},
-        "seeds": {
-          "type": "array",
-          "items": {}
-        },
-        "source": {
-          "type": "string"
-        },
-        "where": {},
-        "select": {},
-        "mode": {
-          "enum": [
-            "first",
-            "all"
-          ]
         }
       },
       "additionalProperties": false

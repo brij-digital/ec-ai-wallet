@@ -61,7 +61,7 @@ const app: MetaAppSummary = {
         requiresPaths: ['$steps.discover.derived.selected_pool.pool'],
       },
       success: {
-        kind: 'path_truthy',
+        kind: 'value_present',
         path: '$steps.discover.derived.selected_pool.pool',
       },
     },
@@ -90,7 +90,7 @@ describe('builder app step transitions and unlock rules', () => {
     expect(isBuilderAppStepUnlocked(app, swapStep, contextsWithSelection, completedOnly)).toBe(true);
   });
 
-  it('evaluates operation_ok and path_truthy success kinds', () => {
+  it('evaluates operation_ok and value_present success kinds', () => {
     const discoverStep = app.steps[0]!;
     const swapStep = app.steps[1]!;
 

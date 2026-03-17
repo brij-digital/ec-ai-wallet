@@ -108,8 +108,11 @@ export function evaluateBuilderStepSuccess(
   if (step.success.kind === 'operation_ok') {
     return operationSucceeded;
   }
-  const value = readBuilderPath(buildBuilderAppScope(contexts), step.success.path);
-  return isBuilderTruthy(value);
+  if (step.success.kind === 'value_present') {
+    const value = readBuilderPath(buildBuilderAppScope(contexts), step.success.path);
+    return isBuilderTruthy(value);
+  }
+  throw new Error(`Unsupported step success kind: ${String((step.success as { kind?: unknown }).kind)}`);
 }
 
 export function findBuilderAppStepIndexById(app: MetaAppSummary, stepId: string): number {

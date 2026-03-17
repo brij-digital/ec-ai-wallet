@@ -65,7 +65,6 @@ type BuilderStepStatusTextTemplates = {
 
 type BuilderStepFlow = {
   nextOnSuccess?: string;
-  nextOnError?: string;
   statusText: BuilderStepStatusTextTemplates;
 };
 
@@ -127,9 +126,6 @@ function parseBuilderStepFlow(step: MetaAppSummary['steps'][number] | null): Bui
   return {
     ...(step.nextOnSuccess
       ? { nextOnSuccess: asNonEmptyString(step.nextOnSuccess, `app step ${step.stepId}.next_on_success`) }
-      : {}),
-    ...(step.nextOnError
-      ? { nextOnError: asNonEmptyString(step.nextOnError, `app step ${step.stepId}.next_on_error`) }
       : {}),
     statusText,
   };
@@ -773,15 +769,11 @@ export function useBuilderController() {
     return renderBuilderStepStatusTemplate(template, values);
   }
 
-  function resolveBuilderNextStepIndexByOutcome(
-    outcome: 'success' | 'error',
-  ): number | null {
+  function resolveBuilderNextStepIndexBySuccess(): number | null {
     if (!selectedBuilderApp || !selectedBuilderAppStep) {
       return null;
     }
-    const targetStepId = outcome === 'success'
-      ? selectedBuilderStepFlow?.nextOnSuccess
-      : selectedBuilderStepFlow?.nextOnError;
+    const targetStepId = selectedBuilderStepFlow?.nextOnSuccess;
     if (!targetStepId) {
       return null;
     }
@@ -820,7 +812,7 @@ export function useBuilderController() {
     };
     setBuilderAppStepCompleted(nextCompleted);
 
-    const nextIndex = stepCompleted ? resolveBuilderNextStepIndexByOutcome('success') : null;
+    const nextIndex = stepCompleted ? resolveBuilderNextStepIndexBySuccess() : null;
     if (stepCompleted && nextIndex !== null) {
       const nextStep = selectedBuilderApp.steps[nextIndex];
       const nextUnlocked = isBuilderAppStepUnlocked(selectedBuilderApp, nextStep, nextContexts, nextCompleted);
@@ -909,8 +901,7 @@ export function useBuilderController() {
       ...prev,
       [selectedBuilderAppStep.stepId]: completed,
     }));
-    const outcome: 'success' | 'error' = options.operationSucceeded && completed ? 'success' : 'error';
-    const nextIndex = resolveBuilderNextStepIndexByOutcome(outcome);
+    const nextIndex = options.operationSucceeded && completed ? resolveBuilderNextStepIndexBySuccess() : null;
     if (nextIndex !== null && selectedBuilderApp) {
       const nextStep = selectedBuilderApp.steps[nextIndex];
       const nextUnlocked = isBuilderAppStepUnlocked(selectedBuilderApp, nextStep, nextContexts, nextCompleted);

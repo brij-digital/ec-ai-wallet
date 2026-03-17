@@ -30,7 +30,7 @@
             "requires_paths": []
           },
           "success": {
-            "kind": "selection_made",
+            "kind": "value_present",
             "path": "$steps.discover.derived.selected_pool"
           },
           "next_on_success": "pool",
