@@ -314,6 +314,7 @@ export function BuilderTab(props: BuilderTabProps) {
                         const value = builderInputValues[inputName] ?? '';
                         const showTokenPicker = isTokenMintInput(inputName, spec);
                         const resolvedToken = showTokenPicker ? resolveToken(value) : null;
+                        const selectedMint = resolvedToken?.mint ?? '';
                         return (
                           <label key={inputName}>
                             <span>
@@ -324,43 +325,47 @@ export function BuilderTab(props: BuilderTabProps) {
                               <code>{spec.type}</code>{' '}
                               {spec.required ? <strong>({fieldTag})</strong> : <em>({fieldTag})</em>}
                             </span>
-                            <input
-                              type="text"
-                              value={value}
-                              onChange={(event) => onInputChange(inputName, event.target.value)}
-                              placeholder={
-                                selectedBuilderOperationEnhancement?.inputUi[inputName]?.placeholder ??
-                                (spec.default !== undefined
-                                  ? `default: ${stringifyBuilderDefault(spec.default)}`
-                                  : spec.discover_from
-                                    ? `discover_from: ${spec.discover_from}`
-                                    : '')
-                              }
-                              disabled={isWorking || !editable}
-                            />
                             {showTokenPicker ? (
-                              <div className="builder-token-picker">
-                                {supportedTokens.map((token) => {
-                                  const active = value === token.mint || value.toUpperCase() === token.symbol;
-                                  return (
-                                    <button
-                                      key={`${inputName}:${token.symbol}`}
-                                      type="button"
-                                      className={active ? 'active' : ''}
-                                      disabled={isWorking || !editable}
-                                      onClick={() => onInputChange(inputName, token.mint)}
-                                    >
-                                      {token.symbol}
-                                    </button>
-                                  );
-                                })}
+                              <div className="builder-token-selector">
+                                <div className="builder-token-selector-shell">
+                                  <span className="builder-token-selector-icon" aria-hidden="true" />
+                                  <select
+                                    value={selectedMint}
+                                    onChange={(event) => onInputChange(inputName, event.target.value)}
+                                    disabled={isWorking || !editable}
+                                  >
+                                    <option value="" disabled>
+                                      Select token
+                                    </option>
+                                    {supportedTokens.map((token) => (
+                                      <option key={`${inputName}:${token.symbol}`} value={token.mint}>
+                                        {token.symbol}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
                               </div>
-                            ) : null}
+                            ) : (
+                              <input
+                                type="text"
+                                value={value}
+                                onChange={(event) => onInputChange(inputName, event.target.value)}
+                                placeholder={
+                                  selectedBuilderOperationEnhancement?.inputUi[inputName]?.placeholder ??
+                                  (spec.default !== undefined
+                                    ? `default: ${stringifyBuilderDefault(spec.default)}`
+                                    : spec.discover_from
+                                      ? `discover_from: ${spec.discover_from}`
+                                      : '')
+                                }
+                                disabled={isWorking || !editable}
+                              />
+                            )}
                             {showTokenPicker ? (
                               <small className="builder-token-meta">
                                 {resolvedToken
                                   ? `ticker: ${resolvedToken.symbol} | decimals: ${resolvedToken.decimals} | mint: ${resolvedToken.mint}`
-                                  : 'Known market tokens: SOL, USDC'}
+                                  : 'Select one token from the list.'}
                               </small>
                             ) : null}
                             {selectedBuilderOperationEnhancement?.inputUi[inputName]?.help ? (

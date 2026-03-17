@@ -412,6 +412,59 @@
   font-size: 0.78rem;
 }
 
+.builder-token-selector {
+  display: flex;
+  align-items: center;
+}
+
+.builder-token-selector-shell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid #253a63;
+  border-radius: 999px;
+  background: #1e2a43;
+  color: #f1f5ff;
+  padding: 0.38rem 0.65rem;
+}
+
+.builder-token-selector-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #6be4ff, #1f4cc4 70%);
+  border: 1px solid #365a95;
+}
+
+.builder-token-selector-shell select {
+  appearance: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f1f5ff;
+  font-size: 1rem;
+  font-weight: 600;
+  padding-right: 1.2rem;
+  background-image: linear-gradient(45deg, transparent 50%, #f1f5ff 50%), linear-gradient(135deg, #f1f5ff 50%, transparent 50%);
+  background-position: calc(100% - 0.75rem) calc(50% - 0.1rem), calc(100% - 0.45rem) calc(50% - 0.1rem);
+  background-size: 0.34rem 0.34rem, 0.34rem 0.34rem;
+  background-repeat: no-repeat;
+}
+
+.builder-token-selector-shell select:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+.builder-token-selector-shell select option {
+  color: #0f1f38;
+}
+
+.builder-token-meta {
+  color: #5f7396;
+  font-size: 0.78rem;
+}
+
 .builder-inputs input {
   border: 1px solid #c6d0e2;
   border-radius: 8px;
