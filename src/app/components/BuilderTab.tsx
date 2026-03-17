@@ -328,7 +328,6 @@ export function BuilderTab(props: BuilderTabProps) {
                             {showTokenPicker ? (
                               <div className="builder-token-selector">
                                 <div className="builder-token-selector-shell">
-                                  <span className="builder-token-selector-icon" aria-hidden="true" />
                                   <select
                                     value={selectedMint}
                                     onChange={(event) => onInputChange(inputName, event.target.value)}
