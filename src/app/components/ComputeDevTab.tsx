@@ -11,6 +11,7 @@ type ProtocolSummary = {
   id: string;
   name: string;
   status: 'active' | 'inactive';
+  computePath: string | null;
 };
 
 type ComputeDevTabProps = {
@@ -81,15 +82,91 @@ function formatComputeStep(step: Record<string, unknown>): string {
   return `const ${name} = ${kind}({ ${args} });`;
 }
 
-function renderPseudoFunction(explain: MetaOperationExplain): string {
-  const lines: string[] = [];
-  const fnName = `${explain.protocolId.replace(/[^a-zA-Z0-9]+/g, '_')}_${explain.operationId}`;
-  lines.push(`function ${fnName}(ctx) {`);
-  lines.push(`  // operation: ${explain.operationId}`);
-  lines.push(`  // instruction: ${explain.instruction ?? 'read-only'}`);
+function normalizeComputeStep(rawStep: Record<string, unknown>): Record<string, unknown> {
+  if (typeof rawStep.compute === 'string') {
+    return rawStep;
+  }
 
-  const compute = Array.isArray(explain.compute) ? explain.compute : [];
-  if (compute.length === 0) {
+  const name = typeof rawStep.name === 'string' ? rawStep.name : 'result';
+  if ('add' in rawStep) {
+    return { name, compute: 'math.add', values: rawStep.add };
+  }
+  if ('sum' in rawStep) {
+    return { name, compute: 'math.sum', values: rawStep.sum };
+  }
+  if ('mul' in rawStep) {
+    return { name, compute: 'math.mul', values: rawStep.mul };
+  }
+  if ('sub' in rawStep) {
+    return { name, compute: 'math.sub', values: rawStep.sub };
+  }
+  if ('floor_div' in rawStep) {
+    const values = Array.isArray(rawStep.floor_div) ? rawStep.floor_div : [];
+    return {
+      name,
+      compute: 'math.floor_div',
+      dividend: values[0],
+      divisor: values[1],
+    };
+  }
+  if ('if' in rawStep && rawStep.if && typeof rawStep.if === 'object' && !Array.isArray(rawStep.if)) {
+    const ifSpec = rawStep.if as Record<string, unknown>;
+    return {
+      name,
+      compute: 'logic.if',
+      condition: ifSpec.condition,
+      then: ifSpec.then,
+      else: ifSpec.else,
+    };
+  }
+  if ('coalesce' in rawStep) {
+    return {
+      name,
+      compute: 'coalesce',
+      values: rawStep.coalesce,
+    };
+  }
+  if ('eq' in rawStep || 'ne' in rawStep || 'gt' in rawStep || 'gte' in rawStep || 'lt' in rawStep || 'lte' in rawStep) {
+    const key = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte'].find((entry) => entry in rawStep);
+    const values = key && Array.isArray(rawStep[key]) ? rawStep[key] : [];
+    const kindMap: Record<string, string> = {
+      eq: 'compare.equals',
+      ne: 'compare.not_equals',
+      gt: 'compare.gt',
+      gte: 'compare.gte',
+      lt: 'compare.lt',
+      lte: 'compare.lte',
+    };
+    return {
+      name,
+      compute: key ? kindMap[key] : 'unknown',
+      left: values[0],
+      right: values[1],
+    };
+  }
+  if ('pda' in rawStep) {
+    const pda = rawStep.pda && typeof rawStep.pda === 'object' && !Array.isArray(rawStep.pda)
+      ? (rawStep.pda as Record<string, unknown>)
+      : {};
+    return {
+      name,
+      compute: 'pda(seed_spec)',
+      ...pda,
+    };
+  }
+  if ('compute' in rawStep) {
+    return rawStep;
+  }
+
+  return { ...rawStep, name, compute: 'unknown' };
+}
+
+function renderPseudoFunction(functionName: string, instruction: string | null, computeSteps: Record<string, unknown>[]): string {
+  const lines: string[] = [];
+  lines.push(`function ${functionName}(ctx) {`);
+  lines.push(`  // instruction: ${instruction ?? 'read-only'}`);
+
+  if (computeSteps.length === 0) {
     lines.push('  // no compute steps');
     lines.push('  return {};');
     lines.push('}');
@@ -97,14 +174,12 @@ function renderPseudoFunction(explain: MetaOperationExplain): string {
   }
 
   lines.push('');
-  for (const rawStep of compute) {
-    const step = rawStep && typeof rawStep === 'object' && !Array.isArray(rawStep)
-      ? (rawStep as Record<string, unknown>)
-      : { name: 'unknown', compute: 'unknown' };
+  for (const rawStep of computeSteps) {
+    const step = normalizeComputeStep(rawStep);
     lines.push(`  ${formatComputeStep(step)}`);
   }
   lines.push('');
-  const names = compute
+  const names = computeSteps
     .map((rawStep) =>
       rawStep && typeof rawStep === 'object' && !Array.isArray(rawStep) && typeof (rawStep as Record<string, unknown>).name === 'string'
         ? (rawStep as Record<string, unknown>).name as string
@@ -116,6 +191,18 @@ function renderPseudoFunction(explain: MetaOperationExplain): string {
   return lines.join('\n');
 }
 
+type ComputeLibraryFile = {
+  kind: string;
+  libraries: Record<string, Record<string, unknown>[]>;
+};
+
+function computePathFromMetaPath(metaPath: string | undefined): string | null {
+  if (!metaPath || !metaPath.endsWith('.meta.json')) {
+    return null;
+  }
+  return metaPath.replace(/^\/idl\//, '/compute/').replace(/\.meta\.json$/, '.compute.json');
+}
+
 export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
   const [protocols, setProtocols] = useState<ProtocolSummary[]>([]);
   const [protocolId, setProtocolId] = useState('');
@@ -123,8 +210,12 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
   const [operationComputeCounts, setOperationComputeCounts] = useState<Record<string, number>>({});
   const [operationId, setOperationId] = useState('');
   const [explain, setExplain] = useState<MetaOperationExplain | null>(null);
+  const [computeLibraries, setComputeLibraries] = useState<Record<string, Record<string, unknown>[]>>({});
+  const [selectedLibrary, setSelectedLibrary] = useState('');
+  const [libraryError, setLibraryError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [libraryLoading, setLibraryLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +226,11 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
           id: protocol.id,
           name: protocol.name,
           status: protocol.status,
+          computePath: computePathFromMetaPath(
+            typeof (protocol as unknown as Record<string, unknown>).metaPath === 'string'
+              ? ((protocol as unknown as Record<string, unknown>).metaPath as string)
+              : undefined,
+          ),
         }));
         if (cancelled) {
           return;
@@ -153,6 +249,11 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
       cancelled = true;
     };
   }, []);
+
+  const selectedProtocol = useMemo(
+    () => protocols.find((protocol) => protocol.id === protocolId) ?? null,
+    [protocols, protocolId],
+  );
 
   useEffect(() => {
     if (!protocolId) {
@@ -207,6 +308,55 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
   }, [protocolId]);
 
   useEffect(() => {
+    if (!selectedProtocol || !selectedProtocol.computePath) {
+      setComputeLibraries({});
+      setSelectedLibrary('');
+      setLibraryError(null);
+      return;
+    }
+    let cancelled = false;
+    setLibraryLoading(true);
+    setLibraryError(null);
+    void (async () => {
+      try {
+        const response = await fetch(selectedProtocol.computePath);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${selectedProtocol.computePath} (${response.status})`);
+        }
+        const raw = (await response.json()) as unknown;
+        const parsed = raw && typeof raw === 'object' && !Array.isArray(raw)
+          ? (raw as ComputeLibraryFile)
+          : null;
+        const libraries =
+          parsed && parsed.libraries && typeof parsed.libraries === 'object' && !Array.isArray(parsed.libraries)
+            ? parsed.libraries
+            : {};
+
+        if (cancelled) {
+          return;
+        }
+        setComputeLibraries(libraries);
+        const firstLibrary = Object.keys(libraries)[0] ?? '';
+        setSelectedLibrary(firstLibrary);
+      } catch (caught) {
+        if (!cancelled) {
+          const message = caught instanceof Error ? caught.message : String(caught);
+          setLibraryError(message);
+          setComputeLibraries({});
+          setSelectedLibrary('');
+        }
+      } finally {
+        if (!cancelled) {
+          setLibraryLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProtocol]);
+
+  useEffect(() => {
     if (!protocolId || !operationId) {
       setExplain(null);
       return;
@@ -237,12 +387,29 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
     };
   }, [protocolId, operationId]);
 
-  const pseudoFunction = useMemo(() => {
+  const operationPseudoFunction = useMemo(() => {
     if (!explain) {
       return '';
     }
-    return renderPseudoFunction(explain);
+    const functionName = `${explain.protocolId.replace(/[^a-zA-Z0-9]+/g, '_')}_${explain.operationId}`;
+    const compute = Array.isArray(explain.compute)
+      ? explain.compute.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && !Array.isArray(entry))
+      : [];
+    return renderPseudoFunction(functionName, explain.instruction ?? null, compute);
   }, [explain]);
+
+  const libraryNames = useMemo(() => Object.keys(computeLibraries), [computeLibraries]);
+  const selectedLibrarySteps = useMemo(
+    () => (selectedLibrary ? computeLibraries[selectedLibrary] ?? [] : []),
+    [computeLibraries, selectedLibrary],
+  );
+  const libraryPseudoFunction = useMemo(() => {
+    if (!selectedLibrary) {
+      return '';
+    }
+    const functionName = selectedLibrary.replace(/[^a-zA-Z0-9]+/g, '_');
+    return renderPseudoFunction(functionName, null, selectedLibrarySteps);
+  }, [selectedLibrary, selectedLibrarySteps]);
 
   return (
     <section className="compute-shell" aria-live="polite">
@@ -267,23 +434,58 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
             ))}
           </select>
         </label>
+        <label>
+          Library
+          <select
+            value={selectedLibrary}
+            onChange={(event) => setSelectedLibrary(event.target.value)}
+            disabled={isWorking || libraryLoading || libraryNames.length === 0}
+          >
+            {libraryNames.length === 0 ? (
+              <option value="">No compute libraries</option>
+            ) : (
+              libraryNames.map((libraryName) => (
+                <option key={libraryName} value={libraryName}>
+                  {libraryName} ({computeLibraries[libraryName]?.length ?? 0} steps)
+                </option>
+              ))
+            )}
+          </select>
+        </label>
       </div>
 
       {error ? <p className="compute-error">Error: {error}</p> : null}
+      {libraryError ? <p className="compute-error">Library error: {libraryError}</p> : null}
 
-      {explain ? (
+      {explain || selectedLibrary ? (
         <div className="compute-panels">
-          <article className="compute-panel">
-            <h3>Pseudo JS</h3>
-            <pre>{pseudoFunction}</pre>
-          </article>
-          <article className="compute-panel">
-            <h3>Raw Compute Steps</h3>
-            <pre>{JSON.stringify(explain.compute, null, 2)}</pre>
-          </article>
+          {explain ? (
+            <>
+              <article className="compute-panel">
+                <h3>Operation Pseudo JS</h3>
+                <pre>{operationPseudoFunction}</pre>
+              </article>
+              <article className="compute-panel">
+                <h3>Operation Raw Compute</h3>
+                <pre>{JSON.stringify(explain.compute, null, 2)}</pre>
+              </article>
+            </>
+          ) : null}
+          {selectedLibrary ? (
+            <>
+              <article className="compute-panel">
+                <h3>Library Pseudo JS</h3>
+                <pre>{libraryPseudoFunction}</pre>
+              </article>
+              <article className="compute-panel">
+                <h3>Library Raw Compute</h3>
+                <pre>{JSON.stringify(selectedLibrarySteps, null, 2)}</pre>
+              </article>
+            </>
+          ) : null}
         </div>
       ) : (
-        <p className="compute-empty">{loading ? 'Loading compute spec...' : 'Select a protocol and operation.'}</p>
+        <p className="compute-empty">{loading || libraryLoading ? 'Loading compute spec...' : 'Select a protocol and operation.'}</p>
       )}
     </section>
   );

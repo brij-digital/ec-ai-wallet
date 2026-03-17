@@ -1,0 +1,167 @@
+{
+  "kind": "aidl.compute.v0.1",
+  "libraries": {
+    "orca.swap_tick_arrays.v1": [
+      {
+        "name": "a_to_b",
+        "eq": [
+          "$whirlpool_data.token_mint_a",
+          "$param.token_in_mint"
+        ]
+      },
+      {
+        "name": "tick_array_direction",
+        "if": {
+          "condition": "$a_to_b",
+          "then": -1,
+          "else": 1
+        }
+      },
+      {
+        "name": "ticks_per_array",
+        "mul": [
+          "$whirlpool_data.tick_spacing",
+          88
+        ]
+      },
+      {
+        "name": "direction_step",
+        "mul": [
+          "$ticks_per_array",
+          "$tick_array_direction"
+        ]
+      },
+      {
+        "name": "current_array_index",
+        "floor_div": [
+          "$whirlpool_data.tick_current_index",
+          "$ticks_per_array"
+        ]
+      },
+      {
+        "name": "current_start_index",
+        "mul": [
+          "$current_array_index",
+          "$ticks_per_array"
+        ]
+      },
+      {
+        "name": "tick_array_starts",
+        "compute": "list.range_map",
+        "base": "$current_start_index",
+        "step": "$direction_step",
+        "count": 3
+      },
+      {
+        "name": "tick_arrays",
+        "pda": {
+          "program_id": "$protocol.programId",
+          "map_over": "$tick_array_starts",
+          "seeds": [
+            {
+              "kind": "utf8",
+              "value": "tick_array"
+            },
+            {
+              "kind": "pubkey",
+              "value": "$input.whirlpool"
+            },
+            {
+              "kind": "item_utf8"
+            }
+          ]
+        }
+      }
+    ],
+    "orca.quote_amount_out.v1": [
+      {
+        "name": "spot_price_numerator",
+        "mul": [
+          "$whirlpool_data.sqrt_price",
+          "$whirlpool_data.sqrt_price"
+        ]
+      },
+      {
+        "name": "estimated_out_a_to_b_numerator",
+        "mul": [
+          "$param.amount_in",
+          "$spot_price_numerator"
+        ]
+      },
+      {
+        "name": "estimated_out_a_to_b",
+        "floor_div": [
+          "$estimated_out_a_to_b_numerator",
+          "340282366920938463463374607431768211456"
+        ]
+      },
+      {
+        "name": "estimated_out_b_to_a_numerator",
+        "mul": [
+          "$param.amount_in",
+          "340282366920938463463374607431768211456"
+        ]
+      },
+      {
+        "name": "estimated_out_b_to_a",
+        "floor_div": [
+          "$estimated_out_b_to_a_numerator",
+          "$spot_price_numerator"
+        ]
+      },
+      {
+        "name": "estimated_out_spot",
+        "if": {
+          "condition": "$a_to_b",
+          "then": "$estimated_out_a_to_b",
+          "else": "$estimated_out_b_to_a"
+        }
+      },
+      {
+        "name": "estimated_out_auto",
+        "compute": "coalesce",
+        "values": [
+          "$estimated_out_spot"
+        ]
+      }
+    ],
+    "orca.swap_threshold.v1": [
+      {
+        "name": "slippage_keep_bps",
+        "sub": [
+          "10000",
+          "$param.slippage_bps"
+        ]
+      },
+      {
+        "name": "estimated_out_override_provided",
+        "gt": [
+          "$param.estimated_out",
+          "0"
+        ]
+      },
+      {
+        "name": "estimated_out_effective",
+        "if": {
+          "condition": "$estimated_out_override_provided",
+          "then": "$param.estimated_out",
+          "else": "$estimated_out_auto"
+        }
+      },
+      {
+        "name": "other_amount_threshold_numerator",
+        "mul": [
+          "$estimated_out_effective",
+          "$slippage_keep_bps"
+        ]
+      },
+      {
+        "name": "other_amount_threshold",
+        "floor_div": [
+          "$other_amount_threshold_numerator",
+          "10000"
+        ]
+      }
+    ]
+  }
+}

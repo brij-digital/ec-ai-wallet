@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const ROOT = process.cwd();
 const INPUT_DIR = path.join(ROOT, 'aidl');
+const COMPUTE_OUTPUT_DIR = path.join(ROOT, 'public/compute');
 const COMPUTE_LIBRARY_KIND = 'aidl.compute.v0.1';
 
 /**
@@ -190,7 +191,7 @@ function parseComputeLibraries(libraries, sourceFile) {
 }
 
 /**
- * @returns {Promise<Record<string, Record<string, unknown>[]>>}
+ * @returns {Promise<{ libraries: Record<string, Record<string, unknown>[]>; files: string[] }>}
  */
 async function loadComputeLibraries() {
   const entries = await fs.readdir(INPUT_DIR, { withFileTypes: true });
@@ -219,7 +220,55 @@ async function loadComputeLibraries() {
     }
   }
 
-  return libraries;
+  return { libraries, files: libraryFiles };
+}
+
+/**
+ * @param {string[]} sourceFiles
+ * @param {boolean} checkMode
+ * @param {string[]} updates
+ * @returns {Promise<void>}
+ */
+async function syncComputeOutputs(sourceFiles, checkMode, updates) {
+  await fs.mkdir(COMPUTE_OUTPUT_DIR, { recursive: true });
+
+  const expectedNames = new Set(sourceFiles.map((file) => path.basename(file)));
+  const existingEntries = await fs.readdir(COMPUTE_OUTPUT_DIR, { withFileTypes: true });
+  const existingFiles = existingEntries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.compute.json'))
+    .map((entry) => entry.name)
+    .sort();
+
+  for (const name of existingFiles) {
+    if (expectedNames.has(name)) {
+      continue;
+    }
+    const outputPath = path.join(COMPUTE_OUTPUT_DIR, name);
+    if (checkMode) {
+      updates.push(`stale compute output: ${path.relative(ROOT, outputPath)}`);
+      continue;
+    }
+    await fs.unlink(outputPath);
+    updates.push(`removed stale compute output: ${path.relative(ROOT, outputPath)}`);
+  }
+
+  for (const sourceFile of sourceFiles) {
+    const sourceRaw = await fs.readFile(sourceFile, 'utf8');
+    const sourceJson = JSON.parse(sourceRaw);
+    const outputText = `${JSON.stringify(sourceJson, null, 2)}\n`;
+    const outputPath = path.join(COMPUTE_OUTPUT_DIR, path.basename(sourceFile));
+
+    if (checkMode) {
+      const current = await fs.readFile(outputPath, 'utf8').catch(() => null);
+      if (current !== outputText) {
+        updates.push(`${path.relative(ROOT, sourceFile)} -> ${path.relative(ROOT, outputPath)}`);
+      }
+      continue;
+    }
+
+    await fs.writeFile(outputPath, outputText, 'utf8');
+    updates.push(`${path.relative(ROOT, sourceFile)} -> ${path.relative(ROOT, outputPath)}`);
+  }
 }
 
 /**
@@ -414,7 +463,8 @@ async function main() {
     return;
   }
 
-  const computeLibraries = await loadComputeLibraries();
+  const loaded = await loadComputeLibraries();
+  const computeLibraries = loaded.libraries;
 
   /** @type {string[]} */
   const updates = [];
@@ -435,6 +485,8 @@ async function main() {
     await fs.writeFile(compiled.outputPath, text, 'utf8');
     updates.push(`${sourceFile} -> ${path.relative(ROOT, compiled.outputPath)}`);
   }
+
+  await syncComputeOutputs(loaded.files, checkMode, updates);
 
   if (checkMode) {
     if (updates.length > 0) {
