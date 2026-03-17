@@ -426,7 +426,7 @@ export function useBuilderController() {
       }
 
       const autoResolved =
-        spec.default !== undefined || (typeof spec.discover_from === 'string' && spec.discover_from.length > 0);
+        spec.default !== undefined || (typeof spec.read_from === 'string' && spec.read_from.length > 0);
       if (spec.required && !autoResolved) {
         return true;
       }

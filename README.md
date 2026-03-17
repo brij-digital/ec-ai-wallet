@@ -116,9 +116,9 @@ Meta IDL v0.6 supports template expansion:
 - `templates.<name>.expand` defines reusable declarative blocks.
 - `operations.<operation>.use[]` applies templates with parameter mapping via `$param.*`.
 
-Meta inputs support discover-backed optionality:
-- `discover_from` can auto-fill a missing input from runtime scope.
-- Precedence is: user input -> default -> discover_from -> required-error.
+Meta inputs use explicit readonly bindings:
+- `read_from` is for readonly UI fields (displayed/computed preview values).
+- Runtime input precedence is: user input -> default -> required-error.
 
 Meta IDL execution supports optional declarative `post` steps:
 - current built-in: `spl_token_close_account`

@@ -123,9 +123,6 @@
           "type": "boolean"
         },
         "default": {},
-        "discover_from": {
-          "type": "string"
-        },
         "read_from": {
           "type": "string"
         },

@@ -374,7 +374,6 @@
           "type": "u64",
           "required": false,
           "default": "0",
-          "discover_from": "$derived.estimated_out_auto",
           "read_from": "$derived.estimated_out_auto",
           "label": "Estimated Out (atomic)",
           "placeholder": "0",

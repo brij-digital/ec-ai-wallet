@@ -255,8 +255,8 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         return false;
       }
       const hasDefault = spec.default !== undefined;
-      const hasDiscoverFrom = typeof spec.discover_from === 'string' && spec.discover_from.length > 0;
-      return spec.required && !hasDefault && !hasDiscoverFrom;
+      const hasReadFrom = typeof spec.read_from === 'string' && spec.read_from.length > 0;
+      return spec.required && !hasDefault && !hasReadFrom;
     });
     if (missingRequired) {
       return;
@@ -371,11 +371,9 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
           const rawValue = options.builderInputValues[inputName] ?? '';
           if (!rawValue.trim()) {
             const hasDefault = spec.default !== undefined;
-            const hasDiscoverFrom =
-              typeof spec.discover_from === 'string' && spec.discover_from.length > 0;
             const hasReadFrom =
               typeof spec.read_from === 'string' && spec.read_from.length > 0;
-            if (spec.required && !hasDefault && !hasDiscoverFrom && !hasReadFrom) {
+            if (spec.required && !hasDefault && !hasReadFrom) {
               throw new Error(`Missing required input ${inputName}.`);
             }
             continue;

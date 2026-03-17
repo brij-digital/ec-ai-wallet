@@ -167,7 +167,6 @@ export function isAutoResolvedBuilderInput(spec: MetaOperationSummary['inputs'][
   const readFrom = spec.read_from;
   return (
     spec.default !== undefined ||
-    (typeof spec.discover_from === 'string' && spec.discover_from.length > 0) ||
     (typeof readFrom === 'string' && readFrom.length > 0)
   );
 }
@@ -182,18 +181,6 @@ export function isBuilderInputEditable(spec: MetaOperationSummary['inputs'][stri
 export function getBuilderInputTag(spec: MetaOperationSummary['inputs'][string]): string {
   if (typeof spec.read_from === 'string' && spec.read_from.length > 0) {
     return 'readonly';
-  }
-  if (spec.discover_from) {
-    if (spec.discover_stage === 'compute') {
-      return 'computed';
-    }
-    if (spec.discover_stage === 'derive' || spec.discover_stage === 'discover') {
-      return 'derived';
-    }
-    if (spec.discover_stage === 'input') {
-      return 'linked';
-    }
-    throw new Error('Invalid input spec: discover_from is set but discover_stage is missing/invalid.');
   }
   if (spec.default !== undefined) {
     return 'default';
@@ -474,7 +461,7 @@ export function renderMetaExplain(explanation: MetaOperationExplain): string {
     const required = spec.required === false ? 'optional' : 'required';
     const defaultText = spec.default !== undefined ? `, default=${JSON.stringify(spec.default)}` : '';
     const discoverFromText =
-      typeof spec.discover_from === 'string' ? `, discover_from=${spec.discover_from}` : '';
+      typeof spec.read_from === 'string' ? `, read_from=${spec.read_from}` : '';
     return `${required}${defaultText}${discoverFromText}`;
   };
 

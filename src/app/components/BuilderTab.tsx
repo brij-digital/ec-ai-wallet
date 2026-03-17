@@ -353,9 +353,7 @@ export function BuilderTab(props: BuilderTabProps) {
                                   selectedBuilderOperationEnhancement?.inputUi[inputName]?.placeholder ??
                                   (spec.default !== undefined
                                     ? `default: ${stringifyBuilderDefault(spec.default)}`
-                                    : spec.discover_from
-                                      ? `discover_from: ${spec.discover_from}`
-                                      : typeof spec.read_from === 'string'
+                                    : typeof spec.read_from === 'string'
                                         ? `read_from: ${spec.read_from}`
                                       : '')
                                 }

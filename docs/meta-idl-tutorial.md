@@ -45,8 +45,7 @@ Operation pipeline phases:
 1. `discover[]`
 2. `derive[]`
 3. `compute[]`
-4. Fill optional inputs declared with `discover_from` (if missing)
-5. Build IDL instruction
+4. Build IDL instruction
 5. Simulate (`/quote`) or send (`/swap`)
 
 Current discover steps used by Orca operation:
@@ -88,7 +87,7 @@ In `templates.orca.swap_exact_in.v2.expand.discover`:
 
 2. `selected_pool` (`discover.pick_list_item_by_value`)
 - If `input.whirlpool` is provided, picks matching candidate by `whirlpool`.
-- Otherwise falls back to first candidate (`fallback_index = 0`).
+- If no match is found, runtime raises an explicit error (no silent fallback).
 
 ## 5) App-Level Pool Selection UX
 
@@ -179,15 +178,14 @@ npm run aidl:compile
 
 - Runtime only consumes generated `public/idl/*.meta.json`.
 
-## 11) Optional Inputs via Discovery
+## 11) Readonly Inputs via Derived/Computed Paths
 
 Meta input specs can use:
-- `discover_from: "$path.to.value"`
+- `read_from: "$path.to.value"`
 
-Resolution precedence is:
+Runtime input precedence is:
 1. user input
 2. input default
-3. `discover_from`
-4. required error
+3. required error
 
-This keeps one command surface while letting operations fill additional values deterministically from discovered state.
+`read_from` is UI-facing only: readonly fields can display derived/computed values without user editing.
