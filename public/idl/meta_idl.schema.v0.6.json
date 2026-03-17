@@ -406,38 +406,6 @@
       },
       "additionalProperties": false
     },
-    "userAppSuccessSpec": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": [
-            "kind"
-          ],
-          "properties": {
-            "kind": {
-              "const": "operation_ok"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "kind",
-            "path"
-          ],
-          "properties": {
-            "kind": {
-              "const": "value_present"
-            },
-            "path": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        }
-      ]
-    },
     "userAppActionSpec": {
       "type": "object",
       "required": [
@@ -484,8 +452,7 @@
         "title",
         "label",
         "transitions",
-        "blocking",
-        "success"
+        "blocking"
       ],
       "properties": {
         "id": {
@@ -521,9 +488,6 @@
         },
         "blocking": {
           "$ref": "#/$defs/userAppBlockingSpec"
-        },
-        "success": {
-          "$ref": "#/$defs/userAppSuccessSpec"
         },
         "actions": {
           "type": "array",

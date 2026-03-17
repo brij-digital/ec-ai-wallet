@@ -10,7 +10,6 @@ import {
 import {
   asPrettyJson,
   buildExampleInputsForOperation,
-  evaluateBuilderStepSuccess,
   isBuilderAppStepUnlocked,
   readBuilderPath,
   findBuilderAppStepIndexById,
@@ -805,7 +804,7 @@ export function useBuilderController() {
     };
     setBuilderAppStepContexts(nextContexts);
 
-    const stepCompleted = evaluateBuilderStepSuccess(selectedBuilderAppStep, nextContexts, true);
+    const stepCompleted = true;
     const nextCompleted = {
       ...builderAppStepCompleted,
       [currentStepId]: stepCompleted,
@@ -892,7 +891,7 @@ export function useBuilderController() {
       },
     };
     setBuilderAppStepContexts(nextContexts);
-    const completed = evaluateBuilderStepSuccess(selectedBuilderAppStep, nextContexts, options.operationSucceeded);
+    const completed = options.operationSucceeded;
     const nextCompleted = {
       ...builderAppStepCompleted,
       [selectedBuilderAppStep.stepId]: completed,

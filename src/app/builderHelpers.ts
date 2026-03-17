@@ -100,21 +100,6 @@ export function buildBuilderAppScope(contexts: Record<string, BuilderAppStepCont
   };
 }
 
-export function evaluateBuilderStepSuccess(
-  step: MetaAppSummary['steps'][number],
-  contexts: Record<string, BuilderAppStepContext>,
-  operationSucceeded: boolean,
-): boolean {
-  if (step.success.kind === 'operation_ok') {
-    return operationSucceeded;
-  }
-  if (step.success.kind === 'value_present') {
-    const value = readBuilderPath(buildBuilderAppScope(contexts), step.success.path);
-    return isBuilderTruthy(value);
-  }
-  throw new Error(`Unsupported step success kind: ${String((step.success as { kind?: unknown }).kind)}`);
-}
-
 export function findBuilderAppStepIndexById(app: MetaAppSummary, stepId: string): number {
   return app.steps.findIndex((step) => step.stepId === stepId);
 }

@@ -58,7 +58,6 @@ vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
               inputFrom: {},
               transitions: [{ on: 'success', to: 'swap' }],
               blocking: { dependsOn: [], requiresPaths: [] },
-              success: { kind: 'operation_ok' },
               ui: {
                 kind: 'select_from_derived',
                 source: 'pool_candidates',
@@ -86,7 +85,6 @@ vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
                 dependsOn: ['discover'],
                 requiresPaths: ['$steps.discover.derived.selected_pool.whirlpool'],
               },
-              success: { kind: 'operation_ok' },
             },
           ],
         },
@@ -232,7 +230,6 @@ describe('useBuilderController', () => {
               inputFrom: {},
               transitions: [],
               blocking: { dependsOn: [], requiresPaths: [] },
-              success: { kind: 'operation_ok' },
             },
           ],
         },

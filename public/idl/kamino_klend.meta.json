@@ -669,9 +669,6 @@
             "depends_on": [],
             "requires_paths": []
           },
-          "success": {
-            "kind": "operation_ok"
-          },
           "status_text": {
             "running": "Loading position...",
             "success": "Position loaded.",
@@ -713,9 +710,6 @@
             "depends_on": [],
             "requires_paths": []
           },
-          "success": {
-            "kind": "operation_ok"
-          },
           "status_text": {
             "running": "Executing deposit...",
             "success": "Deposit completed.",
@@ -756,9 +750,6 @@
           "blocking": {
             "depends_on": [],
             "requires_paths": []
-          },
-          "success": {
-            "kind": "operation_ok"
           },
           "status_text": {
             "running": "Executing withdrawal...",

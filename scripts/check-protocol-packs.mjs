@@ -371,15 +371,6 @@ function validateApps(meta, protocolId, operations) {
       if (blocking.requires_paths !== undefined) {
         asStringArray(blocking.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.requires_paths`);
       }
-
-      const success = asObject(step.success, `${protocolId}.apps.${appId}.steps.${stepId}.success`);
-      const kind = asString(success.kind, `${protocolId}.apps.${appId}.steps.${stepId}.success.kind`);
-      if (!['operation_ok', 'value_present'].includes(kind)) {
-        fail(`${protocolId}.apps.${appId}.steps.${stepId}.success.kind invalid: ${kind}`);
-      }
-      if (kind === 'value_present') {
-        asString(success.path, `${protocolId}.apps.${appId}.steps.${stepId}.success.path`);
-      }
     }
 
     if (!stepIds.has(entryStep)) {

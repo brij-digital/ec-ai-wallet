@@ -1078,10 +1078,6 @@
             "depends_on": [],
             "requires_paths": []
           },
-          "success": {
-            "kind": "value_present",
-            "path": "$steps.discover.derived.selected_pool"
-          },
           "next_on_success": "pool",
           "status_text": {
             "running": "Searching Pump AMM pools...",
@@ -1140,9 +1136,6 @@
               "$steps.discover.derived.selected_pool.pool"
             ]
           },
-          "success": {
-            "kind": "operation_ok"
-          },
           "status_text": {
             "running": "Loading pool snapshot...",
             "success": "Snapshot refreshed. Continue with Buy or Sell.",
@@ -1189,9 +1182,6 @@
             "requires_paths": [
               "$steps.discover.derived.selected_pool.pool"
             ]
-          },
-          "success": {
-            "kind": "operation_ok"
           },
           "status_text": {
             "running": "Executing buy...",
@@ -1241,9 +1231,6 @@
               "$steps.discover.derived.selected_pool.pool"
             ]
           },
-          "success": {
-            "kind": "operation_ok"
-          },
           "status_text": {
             "running": "Executing sell...",
             "success": "Sell step completed.",
@@ -1289,9 +1276,6 @@
           "blocking": {
             "depends_on": [],
             "requires_paths": []
-          },
-          "success": {
-            "kind": "operation_ok"
           },
           "status_text": {
             "running": "Executing buy...",

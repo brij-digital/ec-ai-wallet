@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MetaAppSummary } from '@agentform/apppack-runtime/metaIdlRuntime';
 import {
-  evaluateBuilderStepSuccess,
   isBuilderAppStepUnlocked,
   type BuilderAppStepContext,
 } from './builderHelpers';
@@ -39,9 +38,6 @@ const app: MetaAppSummary = {
         dependsOn: [],
         requiresPaths: [],
       },
-      success: {
-        kind: 'operation_ok',
-      },
     },
     {
       stepId: 'swap',
@@ -59,10 +55,6 @@ const app: MetaAppSummary = {
       blocking: {
         dependsOn: ['discover'],
         requiresPaths: ['$steps.discover.derived.selected_pool.pool'],
-      },
-      success: {
-        kind: 'value_present',
-        path: '$steps.discover.derived.selected_pool.pool',
       },
     },
   ],
@@ -88,22 +80,5 @@ describe('builder app step transitions and unlock rules', () => {
       }),
     };
     expect(isBuilderAppStepUnlocked(app, swapStep, contextsWithSelection, completedOnly)).toBe(true);
-  });
-
-  it('evaluates operation_ok and value_present success kinds', () => {
-    const discoverStep = app.steps[0]!;
-    const swapStep = app.steps[1]!;
-
-    expect(evaluateBuilderStepSuccess(discoverStep, {}, true)).toBe(true);
-    expect(evaluateBuilderStepSuccess(discoverStep, {}, false)).toBe(false);
-
-    const contexts = {
-      discover: createStepContext({
-        selected_pool: {
-          pool: 'pool_pubkey',
-        },
-      }),
-    };
-    expect(evaluateBuilderStepSuccess(swapStep, contexts, true)).toBe(true);
   });
 });

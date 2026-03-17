@@ -30,10 +30,6 @@
             "depends_on": [],
             "requires_paths": []
           },
-          "success": {
-            "kind": "value_present",
-            "path": "$steps.discover.derived.selected_pool"
-          },
           "next_on_success": "swap",
           "status_text": {
             "running": "Searching pools...",
@@ -84,9 +80,6 @@
             "requires_paths": [
               "$steps.discover.derived.selected_pool.whirlpool"
             ]
-          },
-          "success": {
-            "kind": "operation_ok"
           },
           "status_text": {
             "running": "Simulating or sending swap...",

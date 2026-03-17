@@ -200,9 +200,6 @@
             "depends_on": [],
             "requires_paths": []
           },
-          "success": {
-            "kind": "operation_ok"
-          },
           "status_text": {
             "running": "Executing buy on bonding curve...",
             "success": "Buy step completed.",
