@@ -185,16 +185,13 @@ export function getBuilderInputTag(spec: MetaOperationSummary['inputs'][string])
     if (spec.discover_stage === 'input') {
       return 'linked';
     }
-    return 'auto';
+    throw new Error('Invalid input spec: discover_from is set but discover_stage is missing/invalid.');
   }
   if (spec.default !== undefined) {
     return 'default';
   }
   if (spec.required) {
     return 'required';
-  }
-  if (spec.default === undefined && !spec.discover_from) {
-    return 'required via discover';
   }
   return 'optional';
 }

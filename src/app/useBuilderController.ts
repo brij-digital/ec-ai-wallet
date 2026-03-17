@@ -39,21 +39,28 @@ export type BuilderStepActionKind = 'run' | 'back' | 'reset';
 export type BuilderStepActionMode = 'view' | 'simulate' | 'send';
 export type BuilderStepActionVariant = 'primary' | 'secondary' | 'ghost';
 
-export type BuilderStepAction = {
-  actionId: string;
-  kind: BuilderStepActionKind;
-  label: string;
-  mode?: BuilderStepActionMode;
-  variant: BuilderStepActionVariant;
-};
+export type BuilderStepAction =
+  | {
+      actionId: string;
+      kind: 'run';
+      label: string;
+      mode: BuilderStepActionMode;
+      variant: BuilderStepActionVariant;
+    }
+  | {
+      actionId: string;
+      kind: 'back' | 'reset';
+      label: string;
+      variant: BuilderStepActionVariant;
+    };
 
 type BuilderStepStatus = 'idle' | 'running' | 'success' | 'error';
 
 type BuilderStepStatusTextTemplates = {
   idle?: string;
-  running?: string;
-  success?: string;
-  error?: string;
+  running: string;
+  success: string;
+  error: string;
 };
 
 type BuilderStepFlow = {
@@ -67,6 +74,13 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     return null;
   }
   return value as Record<string, unknown>;
+}
+
+function asNonEmptyString(value: unknown, fieldPath: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`${fieldPath} must be a non-empty string.`);
+  }
+  return value.trim();
 }
 
 function extractBuilderInputExamplesByOperation(
@@ -94,43 +108,78 @@ function extractBuilderInputExamplesByOperation(
   return output;
 }
 
-function parseBuilderStepFlow(step: MetaAppSummary['steps'][number] | null): BuilderStepFlow {
+function parseBuilderStepFlow(step: MetaAppSummary['steps'][number] | null): BuilderStepFlow | null {
   if (!step) {
-    return { statusText: {} };
+    return null;
   }
   const rawStatus = asRecord(step.statusText ?? null);
+  if (!rawStatus) {
+    throw new Error(`app step ${step.stepId}: status_text must be an object.`);
+  }
   const statusText: BuilderStepStatusTextTemplates = {
-    ...(rawStatus && typeof rawStatus.idle === 'string' && rawStatus.idle.trim().length > 0
-      ? { idle: rawStatus.idle.trim() }
-      : {}),
-    ...(rawStatus && typeof rawStatus.running === 'string' && rawStatus.running.trim().length > 0
-      ? { running: rawStatus.running.trim() }
-      : {}),
-    ...(rawStatus && typeof rawStatus.success === 'string' && rawStatus.success.trim().length > 0
-      ? { success: rawStatus.success.trim() }
-      : {}),
-    ...(rawStatus && typeof rawStatus.error === 'string' && rawStatus.error.trim().length > 0
-      ? { error: rawStatus.error.trim() }
+    running: asNonEmptyString(rawStatus.running, `app step ${step.stepId}.status_text.running`),
+    success: asNonEmptyString(rawStatus.success, `app step ${step.stepId}.status_text.success`),
+    error: asNonEmptyString(rawStatus.error, `app step ${step.stepId}.status_text.error`),
+    ...(rawStatus.idle !== undefined
+      ? { idle: asNonEmptyString(rawStatus.idle, `app step ${step.stepId}.status_text.idle`) }
       : {}),
   };
   return {
-    ...(step.nextOnSuccess ? { nextOnSuccess: step.nextOnSuccess } : {}),
-    ...(step.nextOnError ? { nextOnError: step.nextOnError } : {}),
+    ...(step.nextOnSuccess
+      ? { nextOnSuccess: asNonEmptyString(step.nextOnSuccess, `app step ${step.stepId}.next_on_success`) }
+      : {}),
+    ...(step.nextOnError
+      ? { nextOnError: asNonEmptyString(step.nextOnError, `app step ${step.stepId}.next_on_error`) }
+      : {}),
     statusText,
   };
 }
 
 function normalizeBuilderStepActions(step: MetaAppSummary['steps'][number] | null): BuilderStepAction[] {
-  if (!step || !Array.isArray(step.actions)) {
+  if (!step) {
     return [];
   }
-  return step.actions.map((action) => ({
-    actionId: action.actionId,
-    kind: action.kind,
-    label: action.label,
-    ...(action.mode ? { mode: action.mode } : {}),
-    variant: action.variant,
-  }));
+  if (!Array.isArray(step.actions) || step.actions.length === 0) {
+    throw new Error(`app step ${step.stepId}: actions must be a non-empty array.`);
+  }
+  return step.actions.map((action) => {
+    if (action.kind === 'run') {
+      if (action.mode !== 'view' && action.mode !== 'simulate' && action.mode !== 'send') {
+        throw new Error(
+          `app step ${step.stepId} action ${action.actionId}: run action mode must be view|simulate|send.`,
+        );
+      }
+      return {
+        actionId: action.actionId,
+        kind: 'run',
+        label: action.label,
+        mode: action.mode,
+        variant: action.variant,
+      };
+    }
+    if (action.kind === 'back' || action.kind === 'reset') {
+      return {
+        actionId: action.actionId,
+        kind: action.kind,
+        label: action.label,
+        variant: action.variant,
+      };
+    }
+    throw new Error(`app step ${step.stepId} action ${action.actionId}: unsupported kind ${String(action.kind)}.`);
+  });
+}
+
+function validateBuilderAppsStrict(apps: MetaAppSummary[]) {
+  for (const app of apps) {
+    const knownStepIds = new Set(app.steps.map((step) => step.stepId));
+    if (!knownStepIds.has(app.entryStepId)) {
+      throw new Error(`app ${app.appId}: entry step ${app.entryStepId} not found.`);
+    }
+    for (const step of app.steps) {
+      parseBuilderStepFlow(step);
+      normalizeBuilderStepActions(step);
+    }
+  }
 }
 
 function renderBuilderStepStatusTemplate(
@@ -468,6 +517,7 @@ export function useBuilderController() {
         return;
       }
 
+      validateBuilderAppsStrict(appsView.apps);
       setBuilderApps(appsView.apps);
       setBuilderAppId((current) => {
         if (current && appsView.apps.some((entry) => entry.appId === current)) {
@@ -705,18 +755,17 @@ export function useBuilderController() {
 
   function getBuilderStepStatusText(
     status: BuilderStepStatus,
-    fallbackText: string,
     options?: {
       nextStepTitle?: string;
       error?: string;
     },
   ): string {
     if (!selectedBuilderAppStep) {
-      return fallbackText;
+      throw new Error('No selected builder app step while rendering step status.');
     }
     const template = selectedBuilderStepFlow?.statusText?.[status];
     if (!template) {
-      return fallbackText;
+      throw new Error(`Missing status_text.${status} for app step ${selectedBuilderAppStep.stepId}.`);
     }
     const values: Record<string, string> = {
       step_id: selectedBuilderAppStep.stepId,
@@ -774,7 +823,6 @@ export function useBuilderController() {
     };
     setBuilderAppStepCompleted(nextCompleted);
 
-    const selectedValue = readBuilderPath(item, selectedBuilderAppSelectUi.valuePath);
     const nextIndex = stepCompleted ? resolveBuilderNextStepIndexByOutcome('success') : null;
     if (stepCompleted && nextIndex !== null) {
       const nextStep = selectedBuilderApp.steps[nextIndex];
@@ -784,11 +832,7 @@ export function useBuilderController() {
         setBuilderOperationId(nextStep.operationId);
       }
       setBuilderStatusText(
-        getBuilderStepStatusText('success', `Selected item: ${selectedValue === undefined ? 'n/a' : String(selectedValue)}. ${
-          selectedBuilderAppSelectUi.autoAdvance && nextUnlocked
-            ? `Continue on step ${nextIndex + 1}: ${nextStep.title}.`
-            : 'Selection saved. Proceed to the next declared step.'
-        }`, { nextStepTitle: nextStep.title }),
+        getBuilderStepStatusText('success', { nextStepTitle: nextStep.title }),
       );
       setBuilderRawDetails(null);
       setBuilderShowRawDetails(false);
@@ -796,13 +840,17 @@ export function useBuilderController() {
     }
 
     if (!stepCompleted) {
-      setBuilderStatusText('Selection saved, but success criteria for this step are not satisfied yet.');
+      setBuilderStatusText(
+        getBuilderStepStatusText('error', {
+          error: 'Selection saved, but success criteria for this step are not satisfied yet.',
+        }),
+      );
       setBuilderRawDetails(null);
       setBuilderShowRawDetails(false);
       return;
     }
 
-    setBuilderStatusText(`Selected item: ${selectedValue === undefined ? 'n/a' : String(selectedValue)}.`);
+    setBuilderStatusText(getBuilderStepStatusText('success'));
     setBuilderRawDetails(null);
     setBuilderShowRawDetails(false);
   }

@@ -379,62 +379,58 @@ export function BuilderTab(props: BuilderTabProps) {
 
                     {isBuilderAppMode ? (
                       <div className="builder-controls builder-controls-app">
-                        {visibleStepActions.length > 0 ? (
-                          visibleStepActions.map((action) => {
-                            if (action.kind === 'back') {
-                              return (
-                                <button
-                                  key={action.actionId}
-                                  type="button"
-                                  className={actionClassName(action)}
-                                  onClick={onBackStep}
-                                  disabled={isWorking || builderAppStepIndex <= 0}
-                                >
-                                  {action.label}
-                                </button>
-                              );
-                            }
-                            if (action.kind === 'reset') {
-                              return (
-                                <button
-                                  key={action.actionId}
-                                  type="button"
-                                  className={actionClassName(action)}
-                                  onClick={onResetStep}
-                                  disabled={isWorking}
-                                >
-                                  {action.label}
-                                </button>
-                              );
-                            }
+                        {visibleStepActions.map((action) => {
+                          if (action.kind === 'back') {
                             return (
                               <button
                                 key={action.actionId}
-                                type="submit"
+                                type="button"
                                 className={actionClassName(action)}
-                                disabled={isWorking}
-                                onClick={() => {
-                                  if (selectedBuilderOperation.instruction) {
-                                    if (action.mode === 'send' || action.mode === 'simulate') {
-                                      onSetBuilderAppSubmitMode(action.mode);
-                                    }
-                                  }
-                                }}
+                                onClick={onBackStep}
+                                disabled={isWorking || builderAppStepIndex <= 0}
                               >
-                                {isWorking &&
-                                selectedBuilderOperation.instruction &&
-                                (action.mode === 'send' || action.mode === 'simulate') &&
-                                builderAppSubmitMode === action.mode
-                                  ? 'Running...'
-                                  : action.label}
+                                {action.label}
                               </button>
                             );
-                          })
-                        ) : (
-                          <p className="builder-empty">
-                            Invalid app spec: step actions are required for end-user mode.
-                          </p>
-                        )}
+                          }
+                          if (action.kind === 'reset') {
+                            return (
+                              <button
+                                key={action.actionId}
+                                type="button"
+                                className={actionClassName(action)}
+                                onClick={onResetStep}
+                                disabled={isWorking}
+                              >
+                                {action.label}
+                              </button>
+                            );
+                          }
+                          const runAction = action as Extract<BuilderStepAction, { kind: 'run' }>;
+                          return (
+                            <button
+                              key={runAction.actionId}
+                              type="submit"
+                              className={actionClassName(runAction)}
+                              disabled={isWorking}
+                              onClick={() => {
+                                if (
+                                  selectedBuilderOperation.instruction &&
+                                  (runAction.mode === 'send' || runAction.mode === 'simulate')
+                                ) {
+                                  onSetBuilderAppSubmitMode(runAction.mode);
+                                }
+                              }}
+                            >
+                              {isWorking &&
+                              selectedBuilderOperation.instruction &&
+                              (runAction.mode === 'send' || runAction.mode === 'simulate') &&
+                              builderAppSubmitMode === runAction.mode
+                                ? 'Running...'
+                                : runAction.label}
+                            </button>
+                          );
+                        })}
                       </div>
                     ) : (
                       <>

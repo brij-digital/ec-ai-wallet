@@ -56,7 +56,6 @@ type UseBuilderSubmitControllerOptions = {
   }) => boolean;
   getBuilderStepStatusText: (
     status: 'idle' | 'running' | 'success' | 'error',
-    fallbackText: string,
     options?: {
       nextStepTitle?: string;
       error?: string;
@@ -232,7 +231,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
       options.setBuilderShowRawDetails(false);
       if (options.isBuilderAppMode && options.selectedBuilderAppStep) {
         options.setBuilderStatusText(
-          options.getBuilderStepStatusText('running', `Running ${options.selectedBuilderAppStep.title}...`),
+          options.getBuilderStepStatusText('running'),
         );
       }
 
@@ -419,11 +418,14 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
             `Builder simulate (${options.builderProtocolId}/${options.selectedBuilderOperation.operationId}):`,
             `instruction: ${prepared.instructionName}`,
             `status: ${simulation.ok ? 'success' : 'failed'}`,
-            options.getBuilderStepStatusText(
-              simulation.ok ? 'success' : 'error',
-              simulation.ok ? 'Step completed.' : 'Step failed.',
-              simulation.ok ? undefined : { error: simulation.error ?? 'unknown simulation error' },
-            ),
+            options.isBuilderAppMode
+              ? options.getBuilderStepStatusText(
+                  simulation.ok ? 'success' : 'error',
+                  simulation.ok ? undefined : { error: simulation.error ?? 'unknown simulation error' },
+                )
+              : simulation.ok
+                ? 'Step completed.'
+                : `Step failed: ${simulation.error ?? 'unknown simulation error'}`,
             `units: ${simulation.unitsConsumed ?? 'n/a'}`,
             ...(builderNotes.length > 0 ? builderNotes : []),
             `error: ${simulation.error ?? 'none'}`,
@@ -475,7 +477,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         const resultLines = [
           `Builder tx sent (${options.builderProtocolId}/${options.selectedBuilderOperation.operationId}):`,
           `instruction: ${prepared.instructionName}`,
-          options.getBuilderStepStatusText('success', 'Step completed.'),
+          options.isBuilderAppMode ? options.getBuilderStepStatusText('success') : 'Step completed.',
           ...(builderNotes.length > 0 ? builderNotes : []),
           `signature: ${sent.signature}`,
           `explorer: ${sent.explorerUrl}`,
@@ -495,7 +497,9 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
           errorMessage: message,
         });
         const text = `Error: ${message}`;
-        options.setBuilderStatusText(options.getBuilderStepStatusText('error', text, { error: message }));
+        options.setBuilderStatusText(
+          options.isBuilderAppMode ? options.getBuilderStepStatusText('error', { error: message }) : text,
+        );
         options.setBuilderRawDetails(null);
         options.setBuilderShowRawDetails(false);
         options.pushMessage('assistant', text);

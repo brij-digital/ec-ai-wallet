@@ -50,6 +50,11 @@ vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
               operationId: 'list_pools',
               title: 'Discover Pools',
               actions: [{ actionId: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' }],
+              statusText: {
+                running: 'Discovering pools...',
+                success: 'Pool discovery complete.',
+                error: 'Pool discovery failed: {error}',
+              },
               inputFrom: {},
               transitions: [{ on: 'success', to: 'swap' }],
               blocking: { dependsOn: [], requiresPaths: [] },
@@ -70,6 +75,11 @@ vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
               operationId: 'swap_exact_in',
               title: 'Swap',
               actions: [{ actionId: 'swap_run', kind: 'run', label: 'Run Swap', mode: 'simulate', variant: 'primary' }],
+              statusText: {
+                running: 'Preparing swap...',
+                success: 'Swap simulation complete.',
+                error: 'Swap simulation failed: {error}',
+              },
               inputFrom: {},
               transitions: [],
               blocking: {
@@ -214,6 +224,11 @@ describe('useBuilderController', () => {
               operationId: 'list_pools',
               title: 'Discover Pools',
               actions: [{ actionId: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' }],
+              statusText: {
+                running: 'Discovering pools...',
+                success: 'Pool discovery complete.',
+                error: 'Pool discovery failed: {error}',
+              },
               inputFrom: {},
               transitions: [],
               blocking: { dependsOn: [], requiresPaths: [] },

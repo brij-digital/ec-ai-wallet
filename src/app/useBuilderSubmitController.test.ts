@@ -94,6 +94,11 @@ describe('useBuilderSubmitController', () => {
               title: 'Discover pools',
               nextOnSuccess: 'swap',
               actions: [{ actionId: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' }],
+              statusText: {
+                running: 'Discovering pools...',
+                success: 'Pool discovery complete. Continue to {next_step_title}.',
+                error: 'Pool discovery failed: {error}',
+              },
               inputFrom: {},
               transitions: [{ on: 'success', to: 'swap' }],
               blocking: { dependsOn: [], requiresPaths: [] },
@@ -114,6 +119,11 @@ describe('useBuilderSubmitController', () => {
               operationId: 'swap_exact_in',
               title: 'Swap',
               actions: [{ actionId: 'swap_run', kind: 'run', label: 'Run Swap', mode: 'simulate', variant: 'primary' }],
+              statusText: {
+                running: 'Running swap simulation...',
+                success: 'Swap simulation complete.',
+                error: 'Swap simulation failed: {error}',
+              },
               inputFrom: {
                 pool: '$steps.discover.derived.selected_pool.whirlpool',
               },
@@ -332,6 +342,11 @@ describe('useBuilderSubmitController', () => {
               operationId: 'broken_read',
               title: 'Broken step',
               actions: [{ actionId: 'broken_run', kind: 'run', label: 'Run', mode: 'view', variant: 'primary' }],
+              statusText: {
+                running: 'Running read...',
+                success: 'Read complete.',
+                error: 'Read failed: {error}',
+              },
               inputFrom: {},
               transitions: [],
               blocking: { dependsOn: [], requiresPaths: [] },
