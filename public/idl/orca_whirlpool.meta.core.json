@@ -56,99 +56,6 @@
             ]
           }
         ],
-        "compute": [
-          {
-            "name": "a_to_b",
-            "compute": "compare.equals",
-            "left": "$whirlpool_data.token_mint_a",
-            "right": "$param.token_in_mint"
-          },
-          {
-            "name": "tick_array_direction",
-            "compute": "logic.if",
-            "condition": "$a_to_b",
-            "then": -1,
-            "else": 1
-          },
-          {
-            "name": "ticks_per_array",
-            "compute": "math.mul",
-            "values": [
-              "$whirlpool_data.tick_spacing",
-              88
-            ]
-          },
-          {
-            "name": "direction_step",
-            "compute": "math.mul",
-            "values": [
-              "$ticks_per_array",
-              "$tick_array_direction"
-            ]
-          },
-          {
-            "name": "current_array_index",
-            "compute": "math.floor_div",
-            "dividend": "$whirlpool_data.tick_current_index",
-            "divisor": "$ticks_per_array"
-          },
-          {
-            "name": "current_start_index",
-            "compute": "math.mul",
-            "values": [
-              "$current_array_index",
-              "$ticks_per_array"
-            ]
-          },
-          {
-            "name": "tick_array_starts",
-            "compute": "list.range_map",
-            "base": "$current_start_index",
-            "step": "$direction_step",
-            "count": 3
-          },
-          {
-            "name": "tick_arrays",
-            "compute": "pda(seed_spec)",
-            "program_id": "$protocol.programId",
-            "map_over": "$tick_array_starts",
-            "seeds": [
-              {
-                "kind": "utf8",
-                "value": "tick_array"
-              },
-              {
-                "kind": "pubkey",
-                "value": "$input.whirlpool"
-              },
-              {
-                "kind": "item_utf8"
-              }
-            ]
-          },
-          {
-            "name": "slippage_keep_bps",
-            "compute": "math.sub",
-            "values": [
-              "10000",
-              "$param.slippage_bps"
-            ]
-          },
-          {
-            "name": "other_amount_threshold_numerator",
-            "compute": "math.mul",
-            "values": [
-              "$param.estimated_out",
-              "$slippage_keep_bps"
-            ]
-          },
-          {
-            "name": "other_amount_threshold",
-            "compute": "math.floor_div",
-            "dividend": "$other_amount_threshold_numerator",
-            "divisor": "10000"
-          }
-        ],
         "args": {
           "amount": "$param.amount_in",
           "other_amount_threshold": "$other_amount_threshold",
@@ -330,6 +237,99 @@
                 }
               ]
             }
+          }
+        ],
+        "compute": [
+          {
+            "name": "a_to_b",
+            "compute": "compare.equals",
+            "left": "$whirlpool_data.token_mint_a",
+            "right": "$param.token_in_mint"
+          },
+          {
+            "name": "tick_array_direction",
+            "compute": "logic.if",
+            "condition": "$a_to_b",
+            "then": -1,
+            "else": 1
+          },
+          {
+            "name": "ticks_per_array",
+            "compute": "math.mul",
+            "values": [
+              "$whirlpool_data.tick_spacing",
+              88
+            ]
+          },
+          {
+            "name": "direction_step",
+            "compute": "math.mul",
+            "values": [
+              "$ticks_per_array",
+              "$tick_array_direction"
+            ]
+          },
+          {
+            "name": "current_array_index",
+            "compute": "math.floor_div",
+            "dividend": "$whirlpool_data.tick_current_index",
+            "divisor": "$ticks_per_array"
+          },
+          {
+            "name": "current_start_index",
+            "compute": "math.mul",
+            "values": [
+              "$current_array_index",
+              "$ticks_per_array"
+            ]
+          },
+          {
+            "name": "tick_array_starts",
+            "compute": "list.range_map",
+            "base": "$current_start_index",
+            "step": "$direction_step",
+            "count": 3
+          },
+          {
+            "name": "tick_arrays",
+            "compute": "pda(seed_spec)",
+            "program_id": "$protocol.programId",
+            "map_over": "$tick_array_starts",
+            "seeds": [
+              {
+                "kind": "utf8",
+                "value": "tick_array"
+              },
+              {
+                "kind": "pubkey",
+                "value": "$input.whirlpool"
+              },
+              {
+                "kind": "item_utf8"
+              }
+            ]
+          },
+          {
+            "name": "slippage_keep_bps",
+            "compute": "math.sub",
+            "values": [
+              "10000",
+              "$param.slippage_bps"
+            ]
+          },
+          {
+            "name": "other_amount_threshold_numerator",
+            "compute": "math.mul",
+            "values": [
+              "$param.estimated_out",
+              "$slippage_keep_bps"
+            ]
+          },
+          {
+            "name": "other_amount_threshold",
+            "compute": "math.floor_div",
+            "dividend": "$other_amount_threshold_numerator",
+            "divisor": "10000"
           }
         ]
       }

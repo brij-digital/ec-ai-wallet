@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const ROOT = process.cwd();
 const INPUT_DIR = path.join(ROOT, 'aidl');
+const COMPUTE_LIBRARY_KIND = 'aidl.compute.v0.1';
 
 /**
  * @param {string} message
@@ -164,29 +165,106 @@ function compileComputeStep(step) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {unknown}
+ */
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+/**
+ * @param {Record<string, unknown>} libraries
+ * @param {string} sourceFile
+ * @returns {Record<string, Record<string, unknown>[]>}
+ */
+function parseComputeLibraries(libraries, sourceFile) {
+  /** @type {Record<string, Record<string, unknown>[]>} */
+  const output = {};
+  for (const [libraryName, rawSteps] of Object.entries(libraries)) {
+    const steps = asArray(rawSteps, `${sourceFile}.libraries.${libraryName}`);
+    output[libraryName] = steps.map((rawStep, index) =>
+      asObject(rawStep, `${sourceFile}.libraries.${libraryName}[${index}]`),
+    );
+  }
+  return output;
+}
+
+/**
+ * @returns {Promise<Record<string, Record<string, unknown>[]>>}
+ */
+async function loadComputeLibraries() {
+  const entries = await fs.readdir(INPUT_DIR, { withFileTypes: true });
+  const libraryFiles = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.compute.json'))
+    .map((entry) => path.join(INPUT_DIR, entry.name))
+    .sort();
+
+  /** @type {Record<string, Record<string, unknown>[]>} */
+  const libraries = {};
+  for (const file of libraryFiles) {
+    const sourceFile = path.relative(ROOT, file);
+    const raw = await fs.readFile(file, 'utf8');
+    const parsed = /** @type {Record<string, unknown>} */ (JSON.parse(raw));
+    const kind = asString(parsed.kind, `${sourceFile}.kind`);
+    if (kind !== COMPUTE_LIBRARY_KIND) {
+      fail(`${sourceFile}.kind must be ${COMPUTE_LIBRARY_KIND}`);
+    }
+    const rawLibraries = asObject(parsed.libraries, `${sourceFile}.libraries`);
+    const parsedLibraries = parseComputeLibraries(rawLibraries, sourceFile);
+    for (const [name, steps] of Object.entries(parsedLibraries)) {
+      if (libraries[name]) {
+        fail(`Duplicate compute library name ${name} in ${sourceFile}.`);
+      }
+      libraries[name] = steps;
+    }
+  }
+
+  return libraries;
+}
+
+/**
  * @param {Record<string, unknown>} expand
+ * @param {Record<string, Record<string, unknown>[]>} computeLibraries
+ * @param {string} label
  * @returns {Record<string, unknown>}
  */
-function compileExpand(expand) {
+function compileExpand(expand, computeLibraries, label) {
   const out = { ...expand };
-  const compute = expand.compute;
-  if (compute === undefined) {
+  const refsRaw =
+    expand.compute_refs === undefined ? [] : asArray(expand.compute_refs, `${label}.compute_refs`);
+  const refs = refsRaw.map((entry, index) => asString(entry, `${label}.compute_refs[${index}]`));
+  const inlineCompute = expand.compute === undefined ? [] : asArray(expand.compute, `${label}.compute`);
+
+  if (refs.length === 0 && inlineCompute.length === 0) {
+    delete out.compute_refs;
     return out;
   }
 
-  const steps = asArray(compute, 'expand.compute');
-  out.compute = steps.map((raw, index) => compileComputeStep(asObject(raw, `expand.compute[${index}]`)));
+  /** @type {Record<string, unknown>[]} */
+  const steps = [];
+  for (const ref of refs) {
+    const librarySteps = computeLibraries[ref];
+    if (!librarySteps) {
+      fail(`${label}.compute_refs references unknown library ${ref}.`);
+    }
+    steps.push(...librarySteps.map((entry) => asObject(cloneJson(entry), `${label}.compute_refs.${ref}`)));
+  }
+  steps.push(...inlineCompute.map((raw, index) => asObject(raw, `${label}.compute[${index}]`)));
+  out.compute = steps.map((step) => compileComputeStep(step));
+  delete out.compute_refs;
   return out;
 }
 
 /**
  * @param {Record<string, unknown>} template
+ * @param {Record<string, Record<string, unknown>[]>} computeLibraries
+ * @param {string} label
  * @returns {Record<string, unknown>}
  */
-function compileTemplate(template) {
+function compileTemplate(template, computeLibraries, label) {
   const out = { ...template };
-  const expand = asObject(template.expand, 'template.expand');
-  out.expand = compileExpand(expand);
+  const expand = asObject(template.expand, `${label}.expand`);
+  out.expand = compileExpand(expand, computeLibraries, `${label}.expand`);
   return out;
 }
 
@@ -209,9 +287,10 @@ function compileOperation(action) {
 /**
  * @param {Record<string, unknown>} source
  * @param {string} sourceFile
+ * @param {Record<string, Record<string, unknown>[]>} computeLibraries
  * @returns {{ outputPath: string; output: Record<string, unknown> }}
  */
-function compileAidl(source, sourceFile) {
+function compileAidl(source, sourceFile, computeLibraries) {
   const kind = asString(source.kind, `${sourceFile}.kind`);
   if (kind !== 'aidl.v0.1') {
     fail(`${sourceFile}.kind must be aidl.v0.1`);
@@ -236,7 +315,11 @@ function compileAidl(source, sourceFile) {
   /** @type {Record<string, unknown>} */
   const templates = {};
   for (const [templateName, templateValue] of Object.entries(templatesRaw)) {
-    templates[templateName] = compileTemplate(asObject(templateValue, `${sourceFile}.templates.${templateName}`));
+    templates[templateName] = compileTemplate(
+      asObject(templateValue, `${sourceFile}.templates.${templateName}`),
+      computeLibraries,
+      `${sourceFile}.templates.${templateName}`,
+    );
   }
 
   /** @type {Record<string, unknown>} */
@@ -306,13 +389,14 @@ function compileAidl(source, sourceFile) {
 
 /**
  * @param {string} filepath
+ * @param {Record<string, Record<string, unknown>[]>} computeLibraries
  * @returns {Promise<{ sourceFile: string; compiled: { outputPath: string; output: Record<string, unknown> }}>}
  */
-async function loadAndCompileFile(filepath) {
+async function loadAndCompileFile(filepath, computeLibraries) {
   const sourceFile = path.relative(ROOT, filepath);
   const raw = await fs.readFile(filepath, 'utf8');
   const parsed = /** @type {Record<string, unknown>} */ (JSON.parse(raw));
-  const compiled = compileAidl(parsed, sourceFile);
+  const compiled = compileAidl(parsed, sourceFile, computeLibraries);
   return { sourceFile, compiled };
 }
 
@@ -330,11 +414,13 @@ async function main() {
     return;
   }
 
+  const computeLibraries = await loadComputeLibraries();
+
   /** @type {string[]} */
   const updates = [];
 
   for (const file of aidlFiles) {
-    const { sourceFile, compiled } = await loadAndCompileFile(file);
+    const { sourceFile, compiled } = await loadAndCompileFile(file, computeLibraries);
     const text = `${JSON.stringify(compiled.output, null, 2)}\n`;
 
     if (checkMode) {
