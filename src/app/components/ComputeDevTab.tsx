@@ -18,6 +18,8 @@ type ComputeDevTabProps = {
   isWorking: boolean;
 };
 
+const ALL_LIBRARIES_KEY = '__all_libraries__';
+
 function formatValue(value: unknown): string {
   if (typeof value === 'string') {
     return JSON.stringify(value);
@@ -191,6 +193,19 @@ function renderPseudoFunction(functionName: string, instruction: string | null, 
   return lines.join('\n');
 }
 
+function renderAllLibrariesPseudo(libraries: Record<string, Record<string, unknown>[]>): string {
+  const names = Object.keys(libraries);
+  if (names.length === 0) {
+    return '// no compute libraries';
+  }
+  return names
+    .map((libraryName) => {
+      const functionName = libraryName.replace(/[^a-zA-Z0-9]+/g, '_');
+      return renderPseudoFunction(functionName, null, libraries[libraryName] ?? []);
+    })
+    .join('\n\n');
+}
+
 type ComputeLibraryFile = {
   kind: string;
   libraries: Record<string, Record<string, unknown>[]>;
@@ -314,14 +329,15 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
       setLibraryError(null);
       return;
     }
+    const computePath = selectedProtocol.computePath;
     let cancelled = false;
     setLibraryLoading(true);
     setLibraryError(null);
     void (async () => {
       try {
-        const response = await fetch(selectedProtocol.computePath);
+        const response = await fetch(computePath);
         if (!response.ok) {
-          throw new Error(`Failed to fetch ${selectedProtocol.computePath} (${response.status})`);
+          throw new Error(`Failed to fetch ${computePath} (${response.status})`);
         }
         const raw = (await response.json()) as unknown;
         const parsed = raw && typeof raw === 'object' && !Array.isArray(raw)
@@ -336,8 +352,8 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
           return;
         }
         setComputeLibraries(libraries);
-        const firstLibrary = Object.keys(libraries)[0] ?? '';
-        setSelectedLibrary(firstLibrary);
+        const hasLibraries = Object.keys(libraries).length > 0;
+        setSelectedLibrary(hasLibraries ? ALL_LIBRARIES_KEY : '');
       } catch (caught) {
         if (!cancelled) {
           const message = caught instanceof Error ? caught.message : String(caught);
@@ -400,16 +416,31 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
 
   const libraryNames = useMemo(() => Object.keys(computeLibraries), [computeLibraries]);
   const selectedLibrarySteps = useMemo(
-    () => (selectedLibrary ? computeLibraries[selectedLibrary] ?? [] : []),
+    () =>
+      selectedLibrary && selectedLibrary !== ALL_LIBRARIES_KEY
+        ? computeLibraries[selectedLibrary] ?? []
+        : [],
     [computeLibraries, selectedLibrary],
   );
   const libraryPseudoFunction = useMemo(() => {
     if (!selectedLibrary) {
       return '';
     }
+    if (selectedLibrary === ALL_LIBRARIES_KEY) {
+      return renderAllLibrariesPseudo(computeLibraries);
+    }
     const functionName = selectedLibrary.replace(/[^a-zA-Z0-9]+/g, '_');
     return renderPseudoFunction(functionName, null, selectedLibrarySteps);
-  }, [selectedLibrary, selectedLibrarySteps]);
+  }, [selectedLibrary, selectedLibrarySteps, computeLibraries]);
+  const libraryRawCompute = useMemo(() => {
+    if (!selectedLibrary) {
+      return null;
+    }
+    if (selectedLibrary === ALL_LIBRARIES_KEY) {
+      return computeLibraries;
+    }
+    return selectedLibrarySteps;
+  }, [selectedLibrary, selectedLibrarySteps, computeLibraries]);
 
   return (
     <section className="compute-shell" aria-live="polite">
@@ -444,11 +475,18 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
             {libraryNames.length === 0 ? (
               <option value="">No compute libraries</option>
             ) : (
-              libraryNames.map((libraryName) => (
-                <option key={libraryName} value={libraryName}>
-                  {libraryName} ({computeLibraries[libraryName]?.length ?? 0} steps)
+              <>
+                <option value={ALL_LIBRARIES_KEY}>
+                  All libraries (
+                  {libraryNames.reduce((sum, libraryName) => sum + (computeLibraries[libraryName]?.length ?? 0), 0)}
+                  {' '}steps)
                 </option>
-              ))
+                {libraryNames.map((libraryName) => (
+                  <option key={libraryName} value={libraryName}>
+                    {libraryName} ({computeLibraries[libraryName]?.length ?? 0} steps)
+                  </option>
+                ))}
+              </>
             )}
           </select>
         </label>
@@ -479,7 +517,7 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
               </article>
               <article className="compute-panel">
                 <h3>Library Raw Compute</h3>
-                <pre>{JSON.stringify(selectedLibrarySteps, null, 2)}</pre>
+                <pre>{JSON.stringify(libraryRawCompute, null, 2)}</pre>
               </article>
             </>
           ) : null}
