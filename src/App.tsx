@@ -114,6 +114,7 @@ function App() {
     selectedBuilderOperation,
     selectedBuilderOperationEnhancement,
     builderInputValues,
+    onSetBuilderInputValue: handleBuilderInputChange,
     builderViewMode,
     selectedBuilderAppStep,
     selectedBuilderApp,

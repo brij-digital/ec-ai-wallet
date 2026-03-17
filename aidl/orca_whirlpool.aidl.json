@@ -464,8 +464,11 @@
           "default": "0",
           "label": "Estimated Out (atomic)",
           "placeholder": "0",
-          "group": "advanced",
-          "display_order": 5
+          "help": "Auto-quoted preview output (read-only).",
+          "group": "trade",
+          "display_order": 5,
+          "ui_tier": "enduser",
+          "ui_editable": false
         },
         "whirlpool": {
           "type": "pubkey",
@@ -664,24 +667,11 @@
           "description": "Run simulation or send on selected Whirlpool.",
           "actions": [
             {
-              "id": "swap_back",
-              "kind": "back",
-              "label": "Back to Pools",
-              "variant": "ghost"
-            },
-            {
-              "id": "swap_simulate",
-              "kind": "run",
-              "label": "Simulate Swap",
-              "mode": "simulate",
-              "variant": "primary"
-            },
-            {
               "id": "swap_send",
               "kind": "run",
-              "label": "Send Transaction",
+              "label": "Swap",
               "mode": "send",
-              "variant": "secondary"
+              "variant": "primary"
             }
           ],
           "blocking": {

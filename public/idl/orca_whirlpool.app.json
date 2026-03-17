@@ -70,24 +70,11 @@
           "description": "Run simulation or send on selected Whirlpool.",
           "actions": [
             {
-              "id": "swap_back",
-              "kind": "back",
-              "label": "Back to Pools",
-              "variant": "ghost"
-            },
-            {
-              "id": "swap_simulate",
-              "kind": "run",
-              "label": "Simulate Swap",
-              "mode": "simulate",
-              "variant": "primary"
-            },
-            {
               "id": "swap_send",
               "kind": "run",
-              "label": "Send Transaction",
+              "label": "Swap",
               "mode": "send",
-              "variant": "secondary"
+              "variant": "primary"
             }
           ],
           "blocking": {

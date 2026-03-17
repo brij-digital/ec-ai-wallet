@@ -460,8 +460,11 @@
           "default": "0",
           "label": "Estimated Out (atomic)",
           "placeholder": "0",
-          "group": "advanced",
-          "display_order": 5
+          "help": "Auto-quoted preview output (read-only).",
+          "group": "trade",
+          "display_order": 5,
+          "ui_tier": "enduser",
+          "ui_editable": false
         },
         "whirlpool": {
           "type": "pubkey",
