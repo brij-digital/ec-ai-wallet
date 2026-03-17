@@ -463,7 +463,6 @@
           "help": "Auto-quoted preview output (read-only).",
           "group": "trade",
           "display_order": 5,
-          "ui_tier": "enduser",
           "ui_editable": false
         },
         "whirlpool": {
