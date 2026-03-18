@@ -285,7 +285,8 @@
           "payer": "$wallet",
           "ata": "$associated_user",
           "owner": "$wallet",
-          "mint": "$input.base_mint"
+          "mint": "$input.base_mint",
+          "token_program": "$token_program"
         }
       ],
       "accounts": {
