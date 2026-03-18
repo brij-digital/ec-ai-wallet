@@ -224,9 +224,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
     if (!operation) {
       return;
     }
-    if (!wallet.publicKey) {
-      return;
-    }
+    const previewWalletPublicKey = wallet.publicKey ?? PublicKey.default;
 
     const previewBindings = Object.entries(operation.inputs)
       .map(([inputName, spec]) => {
@@ -288,7 +286,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
             operationId: operation.operationId,
             input: inputPayload,
             connection,
-            walletPublicKey: wallet.publicKey as PublicKey,
+            walletPublicKey: previewWalletPublicKey,
           });
 
           if (currentSeq !== previewSeqRef.current) {
