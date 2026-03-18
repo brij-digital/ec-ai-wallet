@@ -34,59 +34,68 @@
     "userAppActionSpec": {
       "type": "object",
       "required": [
-        "id",
-        "kind",
         "label",
-        "variant"
+        "do"
       ],
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "kind": {
-          "enum": [
-            "run",
-            "back",
-            "reset"
-          ]
-        },
         "label": {
           "type": "string"
         },
-        "mode": {
-          "enum": [
-            "view",
-            "simulate",
-            "send"
-          ]
-        },
-        "variant": {
-          "enum": [
-            "primary",
-            "secondary",
-            "ghost"
-          ]
+        "do": {
+          "type": "object",
+          "required": [
+            "fn"
+          ],
+          "properties": {
+            "fn": {
+              "enum": [
+                "run",
+                "back",
+                "reset"
+              ]
+            },
+            "mode": {
+              "enum": [
+                "view",
+                "simulate",
+                "send"
+              ]
+            }
+          },
+          "additionalProperties": false
         }
       },
       "allOf": [
         {
           "if": {
             "properties": {
-              "kind": {
-                "const": "run"
+              "do": {
+                "properties": {
+                  "fn": {
+                    "const": "run"
+                  }
+                }
               }
             }
           },
           "then": {
-            "required": [
-              "mode"
-            ]
+            "properties": {
+              "do": {
+                "required": [
+                  "mode"
+                ]
+              }
+            }
           },
           "else": {
-            "not": {
-              "required": [
-                "mode"
-              ]
+            "properties": {
+              "do": {
+                "not": {
+                  "required": [
+                    "mode"
+                  ]
+                }
+              }
             }
           }
         }

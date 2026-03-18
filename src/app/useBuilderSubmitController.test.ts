@@ -93,7 +93,7 @@ describe('useBuilderSubmitController', () => {
               operationId: 'list_pools',
               title: 'Discover pools',
               nextOnSuccess: 'swap',
-              actions: [{ actionId: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' }],
+              actions: [{ label: 'Find Pools', do: { fn: 'run', mode: 'view' } }],
               statusText: {
                 running: 'Discovering pools...',
                 success: 'Pool discovery complete. Continue to {next_step_title}.',
@@ -116,7 +116,7 @@ describe('useBuilderSubmitController', () => {
               label: 'Swap',
               operationId: 'swap_exact_in',
               title: 'Swap',
-              actions: [{ actionId: 'swap_run', kind: 'run', label: 'Run Swap', mode: 'simulate', variant: 'primary' }],
+              actions: [{ label: 'Run Swap', do: { fn: 'run', mode: 'simulate' } }],
               statusText: {
                 running: 'Running swap simulation...',
                 success: 'Swap simulation complete.',
@@ -335,7 +335,7 @@ describe('useBuilderSubmitController', () => {
               label: 'Broken Step',
               operationId: 'broken_read',
               title: 'Broken step',
-              actions: [{ actionId: 'broken_run', kind: 'run', label: 'Run', mode: 'view', variant: 'primary' }],
+              actions: [{ label: 'Run', do: { fn: 'run', mode: 'view' } }],
               statusText: {
                 running: 'Running read...',
                 success: 'Read complete.',

@@ -34,24 +34,16 @@ export type BuilderPreparedStepResult = {
   instructionName: string | null;
 };
 
-export type BuilderStepActionKind = 'run' | 'back' | 'reset';
+export type BuilderStepActionFn = 'run' | 'back' | 'reset';
 export type BuilderStepActionMode = 'view' | 'simulate' | 'send';
-export type BuilderStepActionVariant = 'primary' | 'secondary' | 'ghost';
 
-export type BuilderStepAction =
-  | {
-      actionId: string;
-      kind: 'run';
-      label: string;
-      mode: BuilderStepActionMode;
-      variant: BuilderStepActionVariant;
-    }
-  | {
-      actionId: string;
-      kind: 'back' | 'reset';
-      label: string;
-      variant: BuilderStepActionVariant;
-    };
+export type BuilderStepAction = {
+  label: string;
+  do: {
+    fn: BuilderStepActionFn;
+    mode?: BuilderStepActionMode;
+  };
+};
 
 type BuilderStepStatus = 'idle' | 'running' | 'success' | 'error';
 
@@ -138,29 +130,34 @@ function normalizeBuilderStepActions(step: MetaAppSummary['steps'][number] | nul
     throw new Error(`app step ${step.stepId}: actions must be a non-empty array.`);
   }
   return step.actions.map((action) => {
-    if (action.kind === 'run') {
-      if (action.mode !== 'view' && action.mode !== 'simulate' && action.mode !== 'send') {
+    if (action.do.fn === 'run') {
+      if (action.do.mode !== 'view' && action.do.mode !== 'simulate' && action.do.mode !== 'send') {
         throw new Error(
-          `app step ${step.stepId} action ${action.actionId}: run action mode must be view|simulate|send.`,
+          `app step ${step.stepId} action "${action.label}": run action do.mode must be view|simulate|send.`,
         );
       }
       return {
-        actionId: action.actionId,
-        kind: 'run',
         label: action.label,
-        mode: action.mode,
-        variant: action.variant,
+        do: {
+          fn: 'run',
+          mode: action.do.mode,
+        },
       };
     }
-    if (action.kind === 'back' || action.kind === 'reset') {
+    if (action.do.fn === 'back' || action.do.fn === 'reset') {
+      if (action.do.mode !== undefined) {
+        throw new Error(
+          `app step ${step.stepId} action "${action.label}": do.mode is only allowed for run actions.`,
+        );
+      }
       return {
-        actionId: action.actionId,
-        kind: action.kind,
         label: action.label,
-        variant: action.variant,
+        do: {
+          fn: action.do.fn,
+        },
       };
     }
-    throw new Error(`app step ${step.stepId} action ${action.actionId}: unsupported kind ${String(action.kind)}.`);
+    throw new Error(`app step ${step.stepId} action "${action.label}": unsupported fn ${String(action.do.fn)}.`);
   });
 }
 

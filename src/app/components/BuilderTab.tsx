@@ -132,10 +132,7 @@ export function BuilderTab(props: BuilderTabProps) {
   const supportedTokens = listSupportedTokens();
 
   const actionClassName = (action: BuilderStepAction): string => {
-    if (action.variant === 'secondary') {
-      return 'builder-submit builder-submit-secondary';
-    }
-    if (action.variant === 'ghost') {
+    if (action.do.fn === 'back' || action.do.fn === 'reset') {
       return 'builder-back';
     }
     return 'builder-submit';
@@ -379,11 +376,11 @@ export function BuilderTab(props: BuilderTabProps) {
 
                     {isBuilderAppMode ? (
                       <div className="builder-controls builder-controls-app">
-                        {visibleStepActions.map((action) => {
-                          if (action.kind === 'back') {
+                        {visibleStepActions.map((action, actionIndex) => {
+                          if (action.do.fn === 'back') {
                             return (
                               <button
-                                key={action.actionId}
+                                key={`step-action-${action.do.fn}-${actionIndex}`}
                                 type="button"
                                 className={actionClassName(action)}
                                 onClick={onBackStep}
@@ -393,10 +390,10 @@ export function BuilderTab(props: BuilderTabProps) {
                               </button>
                             );
                           }
-                          if (action.kind === 'reset') {
+                          if (action.do.fn === 'reset') {
                             return (
                               <button
-                                key={action.actionId}
+                                key={`step-action-${action.do.fn}-${actionIndex}`}
                                 type="button"
                                 className={actionClassName(action)}
                                 onClick={onResetStep}
@@ -406,26 +403,27 @@ export function BuilderTab(props: BuilderTabProps) {
                               </button>
                             );
                           }
-                          const runAction = action as Extract<BuilderStepAction, { kind: 'run' }>;
+                          const runAction = action;
+                          const runMode = runAction.do.mode;
                           return (
                             <button
-                              key={runAction.actionId}
+                              key={`step-action-${runAction.do.fn}-${actionIndex}`}
                               type="submit"
                               className={actionClassName(runAction)}
                               disabled={isWorking}
                               onClick={() => {
                                 if (
                                   selectedBuilderOperation.instruction &&
-                                  (runAction.mode === 'send' || runAction.mode === 'simulate')
+                                  (runMode === 'send' || runMode === 'simulate')
                                 ) {
-                                  onSetBuilderAppSubmitMode(runAction.mode);
+                                  onSetBuilderAppSubmitMode(runMode);
                                 }
                               }}
                             >
                               {isWorking &&
                               selectedBuilderOperation.instruction &&
-                              (runAction.mode === 'send' || runAction.mode === 'simulate') &&
-                              builderAppSubmitMode === runAction.mode
+                              (runMode === 'send' || runMode === 'simulate') &&
+                              builderAppSubmitMode === runMode
                                 ? 'Running...'
                                 : runAction.label}
                             </button>

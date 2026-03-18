@@ -18,11 +18,11 @@
           "description": "Discover Pump AMM tokens from quote mint and choose one token/pool.",
           "actions": [
             {
-              "id": "discover_run_1",
-              "kind": "run",
               "label": "Find Tokens",
-              "mode": "view",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "view"
+              }
             }
           ],
           "next_on_success": "pool",
@@ -57,17 +57,17 @@
           "description": "Live pool snapshot from RPC before taking action.",
           "actions": [
             {
-              "id": "pool_back_1",
-              "kind": "back",
               "label": "Back to Tokens",
-              "variant": "ghost"
+              "do": {
+                "fn": "back"
+              }
             },
             {
-              "id": "pool_run_2",
-              "kind": "run",
               "label": "Refresh Snapshot",
-              "mode": "view",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "view"
+              }
             }
           ],
           "status_text": {
@@ -91,24 +91,24 @@
           "description": "Simulate then send buy transaction.",
           "actions": [
             {
-              "id": "buy_back_1",
-              "kind": "back",
               "label": "Back to Snapshot",
-              "variant": "ghost"
+              "do": {
+                "fn": "back"
+              }
             },
             {
-              "id": "buy_run_2",
-              "kind": "run",
               "label": "Simulate Buy",
-              "mode": "simulate",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "simulate"
+              }
             },
             {
-              "id": "buy_run_3",
-              "kind": "run",
               "label": "Send Buy",
-              "mode": "send",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "send"
+              }
             }
           ],
           "status_text": {
@@ -133,24 +133,24 @@
           "description": "Simulate then send sell transaction.",
           "actions": [
             {
-              "id": "sell_back_1",
-              "kind": "back",
               "label": "Back to Snapshot",
-              "variant": "ghost"
+              "do": {
+                "fn": "back"
+              }
             },
             {
-              "id": "sell_run_2",
-              "kind": "run",
               "label": "Simulate Sell",
-              "mode": "simulate",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "simulate"
+              }
             },
             {
-              "id": "sell_run_3",
-              "kind": "run",
               "label": "Send Sell",
-              "mode": "send",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "send"
+              }
             }
           ],
           "status_text": {
@@ -183,18 +183,18 @@
           "description": "Simulate first, then send with the same inputs.",
           "actions": [
             {
-              "id": "buy_run_1",
-              "kind": "run",
               "label": "Simulate Buy",
-              "mode": "simulate",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "simulate"
+              }
             },
             {
-              "id": "buy_run_2",
-              "kind": "run",
               "label": "Send Buy",
-              "mode": "send",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "send"
+              }
             }
           ],
           "status_text": {

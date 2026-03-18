@@ -17,11 +17,11 @@
           "description": "Read the current position snapshot.",
           "actions": [
             {
-              "id": "view_run",
-              "kind": "run",
               "label": "Refresh Position",
-              "mode": "view",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "view"
+              }
             }
           ],
           "status_text": {
@@ -47,18 +47,18 @@
           "description": "Simulate first, then send deposit.",
           "actions": [
             {
-              "id": "deposit_simulate",
-              "kind": "run",
               "label": "Simulate Deposit",
-              "mode": "simulate",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "simulate"
+              }
             },
             {
-              "id": "deposit_send",
-              "kind": "run",
               "label": "Send Deposit",
-              "mode": "send",
-              "variant": "secondary"
+              "do": {
+                "fn": "run",
+                "mode": "send"
+              }
             }
           ],
           "status_text": {
@@ -84,18 +84,18 @@
           "description": "Simulate first, then send withdrawal.",
           "actions": [
             {
-              "id": "withdraw_simulate",
-              "kind": "run",
               "label": "Simulate Withdraw",
-              "mode": "simulate",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "simulate"
+              }
             },
             {
-              "id": "withdraw_send",
-              "kind": "run",
               "label": "Send Withdraw",
-              "mode": "send",
-              "variant": "secondary"
+              "do": {
+                "fn": "run",
+                "mode": "send"
+              }
             }
           ],
           "status_text": {

@@ -370,39 +370,72 @@
     "userAppActionSpec": {
       "type": "object",
       "required": [
-        "id",
-        "kind",
-        "label"
+        "label",
+        "do"
       ],
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "kind": {
-          "enum": [
-            "run",
-            "back",
-            "reset"
-          ]
-        },
         "label": {
           "type": "string"
         },
-        "mode": {
-          "enum": [
-            "view",
-            "simulate",
-            "send"
-          ]
-        },
-        "variant": {
-          "enum": [
-            "primary",
-            "secondary",
-            "ghost"
-          ]
+        "do": {
+          "type": "object",
+          "required": [
+            "fn"
+          ],
+          "properties": {
+            "fn": {
+              "enum": [
+                "run",
+                "back",
+                "reset"
+              ]
+            },
+            "mode": {
+              "enum": [
+                "view",
+                "simulate",
+                "send"
+              ]
+            }
+          },
+          "additionalProperties": false
         }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "do": {
+                "properties": {
+                  "fn": {
+                    "const": "run"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "do": {
+                "required": [
+                  "mode"
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "do": {
+                "not": {
+                  "required": [
+                    "mode"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ],
       "additionalProperties": false
     },
     "userAppStepSpec": {

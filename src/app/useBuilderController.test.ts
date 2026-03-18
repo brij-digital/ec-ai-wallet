@@ -49,7 +49,7 @@ vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
               label: 'Discover Pools',
               operationId: 'list_pools',
               title: 'Discover Pools',
-              actions: [{ actionId: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' }],
+              actions: [{ label: 'Find Pools', do: { fn: 'run', mode: 'view' } }],
               statusText: {
                 running: 'Discovering pools...',
                 success: 'Pool discovery complete.',
@@ -72,7 +72,7 @@ vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
               label: 'Swap',
               operationId: 'swap_exact_in',
               title: 'Swap',
-              actions: [{ actionId: 'swap_run', kind: 'run', label: 'Run Swap', mode: 'simulate', variant: 'primary' }],
+              actions: [{ label: 'Run Swap', do: { fn: 'run', mode: 'simulate' } }],
               statusText: {
                 running: 'Preparing swap...',
                 success: 'Swap simulation complete.',
@@ -147,11 +147,8 @@ describe('useBuilderController', () => {
     await waitFor(() => {
       expect(result.current.selectedBuilderStepActions).toEqual([
         {
-          actionId: 'discover_run',
-          kind: 'run',
           label: 'Find Pools',
-          mode: 'view',
-          variant: 'primary',
+          do: { fn: 'run', mode: 'view' },
         },
       ]);
     });
@@ -216,7 +213,7 @@ describe('useBuilderController', () => {
               label: 'Discover Pools',
               operationId: 'list_pools',
               title: 'Discover Pools',
-              actions: [{ actionId: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' }],
+              actions: [{ label: 'Find Pools', do: { fn: 'run', mode: 'view' } }],
               statusText: {
                 running: 'Discovering pools...',
                 success: 'Pool discovery complete.',

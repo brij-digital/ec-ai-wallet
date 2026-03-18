@@ -182,18 +182,18 @@
           "description": "Simulate first, then send with the same inputs.",
           "actions": [
             {
-              "id": "buy_simulate",
-              "kind": "run",
               "label": "Simulate Buy",
-              "mode": "simulate",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "simulate"
+              }
             },
             {
-              "id": "buy_send",
-              "kind": "run",
               "label": "Send Buy",
-              "mode": "send",
-              "variant": "secondary"
+              "do": {
+                "fn": "run",
+                "mode": "send"
+              }
             }
           ],
           "status_text": {

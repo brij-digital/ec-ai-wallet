@@ -56,24 +56,20 @@ function toLocalPublicPath(assetPath, label) {
 
 function validateAction(stepLabel, action, index) {
   const actionObj = asObject(action, `${stepLabel}.actions[${index}]`);
-  const actionId = asNonEmptyString(actionObj.id, `${stepLabel}.actions[${index}].id`);
-  const kind = asNonEmptyString(actionObj.kind, `${stepLabel}.actions[${index}].kind`);
-  if (!['run', 'back', 'reset'].includes(kind)) {
-    fail(`${stepLabel}.actions[${index}] (${actionId}) kind must be run|back|reset.`);
-  }
   asNonEmptyString(actionObj.label, `${stepLabel}.actions[${index}].label`);
-  const variant = asNonEmptyString(actionObj.variant, `${stepLabel}.actions[${index}].variant`);
-  if (!['primary', 'secondary', 'ghost'].includes(variant)) {
-    fail(`${stepLabel}.actions[${index}] (${actionId}) variant must be primary|secondary|ghost.`);
+  const doObj = asObject(actionObj.do, `${stepLabel}.actions[${index}].do`);
+  const fn = asNonEmptyString(doObj.fn, `${stepLabel}.actions[${index}].do.fn`);
+  if (!['run', 'back', 'reset'].includes(fn)) {
+    fail(`${stepLabel}.actions[${index}].do.fn must be run|back|reset.`);
   }
-  const mode = actionObj.mode;
-  if (kind === 'run') {
-    const runMode = asNonEmptyString(mode, `${stepLabel}.actions[${index}].mode`);
+  const mode = doObj.mode;
+  if (fn === 'run') {
+    const runMode = asNonEmptyString(mode, `${stepLabel}.actions[${index}].do.mode`);
     if (!['view', 'simulate', 'send'].includes(runMode)) {
-      fail(`${stepLabel}.actions[${index}] (${actionId}) mode must be view|simulate|send for run actions.`);
+      fail(`${stepLabel}.actions[${index}].do.mode must be view|simulate|send for run actions.`);
     }
   } else if (mode !== undefined) {
-    fail(`${stepLabel}.actions[${index}] (${actionId}) mode must be omitted for ${kind} actions.`);
+    fail(`${stepLabel}.actions[${index}].do.mode must be omitted for ${fn} actions.`);
   }
 }
 

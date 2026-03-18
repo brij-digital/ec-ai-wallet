@@ -26,7 +26,7 @@ const app: MetaAppSummary = {
       label: 'Discover',
       operationId: 'list_pools',
       title: 'Discover',
-      actions: [{ actionId: 'discover_run', kind: 'run', label: 'Find Pools', mode: 'view', variant: 'primary' }],
+      actions: [{ label: 'Find Pools', do: { fn: 'run', mode: 'view' } }],
       statusText: {
         running: 'Discovering...',
         success: 'Discover success',
@@ -40,7 +40,7 @@ const app: MetaAppSummary = {
       label: 'Swap',
       operationId: 'swap_exact_in',
       title: 'Swap',
-      actions: [{ actionId: 'swap_run', kind: 'run', label: 'Run Swap', mode: 'simulate', variant: 'primary' }],
+      actions: [{ label: 'Run Swap', do: { fn: 'run', mode: 'simulate' } }],
       statusText: {
         running: 'Swapping...',
         success: 'Swap success',

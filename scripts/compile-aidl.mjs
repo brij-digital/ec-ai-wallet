@@ -457,14 +457,12 @@ function normalizeApp(app, label) {
         fail(`${stepLabel}.actions[${actionIndex}].do.mode is only allowed for fn=run.`);
       }
 
-      const actionId = `${stepId}_${fn}_${actionIndex + 1}`;
-      const variant = fn === 'run' ? 'primary' : 'ghost';
       return {
-        id: actionId,
-        kind: fn,
         label: actionLabel,
-        ...(mode ? { mode } : {}),
-        variant,
+        do: {
+          fn,
+          ...(mode ? { mode } : {}),
+        },
       };
     });
 
