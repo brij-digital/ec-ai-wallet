@@ -31,16 +31,13 @@
               "variant": "secondary"
             }
           ],
-          "blocking": {
-            "requires_paths": []
-          },
           "status_text": {
             "running": "Executing buy on bonding curve...",
             "success": "Buy step completed.",
             "error": "Buy failed: {error}"
           },
-          "transitions": [],
-          "label": "Buy"
+          "label": "Buy",
+          "requires_paths": []
         }
       ],
       "label": "Buy Token (Pump Curve)"

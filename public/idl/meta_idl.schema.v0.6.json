@@ -349,24 +349,6 @@
       },
       "additionalProperties": false
     },
-    "userAppTransitionSpec": {
-      "type": "object",
-      "required": [
-        "on",
-        "to"
-      ],
-      "properties": {
-        "on": {
-          "enum": [
-            "success"
-          ]
-        },
-        "to": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
     "userAppStatusTextSpec": {
       "type": "object",
       "properties": {
@@ -381,18 +363,6 @@
         },
         "error": {
           "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-    "userAppBlockingSpec": {
-      "type": "object",
-      "properties": {
-        "requires_paths": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "additionalProperties": false
@@ -469,14 +439,11 @@
           "type": "object",
           "additionalProperties": {}
         },
-        "transitions": {
+        "requires_paths": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/userAppTransitionSpec"
+            "type": "string"
           }
-        },
-        "blocking": {
-          "$ref": "#/$defs/userAppBlockingSpec"
         },
         "actions": {
           "type": "array",

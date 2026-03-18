@@ -26,21 +26,12 @@
               "variant": "primary"
             }
           ],
-          "blocking": {
-            "requires_paths": []
-          },
           "next_on_success": "swap",
           "status_text": {
             "running": "Searching pools...",
             "success": "Pool selected. Next: {next_step_title}.",
             "error": "Pool discovery failed: {error}"
           },
-          "transitions": [
-            {
-              "on": "success",
-              "to": "swap"
-            }
-          ],
           "ui": {
             "kind": "select_from_derived",
             "source": "pool_candidates",
@@ -55,7 +46,8 @@
             "auto_advance": true,
             "title": "Select a pool",
             "description": "Pick one discovered pool to continue to swap."
-          }
+          },
+          "requires_paths": []
         },
         {
           "id": "swap",
@@ -72,22 +64,19 @@
               "variant": "primary"
             }
           ],
-          "blocking": {
-            "requires_paths": [
-              "$steps.discover.derived.selected_pool.whirlpool"
-            ]
-          },
           "status_text": {
             "running": "Simulating or sending swap...",
             "success": "Swap step completed.",
             "error": "Swap failed: {error}"
           },
-          "transitions": [],
           "input_from": {
             "token_in_mint": "$steps.discover.input.token_in_mint",
             "token_out_mint": "$steps.discover.input.token_out_mint",
             "whirlpool": "$steps.discover.derived.selected_pool.whirlpool"
-          }
+          },
+          "requires_paths": [
+            "$steps.discover.derived.selected_pool.whirlpool"
+          ]
         }
       ]
     }

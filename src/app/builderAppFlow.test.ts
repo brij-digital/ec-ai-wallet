@@ -33,10 +33,7 @@ const app: MetaAppSummary = {
         error: 'Discover failed',
       },
       inputFrom: {},
-      transitions: [{ on: 'success', to: 'swap' }],
-      blocking: {
-        requiresPaths: [],
-      },
+      requiresPaths: [],
     },
     {
       stepId: 'swap',
@@ -50,10 +47,7 @@ const app: MetaAppSummary = {
         error: 'Swap failed',
       },
       inputFrom: {},
-      transitions: [],
-      blocking: {
-        requiresPaths: ['$steps.discover.derived.selected_pool.pool'],
-      },
+      requiresPaths: ['$steps.discover.derived.selected_pool.pool'],
     },
   ],
 };

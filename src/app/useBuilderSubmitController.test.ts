@@ -100,8 +100,7 @@ describe('useBuilderSubmitController', () => {
                 error: 'Pool discovery failed: {error}',
               },
               inputFrom: {},
-              transitions: [{ on: 'success', to: 'swap' }],
-              blocking: { requiresPaths: [] },
+              requiresPaths: [],
               ui: {
                 kind: 'select_from_derived',
                 source: 'pool_candidates',
@@ -126,10 +125,7 @@ describe('useBuilderSubmitController', () => {
               inputFrom: {
                 pool: '$steps.discover.derived.selected_pool.whirlpool',
               },
-              transitions: [],
-              blocking: {
-                requiresPaths: ['$steps.discover.derived.selected_pool.whirlpool'],
-              },
+              requiresPaths: ['$steps.discover.derived.selected_pool.whirlpool'],
             },
           ],
         },
@@ -346,8 +342,7 @@ describe('useBuilderSubmitController', () => {
                 error: 'Read failed: {error}',
               },
               inputFrom: {},
-              transitions: [],
-              blocking: { requiresPaths: [] },
+              requiresPaths: [],
             },
           ],
         },

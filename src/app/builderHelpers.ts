@@ -111,7 +111,7 @@ export function isBuilderAppStepUnlocked(
   _completed: Record<string, boolean>,
 ): boolean {
   const scope = buildBuilderAppScope(contexts);
-  const pathsSatisfied = targetStep.blocking.requiresPaths.every((path) => isBuilderTruthy(readBuilderPath(scope, path)));
+  const pathsSatisfied = targetStep.requiresPaths.every((path) => isBuilderTruthy(readBuilderPath(scope, path)));
   if (!pathsSatisfied) {
     return false;
   }

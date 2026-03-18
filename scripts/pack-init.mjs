@@ -118,6 +118,7 @@ function createAidlSkeleton({ protocolId, slug }) {
     },
     operations: {
       health_read: {
+        label: 'Health Read',
         use: [
           {
             template: templateName,
@@ -134,17 +135,27 @@ function createAidlSkeleton({ protocolId, slug }) {
         steps: [
           {
             id: 'health',
+            label: 'Health',
             operation: 'health_read',
             title: 'Health Read',
-            blocking: {
-              requires_paths: [],
+            requires_paths: [],
+            status_text: {
+              running: 'Loading health check...',
+              success: 'Health check completed.',
+              error: 'Health check failed: {error}'
             },
-            success: {
-              kind: 'operation_ok',
-            },
-            transitions: [],
+            actions: [
+              {
+                id: 'health_run',
+                kind: 'run',
+                label: 'Run Health Check',
+                mode: 'view',
+                variant: 'primary'
+              }
+            ]
           },
         ],
+        label: 'Health Check'
       },
     },
   };

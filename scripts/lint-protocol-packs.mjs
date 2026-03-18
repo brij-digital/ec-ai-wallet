@@ -88,30 +88,17 @@ function validateStatusText(stepLabel, statusTextRaw) {
 }
 
 function validateNextOnRules(stepLabel, step, knownStepIds) {
-  const transitions = asArray(step.transitions, `${stepLabel}.transitions`).map((raw, index) => {
-    const transition = asObject(raw, `${stepLabel}.transitions[${index}]`);
-    const on = asNonEmptyString(transition.on, `${stepLabel}.transitions[${index}].on`);
-    const to = asNonEmptyString(transition.to, `${stepLabel}.transitions[${index}].to`);
-    if (on !== 'success') {
-      fail(`${stepLabel}.transitions[${index}].on must be success.`);
-    }
-    if (!knownStepIds.has(to)) {
-      fail(`${stepLabel}.transitions[${index}].to references unknown step ${to}.`);
-    }
-    return { on, to };
-  });
-
-  const successTransitions = transitions.filter((entry) => entry.on === 'success');
-  if (successTransitions.length > 1) {
-    fail(`${stepLabel}.transitions defines multiple success targets. Use one explicit success target.`);
+  if (step.transitions !== undefined) {
+    fail(`${stepLabel}.transitions is deprecated. Use next_on_success only.`);
   }
-  if (successTransitions.length === 1) {
+  if (step.blocking !== undefined) {
+    fail(`${stepLabel}.blocking wrapper is deprecated. Use requires_paths on the step.`);
+  }
+  if (step.next_on_success !== undefined) {
     const next = asNonEmptyString(step.next_on_success, `${stepLabel}.next_on_success`);
-    if (next !== successTransitions[0].to) {
-      fail(`${stepLabel}.next_on_success must match success transition target ${successTransitions[0].to}.`);
+    if (!knownStepIds.has(next)) {
+      fail(`${stepLabel}.next_on_success references unknown step ${next}.`);
     }
-  } else if (step.next_on_success !== undefined) {
-    fail(`${stepLabel}.next_on_success provided without success transition.`);
   }
 
   if (step.next_on_error !== undefined) {

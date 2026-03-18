@@ -24,16 +24,13 @@
               "variant": "primary"
             }
           ],
-          "blocking": {
-            "requires_paths": []
-          },
           "status_text": {
             "running": "Loading position...",
             "success": "Position loaded.",
             "error": "Position read failed: {error}"
           },
-          "transitions": [],
-          "label": "View"
+          "label": "View",
+          "requires_paths": []
         }
       ],
       "label": "View Position"
@@ -64,16 +61,13 @@
               "variant": "secondary"
             }
           ],
-          "blocking": {
-            "requires_paths": []
-          },
           "status_text": {
             "running": "Executing deposit...",
             "success": "Deposit completed.",
             "error": "Deposit failed: {error}"
           },
-          "transitions": [],
-          "label": "Deposit"
+          "label": "Deposit",
+          "requires_paths": []
         }
       ],
       "label": "Deposit Liquidity"
@@ -104,16 +98,13 @@
               "variant": "secondary"
             }
           ],
-          "blocking": {
-            "requires_paths": []
-          },
           "status_text": {
             "running": "Executing withdrawal...",
             "success": "Withdrawal completed.",
             "error": "Withdrawal failed: {error}"
           },
-          "transitions": [],
-          "label": "Withdraw"
+          "label": "Withdraw",
+          "requires_paths": []
         }
       ],
       "label": "Withdraw Liquidity"

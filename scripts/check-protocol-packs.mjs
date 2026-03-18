@@ -352,23 +352,8 @@ function validateApps(meta, protocolId, operations) {
         fail(`${protocolId}.apps.${appId}.steps.${stepId} references unknown operation ${operationId}.`);
       }
       asString(step.title, `${protocolId}.apps.${appId}.steps[${i}].title`);
-
-      const transitions = asArray(step.transitions, `${protocolId}.apps.${appId}.steps.${stepId}.transitions`);
-      for (let t = 0; t < transitions.length; t += 1) {
-        const transition = asObject(
-          transitions[t],
-          `${protocolId}.apps.${appId}.steps.${stepId}.transitions[${t}]`,
-        );
-        const on = asString(transition.on, `${protocolId}.apps.${appId}.steps.${stepId}.transitions[${t}].on`);
-        if (on !== 'success') {
-          fail(`${protocolId}.apps.${appId}.steps.${stepId}.transitions[${t}].on must be success.`);
-        }
-        asString(transition.to, `${protocolId}.apps.${appId}.steps.${stepId}.transitions[${t}].to`);
-      }
-
-      const blocking = asObject(step.blocking, `${protocolId}.apps.${appId}.steps.${stepId}.blocking`);
-      if (blocking.requires_paths !== undefined) {
-        asStringArray(blocking.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.requires_paths`);
+      if (step.requires_paths !== undefined) {
+        asStringArray(step.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.requires_paths`);
       }
     }
 
@@ -378,17 +363,14 @@ function validateApps(meta, protocolId, operations) {
     for (let i = 0; i < steps.length; i += 1) {
       const step = asObject(steps[i], `${protocolId}.apps.${appId}.steps[${i}]`);
       const stepId = asString(step.id, `${protocolId}.apps.${appId}.steps[${i}].id`);
-      const transitions = asArray(step.transitions, `${protocolId}.apps.${appId}.steps.${stepId}.transitions`);
-      for (const transitionRaw of transitions) {
-        const transition = asObject(transitionRaw, `${protocolId}.apps.${appId}.steps.${stepId}.transitions[*]`);
-        const to = asString(transition.to, `${protocolId}.apps.${appId}.steps.${stepId}.transitions[*].to`);
-        if (!stepIds.has(to)) {
-          fail(`${protocolId}.apps.${appId}.steps.${stepId} transition target unknown: ${to}`);
+      if (step.next_on_success !== undefined) {
+        const next = asString(step.next_on_success, `${protocolId}.apps.${appId}.steps.${stepId}.next_on_success`);
+        if (!stepIds.has(next)) {
+          fail(`${protocolId}.apps.${appId}.steps.${stepId}.next_on_success unknown step: ${next}`);
         }
       }
-      const blocking = asObject(step.blocking, `${protocolId}.apps.${appId}.steps.${stepId}.blocking`);
-      if (blocking.requires_paths !== undefined) {
-        asStringArray(blocking.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.requires_paths`);
+      if (step.requires_paths !== undefined) {
+        asStringArray(step.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.requires_paths`);
       }
     }
   }

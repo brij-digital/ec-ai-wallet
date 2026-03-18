@@ -369,61 +369,33 @@ function normalizeStepStatusText(step, label) {
  * @param {string} label
  * @returns {{ requires_paths: string[] }}
  */
-function normalizeStepBlocking(step, label) {
-  if (step.blocking === undefined) {
-    return { requires_paths: [] };
+function normalizeStepRequiresPaths(step, label) {
+  if (step.blocking !== undefined) {
+    fail(`${label}.blocking wrapper is no longer supported. Use requires_paths directly on the step.`);
   }
-  const raw = asObject(step.blocking, `${label}.blocking`);
-  const requiresPaths =
-    raw.requires_paths === undefined ? [] : asArray(raw.requires_paths, `${label}.blocking.requires_paths`);
-  return {
-    requires_paths: requiresPaths.map((entry, index) =>
-      asString(entry, `${label}.blocking.requires_paths[${index}]`),
-    ),
-  };
+  const direct = step.requires_paths;
+  if (Array.isArray(direct)) {
+    return {
+      requires_paths: direct.map((entry, index) =>
+        asString(entry, `${label}.requires_paths[${index}]`),
+      ),
+    };
+  }
+  return { requires_paths: [] };
 }
 
 /**
  * @param {Record<string, unknown>} step
  * @param {string} label
- * @returns {{ transitions: Array<{ on: "success"; to: string }>; nextOnSuccess: string | null }}
+ * @returns {string | null}
  */
-function normalizeStepTransitions(step, label) {
-  const transitionsRaw =
-    step.transitions === undefined ? [] : asArray(step.transitions, `${label}.transitions`);
-  const transitions = transitionsRaw.map((entry, index) => {
-    const transition = asObject(entry, `${label}.transitions[${index}]`);
-    const on = asString(transition.on, `${label}.transitions[${index}].on`);
-    if (on !== 'success') {
-      fail(`${label}.transitions[${index}].on must be success.`);
-    }
-    return {
-      on: /** @type {"success"} */ ('success'),
-      to: asString(transition.to, `${label}.transitions[${index}].to`),
-    };
-  });
-
-  const successTransitions = transitions.filter((entry) => entry.on === 'success');
-  if (successTransitions.length > 1) {
-    fail(`${label}.transitions must not define multiple success targets.`);
+function normalizeStepNextOnSuccess(step, label) {
+  if (step.transitions !== undefined) {
+    fail(`${label}.transitions is no longer supported. Use next_on_success only.`);
   }
-
-  const nextFromField =
-    step.next_on_success === undefined
-      ? null
-      : asString(step.next_on_success, `${label}.next_on_success`);
-  if (nextFromField !== null && successTransitions.length === 1 && successTransitions[0].to !== nextFromField) {
-    fail(
-      `${label}.next_on_success must match transitions success target (${successTransitions[0].to}).`,
-    );
-  }
-
-  const nextOnSuccess = nextFromField ?? successTransitions[0]?.to ?? null;
-  if (nextOnSuccess && successTransitions.length === 0) {
-    transitions.push({ on: 'success', to: nextOnSuccess });
-  }
-
-  return { transitions, nextOnSuccess };
+  return step.next_on_success === undefined
+    ? null
+    : asString(step.next_on_success, `${label}.next_on_success`);
 }
 
 /**
@@ -458,16 +430,15 @@ function normalizeApp(app, label) {
       }
     });
 
-    const { transitions, nextOnSuccess } = normalizeStepTransitions(step, stepLabel);
+    const nextOnSuccess = normalizeStepNextOnSuccess(step, stepLabel);
     return {
       ...step,
       id: stepId,
       title: stepTitle,
       label: asString(step.label, `${stepLabel}.label`),
       actions,
-      blocking: normalizeStepBlocking(step, stepLabel),
+      requires_paths: normalizeStepRequiresPaths(step, stepLabel).requires_paths,
       status_text: normalizeStepStatusText(step, stepLabel),
-      transitions,
       ...(nextOnSuccess ? { next_on_success: nextOnSuccess } : {}),
     };
   });

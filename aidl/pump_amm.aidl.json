@@ -834,21 +834,12 @@
               "variant": "primary"
             }
           ],
-          "blocking": {
-            "requires_paths": []
-          },
           "next_on_success": "pool",
           "status_text": {
             "running": "Searching Pump AMM pools...",
             "success": "Token selected. Next: {next_step_title}.",
             "error": "Discovery failed: {error}"
           },
-          "transitions": [
-            {
-              "on": "success",
-              "to": "pool"
-            }
-          ],
           "ui": {
             "kind": "select_from_derived",
             "source": "pool_candidates",
@@ -864,7 +855,8 @@
             "auto_advance": true,
             "title": "Select a token/pool",
             "description": "Pick one discovered token to open its pool details and trading actions."
-          }
+          },
+          "requires_paths": []
         },
         {
           "id": "pool",
@@ -887,21 +879,18 @@
               "variant": "primary"
             }
           ],
-          "blocking": {
-            "requires_paths": [
-              "$steps.discover.derived.selected_pool.pool"
-            ]
-          },
           "status_text": {
             "running": "Loading pool snapshot...",
             "success": "Snapshot refreshed. Continue with Buy or Sell.",
             "error": "Pool snapshot failed: {error}"
           },
-          "transitions": [],
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint"
-          }
+          },
+          "requires_paths": [
+            "$steps.discover.derived.selected_pool.pool"
+          ]
         },
         {
           "id": "buy",
@@ -931,22 +920,19 @@
               "variant": "secondary"
             }
           ],
-          "blocking": {
-            "requires_paths": [
-              "$steps.discover.derived.selected_pool.pool"
-            ]
-          },
           "status_text": {
             "running": "Executing buy...",
             "success": "Buy step completed.",
             "error": "Buy failed: {error}"
           },
-          "transitions": [],
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
             "pool": "$steps.discover.derived.selected_pool.pool"
-          }
+          },
+          "requires_paths": [
+            "$steps.discover.derived.selected_pool.pool"
+          ]
         },
         {
           "id": "sell",
@@ -976,22 +962,19 @@
               "variant": "secondary"
             }
           ],
-          "blocking": {
-            "requires_paths": [
-              "$steps.discover.derived.selected_pool.pool"
-            ]
-          },
           "status_text": {
             "running": "Executing sell...",
             "success": "Sell step completed.",
             "error": "Sell failed: {error}"
           },
-          "transitions": [],
           "input_from": {
             "base_mint": "$steps.discover.derived.selected_pool.baseMint",
             "quote_mint": "$steps.discover.derived.selected_pool.quoteMint",
             "pool": "$steps.discover.derived.selected_pool.pool"
-          }
+          },
+          "requires_paths": [
+            "$steps.discover.derived.selected_pool.pool"
+          ]
         }
       ],
       "label": "Pump Token Terminal"
@@ -1023,15 +1006,12 @@
               "variant": "secondary"
             }
           ],
-          "blocking": {
-            "requires_paths": []
-          },
           "status_text": {
             "running": "Executing buy...",
             "success": "Buy step completed.",
             "error": "Buy failed: {error}"
           },
-          "transitions": []
+          "requires_paths": []
         }
       ],
       "label": "Buy Token (Pump AMM)"
