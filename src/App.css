@@ -253,6 +253,48 @@
   padding: 0.85rem;
 }
 
+.builder-toast {
+  margin-top: 1rem;
+  border-radius: 10px;
+  border: 1px solid #dce4f4;
+  background: #fff;
+  color: #16315f;
+  padding: 0.55rem 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  font-size: 0.86rem;
+}
+
+.builder-toast-success {
+  border-color: #b9e6cc;
+  background: #effbf3;
+  color: #1e6b3b;
+}
+
+.builder-toast-error {
+  border-color: #f2c0c6;
+  background: #fff0f2;
+  color: #8f1f2b;
+}
+
+.builder-toast-info {
+  border-color: #dce4f4;
+  background: #f5f8ff;
+  color: #1f3252;
+}
+
+.builder-toast button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .builder-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;

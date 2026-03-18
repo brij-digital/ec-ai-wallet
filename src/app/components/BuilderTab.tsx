@@ -23,6 +23,11 @@ type BuilderProtocol = {
 
 type BuilderStep = MetaAppSummary['steps'][number];
 type BuilderSelectUi = Extract<NonNullable<BuilderStep['ui']>, { kind: 'select_from_derived' }>;
+type BuilderToast = {
+  id: number;
+  kind: 'success' | 'error' | 'info';
+  text: string;
+};
 
 type BuilderTabProps = {
   isWorking: boolean;
@@ -117,6 +122,7 @@ export function BuilderTab(props: BuilderTabProps) {
     onToggleRawDetails,
   } = props;
   const [displayDraftByInput, setDisplayDraftByInput] = useState<Record<string, string>>({});
+  const [builderToast, setBuilderToast] = useState<BuilderToast | null>(null);
   const visibleStepActions = isBuilderAppMode ? selectedBuilderStepActions : [];
   const selectedOperationDisplayLabel =
     (selectedBuilderOperation && builderOperationLabelsByOperationId[selectedBuilderOperation.operationId]) ||
@@ -126,6 +132,44 @@ export function BuilderTab(props: BuilderTabProps) {
     builderViewMode === 'forms' && selectedBuilderApp ? selectedBuilderApp.title : `${builderProtocolId}/${selectedOperationDisplayLabel}`;
   const supportedTokens = listSupportedTokens();
   const showTechnicalHints = builderViewMode === 'raw';
+
+  useEffect(() => {
+    if (!builderStatusText || builderViewMode !== 'forms') {
+      return;
+    }
+    const normalized = builderStatusText.toLowerCase();
+    const kind: BuilderToast['kind'] =
+      normalized.includes('error') || normalized.includes('failed')
+        ? 'error'
+        : normalized.includes('success') || normalized.includes('completed') || normalized.includes('tx sent')
+          ? 'success'
+          : 'info';
+    const firstLine = builderStatusText
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line.length > 0);
+    if (!firstLine) {
+      return;
+    }
+    const cleaned = firstLine
+      .replace(/^Builder (simulate|result|tx sent)( \([^)]+\))?:\s*/i, '')
+      .replace(/^Error:\s*/i, '');
+    setBuilderToast({
+      id: Date.now(),
+      kind,
+      text: cleaned || firstLine,
+    });
+  }, [builderStatusText, builderViewMode]);
+
+  useEffect(() => {
+    if (!builderToast) {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      setBuilderToast((current) => (current?.id === builderToast.id ? null : current));
+    }, 3200);
+    return () => window.clearTimeout(timeout);
+  }, [builderToast]);
 
   const actionClassName = (action: BuilderStepAction): string => {
     if (action.do.fn === 'back' || action.do.fn === 'reset') {
@@ -291,8 +335,39 @@ export function BuilderTab(props: BuilderTabProps) {
     return null;
   };
 
+  const resolveFriendlyLabel = (inputName: string, fallbackLabel: string): string => {
+    if (showTechnicalHints) {
+      return fallbackLabel;
+    }
+    const normalized = inputName.toLowerCase();
+    if (normalized === 'token_in_mint') {
+      return 'From';
+    }
+    if (normalized === 'token_out_mint') {
+      return 'To';
+    }
+    if (normalized === 'amount_in') {
+      return 'Amount';
+    }
+    if (normalized === 'estimated_out') {
+      return 'You receive';
+    }
+    if (normalized === 'slippage_bps') {
+      return 'Max slippage';
+    }
+    return fallbackLabel;
+  };
+
   return (
     <>
+      {builderToast ? (
+        <div className={`builder-toast builder-toast-${builderToast.kind}`} role="status" aria-live="polite">
+          <span>{builderToast.text}</span>
+          <button type="button" onClick={() => setBuilderToast(null)} aria-label="Dismiss message">
+            ×
+          </button>
+        </div>
+      ) : null}
       <section className="builder-shell" aria-live="polite">
         <div className="builder-layout">
           <div className="builder-main">
@@ -309,7 +384,7 @@ export function BuilderTab(props: BuilderTabProps) {
                       disabled={isWorking}
                     >
                       {builderProtocolLabelsById[protocol.id] ?? protocol.name}
-                      <small>{protocol.id}</small>
+                      {builderViewMode === 'raw' ? <small>{protocol.id}</small> : null}
                     </button>
                   ))}
                 </div>
@@ -329,7 +404,6 @@ export function BuilderTab(props: BuilderTabProps) {
                             disabled={isWorking}
                           >
                             {builderAppLabelsByAppId[app.appId] ?? app.title}
-                            <small>{app.appId}</small>
                           </button>
                         ))
                       : <p className="builder-empty">No apps declared for this protocol.</p>
@@ -452,11 +526,29 @@ export function BuilderTab(props: BuilderTabProps) {
                           inputMode,
                           specHelp: selectedBuilderOperationEnhancement?.inputUi[inputName]?.help,
                         });
+                        const labelText = resolveFriendlyLabel(
+                          inputName,
+                          selectedBuilderOperationEnhancement?.inputUi[inputName]?.label ?? inputName,
+                        );
+                        const placeholderText = (() => {
+                          const uiPlaceholder = selectedBuilderOperationEnhancement?.inputUi[inputName]?.placeholder;
+                          if (uiPlaceholder) {
+                            return uiPlaceholder;
+                          }
+                          if (!showTechnicalHints) {
+                            return '';
+                          }
+                          if (spec.default !== undefined) {
+                            return `default: ${stringifyBuilderDefault(spec.default)}`;
+                          }
+                          if (typeof spec.read_from === 'string') {
+                            return `read_from: ${spec.read_from}`;
+                          }
+                          return '';
+                        })();
                         return (
                           <label key={inputName}>
-                            <span>
-                              {selectedBuilderOperationEnhancement?.inputUi[inputName]?.label ?? inputName}
-                            </span>
+                            <span>{labelText}</span>
                             {showTokenPicker ? (
                               <div className="builder-token-selector">
                                 {inputMode === 'readonly' ? (
@@ -515,14 +607,7 @@ export function BuilderTab(props: BuilderTabProps) {
                                     });
                                   }
                                 }}
-                                placeholder={
-                                  selectedBuilderOperationEnhancement?.inputUi[inputName]?.placeholder ??
-                                  (spec.default !== undefined
-                                    ? `default: ${stringifyBuilderDefault(spec.default)}`
-                                    : typeof spec.read_from === 'string'
-                                        ? `read_from: ${spec.read_from}`
-                                      : '')
-                                }
+                                placeholder={placeholderText}
                                 disabled={isWorking || !editable}
                               />
                             )}
