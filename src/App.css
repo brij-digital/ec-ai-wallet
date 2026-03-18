@@ -387,12 +387,6 @@
   font-size: 0.9rem;
 }
 
-.builder-app-step {
-  margin: 0;
-  color: #2a3f65;
-  font-size: 0.9rem;
-}
-
 .builder-note {
   margin: 0;
   color: #4d638a;
@@ -429,6 +423,18 @@
   padding: 0.35rem 0.6rem;
 }
 
+.builder-back-icon {
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .builder-pool-selection {
   display: grid;
   gap: 0.55rem;
@@ -458,30 +464,6 @@
 
 .builder-form code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-.builder-mode-switch {
-  display: inline-flex;
-  border: 1px solid #cfd9ec;
-  border-radius: 9px;
-  overflow: hidden;
-}
-
-.builder-mode-switch-global {
-  margin-bottom: 0.8rem;
-}
-
-.builder-mode-switch button {
-  border: 0;
-  background: #f5f8ff;
-  color: #2a3f65;
-  font-weight: 600;
-  padding: 0.4rem 0.75rem;
-}
-
-.builder-mode-switch button.active {
-  background: #1f4cc4;
-  color: #fff;
 }
 
 .builder-inputs {

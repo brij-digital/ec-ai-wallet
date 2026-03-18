@@ -25,7 +25,7 @@ export type BuilderProtocol = {
   status: 'active' | 'inactive';
 };
 
-export type BuilderViewMode = 'enduser' | 'geek';
+export type BuilderViewMode = 'forms' | 'raw';
 
 export type BuilderPreparedStepResult = {
   derived: Record<string, unknown>;
@@ -280,7 +280,7 @@ export function useBuilderController() {
   const [builderAppStepCompleted, setBuilderAppStepCompleted] = useState<Record<string, boolean>>({});
   const [builderOperations, setBuilderOperations] = useState<MetaOperationSummary[]>([]);
   const [builderOperationId, setBuilderOperationId] = useState('');
-  const [builderViewMode, setBuilderViewMode] = useState<BuilderViewMode>('enduser');
+  const [builderViewMode, setBuilderViewMode] = useState<BuilderViewMode>('forms');
   const [builderInputValues, setBuilderInputValues] = useState<Record<string, string>>({});
   const [builderSimulate, setBuilderSimulate] = useState(true);
   const [builderAppSubmitMode, setBuilderAppSubmitMode] = useState<'simulate' | 'send'>('simulate');
@@ -299,7 +299,7 @@ export function useBuilderController() {
     const index = selectedBuilderApp.steps.findIndex((step) => step.stepId === selectedBuilderApp.entryStepId);
     return index >= 0 ? index : 0;
   }, [selectedBuilderApp]);
-  const isBuilderAppMode = builderViewMode === 'enduser' && !!selectedBuilderApp;
+  const isBuilderAppMode = builderViewMode === 'forms' && !!selectedBuilderApp;
   const selectedBuilderAppStep = useMemo(() => {
     if (!selectedBuilderApp) {
       return null;
@@ -330,7 +330,7 @@ export function useBuilderController() {
   }, [selectedBuilderAppStepContext, selectedBuilderAppSelectUi]);
   const showBuilderSelectableItems = useMemo(
     () =>
-      builderViewMode === 'enduser' &&
+      builderViewMode === 'forms' &&
       !!selectedBuilderAppSelectUi &&
       selectedBuilderAppSelectableItems.length > 0,
     [builderViewMode, selectedBuilderAppSelectUi, selectedBuilderAppSelectableItems],
@@ -387,7 +387,7 @@ export function useBuilderController() {
   }, [builderApps]);
   const effectiveBuilderOperationId = useMemo(
     () =>
-      builderViewMode === 'enduser'
+      builderViewMode === 'forms'
         ? selectedBuilderAppStep?.operationId ?? ''
         : builderOperationId,
     [builderViewMode, selectedBuilderAppStep, builderOperationId],
@@ -408,7 +408,7 @@ export function useBuilderController() {
       return [] as Array<[string, MetaOperationSummary['inputs'][string]]>;
     }
     const stepInputModeOverrides =
-      builderViewMode === 'enduser' && selectedBuilderAppStep ? selectedBuilderAppStep.inputMode : {};
+      builderViewMode === 'forms' && selectedBuilderAppStep ? selectedBuilderAppStep.inputMode : {};
 
     const withOverrides = Object.entries(selectedBuilderOperation.inputs).map(([inputName, spec]) => {
       const modeOverride = stepInputModeOverrides?.[inputName];
@@ -429,7 +429,7 @@ export function useBuilderController() {
       if (mode === 'hidden') {
         return false;
       }
-      if (builderViewMode === 'geek') {
+      if (builderViewMode === 'raw') {
         return true;
       }
       return mode === 'edit' || mode === 'readonly';
@@ -546,10 +546,10 @@ export function useBuilderController() {
           ? firstLoadedApp.steps.find((step) => step.stepId === firstLoadedApp.entryStepId) ?? firstLoadedApp.steps[0]
           : undefined;
         const appOperationId = entryStep?.operationId;
-        if (builderViewMode === 'enduser' && appOperationId) {
+        if (builderViewMode === 'forms' && appOperationId) {
           return appOperationId;
         }
-        if (builderViewMode === 'enduser') {
+        if (builderViewMode === 'forms') {
           return '';
         }
         if (current && operationsWithReadFrom.some((entry) => entry.operationId === current)) {
@@ -580,7 +580,7 @@ export function useBuilderController() {
   }, [builderProtocolId, builderViewMode]);
 
   useEffect(() => {
-    if (builderViewMode !== 'enduser') {
+    if (builderViewMode !== 'forms') {
       return;
     }
     if (selectedBuilderAppStep) {
@@ -631,7 +631,7 @@ export function useBuilderController() {
       ]),
     );
 
-    if (builderViewMode === 'enduser' && selectedBuilderAppStep) {
+    if (builderViewMode === 'forms' && selectedBuilderAppStep) {
       for (const [inputName, rawSource] of Object.entries(selectedBuilderAppStep.inputFrom)) {
         const resolved = resolveBuilderAppInputFrom(rawSource, builderAppStepContexts);
         if (resolved !== undefined) {
@@ -693,8 +693,8 @@ export function useBuilderController() {
     setBuilderShowRawDetails(false);
   }
 
-  function handleBuilderModeEndUser() {
-    setBuilderViewMode('enduser');
+  function handleBuilderModeForms() {
+    setBuilderViewMode('forms');
     const firstApp = builderApps[0];
     if (firstApp && firstApp.steps.length > 0) {
       setBuilderAppId(firstApp.appId);
@@ -709,8 +709,8 @@ export function useBuilderController() {
     setBuilderOperationId('');
   }
 
-  function handleBuilderModeGeek() {
-    setBuilderViewMode('geek');
+  function handleBuilderModeRaw() {
+    setBuilderViewMode('raw');
   }
 
   function handleBuilderProtocolSelect(nextProtocolId: string) {
@@ -883,7 +883,7 @@ export function useBuilderController() {
     operationSucceeded: boolean;
     errorMessage?: string;
   }): boolean {
-    if (builderViewMode !== 'enduser' || !selectedBuilderAppStep) {
+    if (builderViewMode !== 'forms' || !selectedBuilderAppStep) {
       return options.operationSucceeded;
     }
     const previousContext = builderAppStepContexts[selectedBuilderAppStep.stepId];
@@ -966,8 +966,8 @@ export function useBuilderController() {
     getBuilderStepStatusText,
     applyBuilderAppStepResult,
     handleBuilderPrefillExample,
-    handleBuilderModeEndUser,
-    handleBuilderModeGeek,
+    handleBuilderModeForms,
+    handleBuilderModeRaw,
     handleBuilderProtocolSelect,
     handleBuilderAppSelect,
     handleBuilderOperationSelect,

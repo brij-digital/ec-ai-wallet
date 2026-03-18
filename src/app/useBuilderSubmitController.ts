@@ -355,7 +355,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         );
       }
 
-      if (options.builderViewMode === 'enduser' && options.selectedBuilderAppStep && options.selectedBuilderApp) {
+      if (options.builderViewMode === 'forms' && options.selectedBuilderAppStep && options.selectedBuilderApp) {
         options.clearBuilderAppProgressFrom(options.builderAppStepIndex);
         options.setBuilderAppStepCompleted((prev) => ({
           ...prev,

@@ -663,17 +663,17 @@
   },
   "apps": {
     "swap_from_discovery": {
-      "label": "Discover & Swap",
-      "title": "Discover -> Swap",
-      "description": "List pools for a pair, then execute swap on the selected pool.",
+      "label": "Swap",
+      "title": "Swap",
+      "description": "",
       "entry_step": "discover",
       "steps": [
         {
           "id": "discover",
-          "label": "Discover Pools",
+          "label": "Choose Pool",
           "operation": "list_pools",
-          "title": "Discover Pools",
-          "description": "Fetch Whirlpool candidates sorted by liquidity.",
+          "title": "Choose Pool",
+          "description": "",
           "actions": [
             {
               "label": "Find Pools",
@@ -708,10 +708,10 @@
         },
         {
           "id": "swap",
-          "label": "Swap By Pool",
+          "label": "Swap",
           "operation": "swap_exact_in",
-          "title": "Swap By Pool",
-          "description": "Run simulation or send on selected Whirlpool.",
+          "title": "Swap",
+          "description": "",
           "actions": [
             {
               "label": "Swap",

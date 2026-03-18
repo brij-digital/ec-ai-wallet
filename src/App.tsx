@@ -17,13 +17,13 @@ const VIEW_API_BASE_URL = String(import.meta.env.VITE_VIEW_API_BASE_URL ?? DEFAU
 const QUICK_PREFILL_META_RUN_COMMAND =
   '/meta-run orca-whirlpool-mainnet swap_exact_in {"token_in_mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","token_out_mint":"So11111111111111111111111111111111111111112","amount_in":"10000","slippage_bps":50,"estimated_out":"100000","whirlpool":"Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE","unwrap_sol_output":true} --simulate';
 
-type AppTab = 'command' | 'builder' | 'compute';
+type AppTab = 'apps' | 'raw' | 'command' | 'compute';
 
 function App() {
   const { connection } = useConnection();
   const wallet = useWallet();
 
-  const [activeTab, setActiveTab] = useState<AppTab>('builder');
+  const [activeTab, setActiveTab] = useState<AppTab>('apps');
   const [isBuilderWorking, setIsBuilderWorking] = useState(false);
 
   const builder = useBuilderController();
@@ -69,8 +69,8 @@ function App() {
     setBuilderResult,
     builderInputValues,
     handleBuilderPrefillExample,
-    handleBuilderModeEndUser,
-    handleBuilderModeGeek,
+    handleBuilderModeForms,
+    handleBuilderModeRaw,
     handleBuilderProtocolSelect,
     handleBuilderAppSelect,
     handleBuilderOperationSelect,
@@ -149,11 +149,26 @@ function App() {
           <button
             type="button"
             role="tab"
-            aria-selected={activeTab === 'builder'}
-            className={activeTab === 'builder' ? 'active' : ''}
-            onClick={() => setActiveTab('builder')}
+            aria-selected={activeTab === 'apps'}
+            className={activeTab === 'apps' ? 'active' : ''}
+            onClick={() => {
+              handleBuilderModeForms();
+              setActiveTab('apps');
+            }}
           >
-            Forms
+            Apps
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'raw'}
+            className={activeTab === 'raw' ? 'active' : ''}
+            onClick={() => {
+              handleBuilderModeRaw();
+              setActiveTab('raw');
+            }}
+          >
+            Raw Operations
           </button>
           <button
             type="button"
@@ -190,8 +205,6 @@ function App() {
           <BuilderTab
             isWorking={isWorking}
             builderViewMode={builderViewMode}
-            onModeEndUser={handleBuilderModeEndUser}
-            onModeGeek={handleBuilderModeGeek}
             builderProtocols={builderProtocols}
             builderProtocolLabelsById={builderProtocolLabelsById}
             builderProtocolId={builderProtocolId}

@@ -12,7 +12,7 @@ import {
 import type { BuilderStepAction } from '../useBuilderController';
 import type { OperationEnhancement } from '../metaEnhancements';
 
-type BuilderViewMode = 'enduser' | 'geek';
+type BuilderViewMode = 'forms' | 'raw';
 type BuilderAppSubmitMode = 'simulate' | 'send';
 
 type BuilderProtocol = {
@@ -27,8 +27,6 @@ type BuilderSelectUi = Extract<NonNullable<BuilderStep['ui']>, { kind: 'select_f
 type BuilderTabProps = {
   isWorking: boolean;
   builderViewMode: BuilderViewMode;
-  onModeEndUser: () => void;
-  onModeGeek: () => void;
   builderProtocols: BuilderProtocol[];
   builderProtocolLabelsById: Record<string, string>;
   builderProtocolId: string;
@@ -76,8 +74,6 @@ export function BuilderTab(props: BuilderTabProps) {
   const {
     isWorking,
     builderViewMode,
-    onModeEndUser,
-    onModeGeek,
     builderProtocols,
     builderProtocolLabelsById,
     builderProtocolId,
@@ -126,14 +122,10 @@ export function BuilderTab(props: BuilderTabProps) {
     (selectedBuilderOperation && builderOperationLabelsByOperationId[selectedBuilderOperation.operationId]) ||
     selectedBuilderOperation?.operationId ||
     '';
-  const selectedBuilderAppStep = selectedBuilderApp ? selectedBuilderApp.steps[builderAppStepIndex] : null;
-  const selectedBuilderAppStepLabel = selectedBuilderAppStep
-    ? builderStepLabelsByAppStepKey[`${selectedBuilderApp.appId}:${selectedBuilderAppStep.stepId}`] ??
-      selectedBuilderAppStep.title
-    : '';
   const builderAppHeaderTitle =
-    builderViewMode === 'enduser' && selectedBuilderApp ? selectedBuilderApp.title : `${builderProtocolId}/${selectedOperationDisplayLabel}`;
+    builderViewMode === 'forms' && selectedBuilderApp ? selectedBuilderApp.title : `${builderProtocolId}/${selectedOperationDisplayLabel}`;
   const supportedTokens = listSupportedTokens();
+  const showTechnicalHints = builderViewMode === 'raw';
 
   const actionClassName = (action: BuilderStepAction): string => {
     if (action.do.fn === 'back' || action.do.fn === 'reset') {
@@ -245,27 +237,62 @@ export function BuilderTab(props: BuilderTabProps) {
     );
   };
 
+  const resolveFriendlyHint = (options: {
+    inputName: string;
+    showTokenPicker: boolean;
+    resolvedToken: ReturnType<typeof resolveToken> | null;
+    amountToken: ReturnType<typeof resolveToken> | null;
+    isAmountField: boolean;
+    isSlippageField: boolean;
+    inputMode: 'edit' | 'readonly' | 'hidden';
+    specHelp?: string;
+  }): string | null => {
+    const {
+      inputName,
+      showTokenPicker,
+      resolvedToken,
+      amountToken,
+      isAmountField,
+      isSlippageField,
+      inputMode,
+      specHelp,
+    } = options;
+
+    if (showTechnicalHints) {
+      if (showTokenPicker) {
+        return resolvedToken
+          ? `ticker: ${resolvedToken.symbol} | decimals: ${resolvedToken.decimals} | mint: ${resolvedToken.mint}`
+          : 'Select one token from the list.';
+      }
+      if (isAmountField && amountToken) {
+        return `Unit: ${amountToken.symbol} (${amountToken.decimals} decimals).`;
+      }
+      if (isSlippageField) {
+        return 'Unit: percent (%).';
+      }
+      return specHelp ?? null;
+    }
+
+    if (showTokenPicker) {
+      return resolvedToken ? `Selected: ${resolvedToken.symbol}` : 'Choose a token.';
+    }
+    if (isAmountField && amountToken) {
+      return `Amount in ${amountToken.symbol}.`;
+    }
+    if (isSlippageField) {
+      return 'Price tolerance in %.';
+    }
+    if (inputMode === 'readonly') {
+      if (inputName.toLowerCase().includes('estimated')) {
+        return 'Updated automatically.';
+      }
+      return 'Filled automatically.';
+    }
+    return null;
+  };
+
   return (
     <>
-      <div className="builder-mode-switch builder-mode-switch-global" role="tablist" aria-label="Builder audience mode">
-        <button
-          type="button"
-          className={builderViewMode === 'enduser' ? 'active' : ''}
-          onClick={onModeEndUser}
-          disabled={isWorking}
-        >
-          End User
-        </button>
-        <button
-          type="button"
-          className={builderViewMode === 'geek' ? 'active' : ''}
-          onClick={onModeGeek}
-          disabled={isWorking}
-        >
-          Geek
-        </button>
-      </div>
-
       <section className="builder-shell" aria-live="polite">
         <div className="builder-layout">
           <div className="builder-main">
@@ -289,9 +316,9 @@ export function BuilderTab(props: BuilderTabProps) {
               </aside>
 
               <aside className="builder-list">
-                <h3>{builderViewMode === 'enduser' ? 'Apps' : 'Actions'}</h3>
+                <h3>{builderViewMode === 'forms' ? 'Apps' : 'Raw Operations'}</h3>
                 <div className="builder-items">
-                  {builderViewMode === 'enduser'
+                  {builderViewMode === 'forms'
                     ? builderApps.length > 0
                       ? builderApps.map((app) => (
                           <button
@@ -305,9 +332,7 @@ export function BuilderTab(props: BuilderTabProps) {
                             <small>{app.appId}</small>
                           </button>
                         ))
-                      : (
-                          <p className="builder-empty">No end-user apps declared for this protocol.</p>
-                        )
+                      : <p className="builder-empty">No apps declared for this protocol.</p>
                     : builderOperations.map((operation) => (
                         <button
                           key={operation.operationId}
@@ -327,16 +352,8 @@ export function BuilderTab(props: BuilderTabProps) {
             {selectedBuilderOperation ? (
               <form className="builder-form" onSubmit={onSubmit}>
                 <h3>{builderAppHeaderTitle}</h3>
-                {builderViewMode === 'enduser' && selectedBuilderApp ? (
+                {builderViewMode === 'forms' && selectedBuilderApp ? (
                   <>
-                    {selectedBuilderApp.description ? (
-                      <p className="builder-app-description">{selectedBuilderApp.description}</p>
-                    ) : null}
-                    {selectedBuilderAppStep ? (
-                      <p className="builder-app-step">
-                        Step {builderAppStepIndex + 1} of {selectedBuilderApp.steps.length}: <strong>{selectedBuilderAppStepLabel}</strong>
-                      </p>
-                    ) : null}
                     <div className="builder-step-list">
                       {selectedBuilderApp.steps.map((step, index) => (
                         <button
@@ -353,11 +370,13 @@ export function BuilderTab(props: BuilderTabProps) {
                     {builderAppStepIndex > 0 || showBuilderSelectableItems ? (
                       <button
                         type="button"
-                        className="builder-back"
+                        className="builder-back builder-back-icon"
                         onClick={showBuilderSelectableItems ? onResetStep : onBackStep}
                         disabled={isWorking}
+                        aria-label={showBuilderSelectableItems ? 'Back to search' : 'Back'}
+                        title={showBuilderSelectableItems ? 'Back to search' : 'Back'}
                       >
-                        {showBuilderSelectableItems ? 'Back to search form' : 'Back to previous step'}
+                        <span aria-hidden="true">←</span>
                       </button>
                     ) : null}
                   </>
@@ -423,6 +442,16 @@ export function BuilderTab(props: BuilderTabProps) {
                           }
                           return value;
                         })();
+                        const hintText = resolveFriendlyHint({
+                          inputName,
+                          showTokenPicker,
+                          resolvedToken,
+                          amountToken,
+                          isAmountField,
+                          isSlippageField,
+                          inputMode,
+                          specHelp: selectedBuilderOperationEnhancement?.inputUi[inputName]?.help,
+                        });
                         return (
                           <label key={inputName}>
                             <span>
@@ -497,24 +526,7 @@ export function BuilderTab(props: BuilderTabProps) {
                                 disabled={isWorking || !editable}
                               />
                             )}
-                            {showTokenPicker ? (
-                              <small className="builder-token-meta">
-                                {resolvedToken
-                                  ? `ticker: ${resolvedToken.symbol} | decimals: ${resolvedToken.decimals} | mint: ${resolvedToken.mint}`
-                                  : 'Select one token from the list.'}
-                              </small>
-                            ) : isAmountField && amountToken ? (
-                              <small className="builder-token-meta">
-                                Unit: {amountToken.symbol} ({amountToken.decimals} decimals).
-                              </small>
-                            ) : isSlippageField ? (
-                              <small className="builder-token-meta">Unit: percent (%).</small>
-                            ) : null}
-                            {selectedBuilderOperationEnhancement?.inputUi[inputName]?.help ? (
-                              <small className="builder-input-help">
-                                {selectedBuilderOperationEnhancement.inputUi[inputName].help}
-                              </small>
-                            ) : null}
+                            {hintText ? <small className="builder-token-meta">{hintText}</small> : null}
                           </label>
                         );
                       })}
