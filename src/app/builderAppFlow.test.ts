@@ -35,7 +35,6 @@ const app: MetaAppSummary = {
       inputFrom: {},
       transitions: [{ on: 'success', to: 'swap' }],
       blocking: {
-        dependsOn: [],
         requiresPaths: [],
       },
     },
@@ -53,7 +52,6 @@ const app: MetaAppSummary = {
       inputFrom: {},
       transitions: [],
       blocking: {
-        dependsOn: ['discover'],
         requiresPaths: ['$steps.discover.derived.selected_pool.pool'],
       },
     },
@@ -65,7 +63,7 @@ describe('builder app step transitions and unlock rules', () => {
     expect(isBuilderAppStepUnlocked(app, app.steps[0]!, {}, {})).toBe(true);
   });
 
-  it('dependent step stays locked until dependency and required paths are satisfied', () => {
+  it('dependent step stays locked until required paths are satisfied', () => {
     const swapStep = app.steps[1]!;
     expect(isBuilderAppStepUnlocked(app, swapStep, {}, {})).toBe(false);
 

@@ -334,6 +334,154 @@ function compileOperation(action) {
 }
 
 /**
+ * @param {Record<string, unknown>} step
+ * @param {string} label
+ * @returns {Record<string, unknown>}
+ */
+function normalizeStepStatusText(step, label) {
+  const title =
+    typeof step.title === 'string' && step.title.trim().length > 0
+      ? step.title.trim()
+      : asString(step.label, `${label}.label`);
+  const raw =
+    step.status_text === undefined ? {} : asObject(step.status_text, `${label}.status_text`);
+  const running =
+    typeof raw.running === 'string' && raw.running.trim().length > 0
+      ? raw.running.trim()
+      : `Running ${title}...`;
+  const success =
+    typeof raw.success === 'string' && raw.success.trim().length > 0
+      ? raw.success.trim()
+      : `${title} completed.`;
+  const error =
+    typeof raw.error === 'string' && raw.error.trim().length > 0
+      ? raw.error.trim()
+      : `${title} failed: {error}`;
+  const status = { running, success, error };
+  if (typeof raw.idle === 'string' && raw.idle.trim().length > 0) {
+    return { ...status, idle: raw.idle.trim() };
+  }
+  return status;
+}
+
+/**
+ * @param {Record<string, unknown>} step
+ * @param {string} label
+ * @returns {{ requires_paths: string[] }}
+ */
+function normalizeStepBlocking(step, label) {
+  if (step.blocking === undefined) {
+    return { requires_paths: [] };
+  }
+  const raw = asObject(step.blocking, `${label}.blocking`);
+  const requiresPaths =
+    raw.requires_paths === undefined ? [] : asArray(raw.requires_paths, `${label}.blocking.requires_paths`);
+  return {
+    requires_paths: requiresPaths.map((entry, index) =>
+      asString(entry, `${label}.blocking.requires_paths[${index}]`),
+    ),
+  };
+}
+
+/**
+ * @param {Record<string, unknown>} step
+ * @param {string} label
+ * @returns {{ transitions: Array<{ on: "success"; to: string }>; nextOnSuccess: string | null }}
+ */
+function normalizeStepTransitions(step, label) {
+  const transitionsRaw =
+    step.transitions === undefined ? [] : asArray(step.transitions, `${label}.transitions`);
+  const transitions = transitionsRaw.map((entry, index) => {
+    const transition = asObject(entry, `${label}.transitions[${index}]`);
+    const on = asString(transition.on, `${label}.transitions[${index}].on`);
+    if (on !== 'success') {
+      fail(`${label}.transitions[${index}].on must be success.`);
+    }
+    return {
+      on: /** @type {"success"} */ ('success'),
+      to: asString(transition.to, `${label}.transitions[${index}].to`),
+    };
+  });
+
+  const successTransitions = transitions.filter((entry) => entry.on === 'success');
+  if (successTransitions.length > 1) {
+    fail(`${label}.transitions must not define multiple success targets.`);
+  }
+
+  const nextFromField =
+    step.next_on_success === undefined
+      ? null
+      : asString(step.next_on_success, `${label}.next_on_success`);
+  if (nextFromField !== null && successTransitions.length === 1 && successTransitions[0].to !== nextFromField) {
+    fail(
+      `${label}.next_on_success must match transitions success target (${successTransitions[0].to}).`,
+    );
+  }
+
+  const nextOnSuccess = nextFromField ?? successTransitions[0]?.to ?? null;
+  if (nextOnSuccess && successTransitions.length === 0) {
+    transitions.push({ on: 'success', to: nextOnSuccess });
+  }
+
+  return { transitions, nextOnSuccess };
+}
+
+/**
+ * @param {Record<string, unknown>} app
+ * @param {string} label
+ * @returns {Record<string, unknown>}
+ */
+function normalizeApp(app, label) {
+  const title = asString(app.title, `${label}.title`);
+  const appLabel = asString(app.label, `${label}.label`);
+  const entryStep = asString(app.entry_step, `${label}.entry_step`);
+  const steps = asArray(app.steps, `${label}.steps`);
+  const normalizedSteps = steps.map((rawStep, stepIndex) => {
+    const step = asObject(rawStep, `${label}.steps[${stepIndex}]`);
+    const stepId = asString(step.id, `${label}.steps[${stepIndex}].id`);
+    const stepLabel = `${label}.steps.${stepId}`;
+    const stepTitle = asString(step.title, `${stepLabel}.title`);
+    asString(step.operation, `${stepLabel}.operation`);
+    asString(step.label, `${stepLabel}.label`);
+    const actions = asArray(step.actions, `${stepLabel}.actions`);
+    if (actions.length === 0) {
+      fail(`${stepLabel}.actions must be a non-empty array.`);
+    }
+    actions.forEach((rawAction, actionIndex) => {
+      const action = asObject(rawAction, `${stepLabel}.actions[${actionIndex}]`);
+      asString(action.id, `${stepLabel}.actions[${actionIndex}].id`);
+      asString(action.kind, `${stepLabel}.actions[${actionIndex}].kind`);
+      asString(action.label, `${stepLabel}.actions[${actionIndex}].label`);
+      asString(action.variant, `${stepLabel}.actions[${actionIndex}].variant`);
+      if (action.kind === 'run') {
+        asString(action.mode, `${stepLabel}.actions[${actionIndex}].mode`);
+      }
+    });
+
+    const { transitions, nextOnSuccess } = normalizeStepTransitions(step, stepLabel);
+    return {
+      ...step,
+      id: stepId,
+      title: stepTitle,
+      label: asString(step.label, `${stepLabel}.label`),
+      actions,
+      blocking: normalizeStepBlocking(step, stepLabel),
+      status_text: normalizeStepStatusText(step, stepLabel),
+      transitions,
+      ...(nextOnSuccess ? { next_on_success: nextOnSuccess } : {}),
+    };
+  });
+
+  return {
+    ...app,
+    title,
+    label: appLabel,
+    entry_step: entryStep,
+    steps: normalizedSteps,
+  };
+}
+
+/**
  * @param {Record<string, unknown>} source
  * @param {string} sourceFile
  * @param {Record<string, Record<string, unknown>[]>} computeLibraries
@@ -392,30 +540,11 @@ function compileAidl(source, sourceFile, computeLibraries) {
     operations[operationName] = compiled;
   }
 
+  /** @type {Record<string, unknown>} */
+  const apps = {};
   for (const [appName, appValue] of Object.entries(appsRaw)) {
     const app = asObject(appValue, `${sourceFile}.apps.${appName}`);
-    asString(app.label, `${sourceFile}.apps.${appName}.label`);
-    const steps = asArray(app.steps, `${sourceFile}.apps.${appName}.steps`);
-    steps.forEach((rawStep, stepIndex) => {
-      const step = asObject(rawStep, `${sourceFile}.apps.${appName}.steps[${stepIndex}]`);
-      asString(step.label, `${sourceFile}.apps.${appName}.steps[${stepIndex}].label`);
-      if (Array.isArray(step.actions)) {
-        step.actions.forEach((rawAction, actionIndex) => {
-          const action = asObject(
-            rawAction,
-            `${sourceFile}.apps.${appName}.steps[${stepIndex}].actions[${actionIndex}]`,
-          );
-          asString(
-            action.label,
-            `${sourceFile}.apps.${appName}.steps[${stepIndex}].actions[${actionIndex}].label`,
-          );
-          asString(
-            action.id,
-            `${sourceFile}.apps.${appName}.steps[${stepIndex}].actions[${actionIndex}].id`,
-          );
-        });
-      }
-    });
+    apps[appName] = normalizeApp(app, `${sourceFile}.apps.${appName}`);
   }
 
   const output = {
@@ -427,7 +556,7 @@ function compileAidl(source, sourceFile, computeLibraries) {
     ...(sourcesRaw ? { sources: sourcesRaw } : {}),
     templates,
     operations,
-    apps: appsRaw,
+    apps,
   };
 
   return {

@@ -137,7 +137,6 @@ function createAidlSkeleton({ protocolId, slug }) {
             operation: 'health_read',
             title: 'Health Read',
             blocking: {
-              depends_on: [],
               requires_paths: [],
             },
             success: {

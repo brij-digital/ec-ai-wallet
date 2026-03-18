@@ -367,7 +367,6 @@ function validateApps(meta, protocolId, operations) {
       }
 
       const blocking = asObject(step.blocking, `${protocolId}.apps.${appId}.steps.${stepId}.blocking`);
-      asStringArray(blocking.depends_on, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.depends_on`);
       if (blocking.requires_paths !== undefined) {
         asStringArray(blocking.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.requires_paths`);
       }
@@ -388,11 +387,8 @@ function validateApps(meta, protocolId, operations) {
         }
       }
       const blocking = asObject(step.blocking, `${protocolId}.apps.${appId}.steps.${stepId}.blocking`);
-      const dependsOn = asStringArray(blocking.depends_on, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.depends_on`);
-      for (const dep of dependsOn) {
-        if (!stepIds.has(dep)) {
-          fail(`${protocolId}.apps.${appId}.steps.${stepId} blocking.depends_on unknown step: ${dep}`);
-        }
+      if (blocking.requires_paths !== undefined) {
+        asStringArray(blocking.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.blocking.requires_paths`);
       }
     }
   }

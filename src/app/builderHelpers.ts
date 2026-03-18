@@ -108,12 +108,8 @@ export function isBuilderAppStepUnlocked(
   app: MetaAppSummary,
   targetStep: MetaAppSummary['steps'][number],
   contexts: Record<string, BuilderAppStepContext>,
-  completed: Record<string, boolean>,
+  _completed: Record<string, boolean>,
 ): boolean {
-  const dependsSatisfied = targetStep.blocking.dependsOn.every((stepId) => Boolean(completed[stepId]));
-  if (!dependsSatisfied) {
-    return false;
-  }
   const scope = buildBuilderAppScope(contexts);
   const pathsSatisfied = targetStep.blocking.requiresPaths.every((path) => isBuilderTruthy(readBuilderPath(scope, path)));
   if (!pathsSatisfied) {

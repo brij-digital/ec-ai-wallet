@@ -1075,7 +1075,6 @@
             }
           ],
           "blocking": {
-            "depends_on": [],
             "requires_paths": []
           },
           "next_on_success": "pool",
@@ -1129,9 +1128,6 @@
             }
           ],
           "blocking": {
-            "depends_on": [
-              "discover"
-            ],
             "requires_paths": [
               "$steps.discover.derived.selected_pool.pool"
             ]
@@ -1176,9 +1172,6 @@
             }
           ],
           "blocking": {
-            "depends_on": [
-              "pool"
-            ],
             "requires_paths": [
               "$steps.discover.derived.selected_pool.pool"
             ]
@@ -1224,9 +1217,6 @@
             }
           ],
           "blocking": {
-            "depends_on": [
-              "pool"
-            ],
             "requires_paths": [
               "$steps.discover.derived.selected_pool.pool"
             ]
@@ -1274,7 +1264,6 @@
             }
           ],
           "blocking": {
-            "depends_on": [],
             "requires_paths": []
           },
           "status_text": {

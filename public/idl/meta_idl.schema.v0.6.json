@@ -387,16 +387,7 @@
     },
     "userAppBlockingSpec": {
       "type": "object",
-      "required": [
-        "depends_on"
-      ],
       "properties": {
-        "depends_on": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "requires_paths": {
           "type": "array",
           "items": {
@@ -450,9 +441,7 @@
         "id",
         "operation",
         "title",
-        "label",
-        "transitions",
-        "blocking"
+        "label"
       ],
       "properties": {
         "id": {

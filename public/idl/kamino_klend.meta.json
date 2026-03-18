@@ -666,7 +666,6 @@
             }
           ],
           "blocking": {
-            "depends_on": [],
             "requires_paths": []
           },
           "status_text": {
@@ -707,7 +706,6 @@
             }
           ],
           "blocking": {
-            "depends_on": [],
             "requires_paths": []
           },
           "status_text": {
@@ -748,7 +746,6 @@
             }
           ],
           "blocking": {
-            "depends_on": [],
             "requires_paths": []
           },
           "status_text": {

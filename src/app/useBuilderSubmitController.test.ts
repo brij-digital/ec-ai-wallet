@@ -101,7 +101,7 @@ describe('useBuilderSubmitController', () => {
               },
               inputFrom: {},
               transitions: [{ on: 'success', to: 'swap' }],
-              blocking: { dependsOn: [], requiresPaths: [] },
+              blocking: { requiresPaths: [] },
               ui: {
                 kind: 'select_from_derived',
                 source: 'pool_candidates',
@@ -128,7 +128,6 @@ describe('useBuilderSubmitController', () => {
               },
               transitions: [],
               blocking: {
-                dependsOn: ['discover'],
                 requiresPaths: ['$steps.discover.derived.selected_pool.whirlpool'],
               },
             },
@@ -348,7 +347,7 @@ describe('useBuilderSubmitController', () => {
               },
               inputFrom: {},
               transitions: [],
-              blocking: { dependsOn: [], requiresPaths: [] },
+              blocking: { requiresPaths: [] },
             },
           ],
         },

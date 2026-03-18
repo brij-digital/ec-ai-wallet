@@ -32,7 +32,6 @@
             }
           ],
           "blocking": {
-            "depends_on": [],
             "requires_paths": []
           },
           "status_text": {
