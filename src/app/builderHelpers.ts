@@ -156,13 +156,19 @@ export function isAutoResolvedBuilderInput(spec: MetaOperationSummary['inputs'][
 }
 
 export function isBuilderInputEditable(spec: MetaOperationSummary['inputs'][string]): boolean {
-  if (typeof spec.ui_editable === 'boolean') {
-    return spec.ui_editable;
+  if (spec.ui_mode === 'edit') {
+    return true;
+  }
+  if (spec.ui_mode === 'readonly' || spec.ui_mode === 'hidden') {
+    return false;
   }
   return !isAutoResolvedBuilderInput(spec);
 }
 
 export function getBuilderInputTag(spec: MetaOperationSummary['inputs'][string]): string {
+  if (spec.ui_mode === 'hidden') {
+    return 'hidden';
+  }
   if (typeof spec.read_from === 'string' && spec.read_from.length > 0) {
     return 'readonly';
   }

@@ -549,6 +549,22 @@ function compileAidl(source, sourceFile, computeLibraries) {
           `${sourceFile}.operations.${operationName}.inputs.${inputName}.read_from`,
         );
       }
+      if (inputSpec.ui_editable !== undefined) {
+        fail(
+          `${sourceFile}.operations.${operationName}.inputs.${inputName}.ui_editable is not supported. Use ui_mode: \"edit\"|\"readonly\"|\"hidden\".`,
+        );
+      }
+      if (inputSpec.ui_mode !== undefined) {
+        const mode = asString(
+          inputSpec.ui_mode,
+          `${sourceFile}.operations.${operationName}.inputs.${inputName}.ui_mode`,
+        );
+        if (mode !== 'edit' && mode !== 'readonly' && mode !== 'hidden') {
+          fail(
+            `${sourceFile}.operations.${operationName}.inputs.${inputName}.ui_mode must be one of edit|readonly|hidden.`,
+          );
+        }
+      }
     }
     operations[operationName] = compiled;
   }

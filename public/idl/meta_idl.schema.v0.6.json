@@ -130,8 +130,13 @@
         "validate": {
           "$ref": "#/$defs/inputValidationSpec"
         },
-        "ui_editable": {
-          "type": "boolean"
+        "ui_mode": {
+          "type": "string",
+          "enum": [
+            "edit",
+            "readonly",
+            "hidden"
+          ]
         }
       },
       "additionalProperties": false

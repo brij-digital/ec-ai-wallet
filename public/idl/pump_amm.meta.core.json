@@ -904,7 +904,7 @@
           "type": "pubkey",
           "required": true,
           "read_from": "$input.base_mint",
-          "ui_editable": false,
+          "ui_mode": "readonly",
           "label": "Base Mint"
         },
         "quote_mint": {
@@ -912,7 +912,7 @@
           "required": false,
           "default": "So11111111111111111111111111111111111111112",
           "read_from": "$input.quote_mint",
-          "ui_editable": false,
+          "ui_mode": "readonly",
           "label": "Quote Mint"
         }
       },
@@ -954,7 +954,7 @@
           "type": "pubkey",
           "required": true,
           "read_from": "$input.base_mint",
-          "ui_editable": false,
+          "ui_mode": "readonly",
           "label": "Base Mint"
         },
         "quote_mint": {
@@ -962,7 +962,7 @@
           "required": false,
           "default": "So11111111111111111111111111111111111111112",
           "read_from": "$input.quote_mint",
-          "ui_editable": false,
+          "ui_mode": "readonly",
           "label": "Quote Mint"
         },
         "quote_amount_in": {
@@ -980,7 +980,7 @@
           "type": "pubkey",
           "required": false,
           "read_from": "$input.pool",
-          "ui_editable": false,
+          "ui_mode": "readonly",
           "label": "Pool"
         },
         "slippage_bps": {
@@ -1009,7 +1009,7 @@
           "type": "pubkey",
           "required": true,
           "read_from": "$input.base_mint",
-          "ui_editable": false,
+          "ui_mode": "readonly",
           "label": "Base Mint"
         },
         "quote_mint": {
@@ -1017,14 +1017,14 @@
           "required": false,
           "default": "So11111111111111111111111111111111111111112",
           "read_from": "$input.quote_mint",
-          "ui_editable": false,
+          "ui_mode": "readonly",
           "label": "Quote Mint"
         },
         "pool": {
           "type": "pubkey",
           "required": false,
           "read_from": "$input.pool",
-          "ui_editable": false,
+          "ui_mode": "readonly",
           "label": "Pool"
         },
         "base_amount_in": {

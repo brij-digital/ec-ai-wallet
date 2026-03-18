@@ -275,7 +275,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
             if (
               typeof spec.read_from === 'string' &&
               spec.read_from.trim().length > 0 &&
-              spec.ui_editable === false
+              (spec.ui_mode === 'readonly' || spec.ui_mode === 'hidden')
             ) {
               // Read-only preview fields are derived from prepareMetaOperation.
               continue;

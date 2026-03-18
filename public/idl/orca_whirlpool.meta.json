@@ -527,7 +527,7 @@
           "help": "Auto-quoted preview output (read-only).",
           "group": "trade",
           "display_order": 5,
-          "ui_editable": false
+          "ui_mode": "readonly"
         },
         "whirlpool": {
           "type": "pubkey",
@@ -536,7 +536,7 @@
           "placeholder": "Whirlpool pubkey",
           "group": "market",
           "display_order": 6,
-          "ui_editable": false
+          "ui_mode": "readonly"
         },
         "unwrap_sol_output": {
           "type": "bool",

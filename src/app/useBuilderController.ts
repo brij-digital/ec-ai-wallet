@@ -412,6 +412,12 @@ export function useBuilderController() {
       if (builderViewMode === 'geek') {
         return true;
       }
+      if (spec.ui_mode === 'hidden') {
+        return false;
+      }
+      if (spec.ui_mode === 'edit' || spec.ui_mode === 'readonly') {
+        return true;
+      }
 
       if (typeof spec.read_from === 'string' && spec.read_from.length > 0) {
         return true;
@@ -422,7 +428,7 @@ export function useBuilderController() {
       if (spec.required && !autoResolved) {
         return true;
       }
-      return spec.required && !autoResolved;
+      return false;
     });
 
     const hintsByInput = selectedBuilderOperationEnhancement?.inputUi ?? {};
