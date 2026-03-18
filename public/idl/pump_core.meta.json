@@ -267,32 +267,11 @@
           "compute": "math.floor_div",
           "dividend": "$min_tokens_out_auto_numerator",
           "divisor": "10000"
-        },
-        {
-          "name": "min_tokens_out_input",
-          "compute": "coalesce",
-          "values": [
-            "$input.min_tokens_out",
-            "0"
-          ]
-        },
-        {
-          "name": "min_tokens_out_override_provided",
-          "compute": "compare.gt",
-          "left": "$min_tokens_out_input",
-          "right": "0"
-        },
-        {
-          "name": "min_tokens_out_effective",
-          "compute": "logic.if",
-          "condition": "$min_tokens_out_override_provided",
-          "then": "$min_tokens_out_input",
-          "else": "$min_tokens_out_auto"
         }
       ],
       "args": {
         "spendable_sol_in": "$input.spendable_sol_in",
-        "min_tokens_out": "$min_tokens_out_effective",
+        "min_tokens_out": "$min_tokens_out_auto",
         "track_volume": "$input.track_volume"
       },
       "pre": [
