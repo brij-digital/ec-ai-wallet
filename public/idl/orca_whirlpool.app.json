@@ -77,7 +77,8 @@
           "input_mode": {
             "token_in_mint": "readonly",
             "token_out_mint": "readonly",
-            "whirlpool": "hidden"
+            "whirlpool": "hidden",
+            "unwrap_sol_output": "hidden"
           },
           "requires_paths": [
             "$steps.discover.derived.selected_pool.whirlpool"
