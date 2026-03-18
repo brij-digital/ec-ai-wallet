@@ -4,7 +4,6 @@ import { listSupportedTokens, resolveToken } from '../../constants/tokens';
 import {
   formatBuilderSelectableItemLabel,
   getBuilderInputMode,
-  getBuilderInputTag,
   isBuilderInputEditable,
   readBuilderPath,
   stringifyBuilderDefault,
@@ -311,7 +310,6 @@ export function BuilderTab(props: BuilderTabProps) {
                           return null;
                         }
                         const editable = isBuilderInputEditable(spec);
-                        const fieldTag = getBuilderInputTag(spec);
                         const value = builderInputValues[inputName] ?? '';
                         const showTokenPicker = isTokenMintInput(inputName, spec);
                         const resolvedToken = showTokenPicker ? resolveToken(value) : null;
@@ -319,12 +317,7 @@ export function BuilderTab(props: BuilderTabProps) {
                         return (
                           <label key={inputName}>
                             <span>
-                              {selectedBuilderOperationEnhancement?.inputUi[inputName]?.group ? (
-                                <em>[{selectedBuilderOperationEnhancement.inputUi[inputName].group}] </em>
-                              ) : null}
-                              {selectedBuilderOperationEnhancement?.inputUi[inputName]?.label ?? inputName}{' '}
-                              <code>{spec.type}</code>{' '}
-                              {spec.required ? <strong>({fieldTag})</strong> : <em>({fieldTag})</em>}
+                              {selectedBuilderOperationEnhancement?.inputUi[inputName]?.label ?? inputName}
                             </span>
                             {showTokenPicker ? (
                               <div className="builder-token-selector">
