@@ -415,19 +415,57 @@ function normalizeApp(app, label) {
     const stepTitle = asString(step.title, `${stepLabel}.title`);
     asString(step.operation, `${stepLabel}.operation`);
     asString(step.label, `${stepLabel}.label`);
-    const actions = asArray(step.actions, `${stepLabel}.actions`);
-    if (actions.length === 0) {
+    const actionsRaw = asArray(step.actions, `${stepLabel}.actions`);
+    if (actionsRaw.length === 0) {
       fail(`${stepLabel}.actions must be a non-empty array.`);
     }
-    actions.forEach((rawAction, actionIndex) => {
+    const actions = actionsRaw.map((rawAction, actionIndex) => {
       const action = asObject(rawAction, `${stepLabel}.actions[${actionIndex}]`);
-      asString(action.id, `${stepLabel}.actions[${actionIndex}].id`);
-      asString(action.kind, `${stepLabel}.actions[${actionIndex}].kind`);
-      asString(action.label, `${stepLabel}.actions[${actionIndex}].label`);
-      asString(action.variant, `${stepLabel}.actions[${actionIndex}].variant`);
-      if (action.kind === 'run') {
-        asString(action.mode, `${stepLabel}.actions[${actionIndex}].mode`);
+      const actionKeys = Object.keys(action);
+      const allowedActionKeys = new Set(['label', 'do']);
+      for (const key of actionKeys) {
+        if (!allowedActionKeys.has(key)) {
+          fail(
+            `${stepLabel}.actions[${actionIndex}] supports only { label, do }. Unexpected key: ${key}.`,
+          );
+        }
       }
+      const actionLabel = asString(action.label, `${stepLabel}.actions[${actionIndex}].label`);
+      const doRaw = asObject(action.do, `${stepLabel}.actions[${actionIndex}].do`);
+      const doKeys = Object.keys(doRaw);
+      const allowedDoKeys = new Set(['fn', 'mode']);
+      for (const key of doKeys) {
+        if (!allowedDoKeys.has(key)) {
+          fail(
+            `${stepLabel}.actions[${actionIndex}].do supports only { fn, mode }. Unexpected key: ${key}.`,
+          );
+        }
+      }
+
+      const fn = asString(doRaw.fn, `${stepLabel}.actions[${actionIndex}].do.fn`);
+      if (fn !== 'run' && fn !== 'back' && fn !== 'reset') {
+        fail(`${stepLabel}.actions[${actionIndex}].do.fn must be run|back|reset.`);
+      }
+
+      let mode;
+      if (fn === 'run') {
+        mode = asString(doRaw.mode, `${stepLabel}.actions[${actionIndex}].do.mode`);
+        if (mode !== 'view' && mode !== 'simulate' && mode !== 'send') {
+          fail(`${stepLabel}.actions[${actionIndex}].do.mode must be view|simulate|send for run.`);
+        }
+      } else if (doRaw.mode !== undefined) {
+        fail(`${stepLabel}.actions[${actionIndex}].do.mode is only allowed for fn=run.`);
+      }
+
+      const actionId = `${stepId}_${fn}_${actionIndex + 1}`;
+      const variant = fn === 'run' ? 'primary' : 'ghost';
+      return {
+        id: actionId,
+        kind: fn,
+        label: actionLabel,
+        ...(mode ? { mode } : {}),
+        variant,
+      };
     });
 
     const nextOnSuccess = normalizeStepNextOnSuccess(step, stepLabel);

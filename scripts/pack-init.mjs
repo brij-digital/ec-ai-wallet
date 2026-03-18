@@ -146,11 +146,11 @@ function createAidlSkeleton({ protocolId, slug }) {
             },
             actions: [
               {
-                id: 'health_run',
-                kind: 'run',
                 label: 'Run Health Check',
-                mode: 'view',
-                variant: 'primary'
+                do: {
+                  fn: 'run',
+                  mode: 'view'
+                }
               }
             ]
           },

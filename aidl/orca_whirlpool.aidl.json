@@ -528,11 +528,11 @@
           "description": "Fetch Whirlpool candidates sorted by liquidity.",
           "actions": [
             {
-              "id": "discover_run",
-              "kind": "run",
               "label": "Find Pools",
-              "mode": "view",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "view"
+              }
             }
           ],
           "next_on_success": "swap",
@@ -566,11 +566,11 @@
           "description": "Run simulation or send on selected Whirlpool.",
           "actions": [
             {
-              "id": "swap_send",
-              "kind": "run",
               "label": "Swap",
-              "mode": "send",
-              "variant": "primary"
+              "do": {
+                "fn": "run",
+                "mode": "send"
+              }
             }
           ],
           "status_text": {
