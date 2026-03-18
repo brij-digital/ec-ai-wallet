@@ -250,6 +250,36 @@
             "owner": "$wallet",
             "mint": "$pool_data.base_mint",
             "token_program": "$base_token_program"
+          },
+          {
+            "kind": "spl_ata_create_idempotent",
+            "payer": "$wallet",
+            "ata": "$user_quote_token_account",
+            "owner": "$wallet",
+            "mint": "$pool_data.quote_mint",
+            "token_program": "$quote_token_program"
+          },
+          {
+            "kind": "system_transfer",
+            "from": "$wallet",
+            "to": "$user_quote_token_account",
+            "lamports": "$max_quote_amount_in",
+            "when": {
+              "equals": [
+                "$pool_data.quote_mint",
+                "So11111111111111111111111111111111111111112"
+              ]
+            }
+          },
+          {
+            "kind": "spl_token_sync_native",
+            "account": "$user_quote_token_account",
+            "when": {
+              "equals": [
+                "$pool_data.quote_mint",
+                "So11111111111111111111111111111111111111112"
+              ]
+            }
           }
         ],
         "accounts": {
