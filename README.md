@@ -8,6 +8,11 @@ It provides:
 - command mode for strict, protocol-agnostic execution
 - authoring + CI tooling for protocol packs (IDL + MetaIDL + AppSpec)
 
+## Related Repos
+
+- Runtime package: [brij-digital/apppack-runtime](https://github.com/brij-digital/apppack-runtime)
+- View/index service: [brij-digital/apppack-view-service](https://github.com/brij-digital/apppack-view-service)
+
 ## Current Scope
 
 Active protocols in this repo:
@@ -28,27 +33,27 @@ Each protocol pack is split into 3 layers:
 
 1. `IDL` (program truth)
 - instruction/account encoding from protocol program
-- example: [public/idl/orca_whirlpool.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/public/idl/orca_whirlpool.json)
+- example: [public/idl/orca_whirlpool.json](public/idl/orca_whirlpool.json)
 
 2. `MetaIDL` (execution logic)
 - declarative operation pipeline: `discover -> derive -> compute -> args/accounts`
 - examples:
-  - [public/idl/orca_whirlpool.meta.core.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/public/idl/orca_whirlpool.meta.core.json)
-  - [public/idl/pump_core.meta.core.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/public/idl/pump_core.meta.core.json)
+  - [public/idl/orca_whirlpool.meta.core.json](public/idl/orca_whirlpool.meta.core.json)
+  - [public/idl/pump_core.meta.core.json](public/idl/pump_core.meta.core.json)
 
 3. `AppSpec` (end-user flow)
 - step-based app UX: actions, transitions, statuses, selectable derived lists
 - examples:
-  - [public/idl/orca_whirlpool.app.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/public/idl/orca_whirlpool.app.json)
-  - [public/idl/pump_amm.app.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/public/idl/pump_amm.app.json)
+  - [public/idl/orca_whirlpool.app.json](public/idl/orca_whirlpool.app.json)
+  - [public/idl/pump_amm.app.json](public/idl/pump_amm.app.json)
 
 Registry:
-- [public/idl/registry.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/public/idl/registry.json)
+- [public/idl/registry.json](public/idl/registry.json)
 
 Schemas:
-- [public/idl/meta_idl.schema.v0.6.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/public/idl/meta_idl.schema.v0.6.json)
-- [public/idl/meta_idl.core.schema.v0.6.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/public/idl/meta_idl.core.schema.v0.6.json)
-- [public/idl/meta_app.schema.v0.1.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/public/idl/meta_app.schema.v0.1.json)
+- [public/idl/meta_idl.schema.v0.6.json](public/idl/meta_idl.schema.v0.6.json)
+- [public/idl/meta_idl.core.schema.v0.6.json](public/idl/meta_idl.core.schema.v0.6.json)
+- [public/idl/meta_app.schema.v0.1.json](public/idl/meta_app.schema.v0.1.json)
 
 ## Runtime + View Architecture
 
@@ -103,12 +108,12 @@ Core commands:
 ## Authoring Workflow
 
 AIDL authoring sources (current):
-- [aidl/orca_whirlpool.aidl.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/aidl/orca_whirlpool.aidl.json)
-- [aidl/pump_amm.aidl.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/aidl/pump_amm.aidl.json)
+- [aidl/orca_whirlpool.aidl.json](aidl/orca_whirlpool.aidl.json)
+- [aidl/pump_amm.aidl.json](aidl/pump_amm.aidl.json)
 
 Shared compute libraries:
-- [aidl/orca_whirlpool.compute.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/aidl/orca_whirlpool.compute.json)
-- [aidl/pump_amm.compute.json](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/aidl/pump_amm.compute.json)
+- [aidl/orca_whirlpool.compute.json](aidl/orca_whirlpool.compute.json)
+- [aidl/pump_amm.compute.json](aidl/pump_amm.compute.json)
 - copied outputs in `public/compute/*.compute.json`
 
 Compile and split outputs:
@@ -147,7 +152,7 @@ npm run ci:protocol-packs:rpc
 
 ## Additional Docs
 
-- [docs/aidl-authoring.md](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/docs/aidl-authoring.md)
-- [docs/meta-idl-tutorial.md](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/docs/meta-idl-tutorial.md)
-- [docs/pack-builder.md](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/docs/pack-builder.md)
-- [docs/protocol-pack-ci.md](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/docs/protocol-pack-ci.md)
+- [docs/aidl-authoring.md](docs/aidl-authoring.md)
+- [docs/meta-idl-tutorial.md](docs/meta-idl-tutorial.md)
+- [docs/pack-builder.md](docs/pack-builder.md)
+- [docs/protocol-pack-ci.md](docs/protocol-pack-ci.md)
