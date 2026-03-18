@@ -12,30 +12,45 @@
         "base_mint": {
           "type": "pubkey",
           "required": true,
-          "label": "Base Mint"
+          "label": "Token",
+          "placeholder": "Token mint address",
+          "help": "Enter the token you want to buy.",
+          "group": "market",
+          "display_order": 1
         },
         "spendable_sol_in": {
           "type": "u64",
           "required": true,
-          "label": "Spendable Sol In"
+          "label": "Amount",
+          "placeholder": "0.01",
+          "group": "trade",
+          "display_order": 2
+        },
+        "slippage_bps": {
+          "type": "u16",
+          "required": true,
+          "label": "Slippage",
+          "placeholder": "1.00",
+          "help": "Max price movement you accept, in percent.",
+          "group": "trade",
+          "display_order": 3
         },
         "min_tokens_out": {
           "type": "u64",
           "required": false,
           "read_from": "$derived.min_tokens_out_auto",
           "ui_mode": "readonly",
-          "label": "Min Tokens Out"
+          "label": "Minimum received",
+          "help": "Calculated automatically.",
+          "group": "trade",
+          "display_order": 4
         },
         "track_volume": {
           "type": "bool",
           "required": false,
           "default": false,
+          "ui_mode": "hidden",
           "label": "Track Volume"
-        },
-        "slippage_bps": {
-          "type": "u16",
-          "required": true,
-          "label": "Slippage Bps"
         }
       },
       "derive": [
