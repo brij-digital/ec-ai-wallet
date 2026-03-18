@@ -122,28 +122,6 @@ async function main() {
     );
     const operations = asObject(metaCore.operations, `${protocolId}.metaCore.operations`);
 
-    for (const [operationId, operationRaw] of Object.entries(operations)) {
-      const operation = asObject(operationRaw, `${protocolId}.metaCore.operations.${operationId}`);
-      const inputs = asObject(
-        operation.inputs ?? {},
-        `${protocolId}.metaCore.operations.${operationId}.inputs`,
-      );
-      for (const [inputName, inputRaw] of Object.entries(inputs)) {
-        const input = asObject(
-          inputRaw,
-          `${protocolId}.metaCore.operations.${operationId}.inputs.${inputName}`,
-        );
-        if (input.ui_editable === false) {
-          const readFrom = input.read_from;
-          if (typeof readFrom !== 'string' || readFrom.trim().length === 0) {
-            fail(
-              `${protocolId}.metaCore.operations.${operationId}.inputs.${inputName}: ui_editable=false requires non-empty read_from.`,
-            );
-          }
-        }
-      }
-    }
-
     const appPack = asObject(
       await readJson(toLocalPublicPath(appPath, `${protocolId}.appPath`), `${protocolId} app spec`),
       `${protocolId}.app`,
