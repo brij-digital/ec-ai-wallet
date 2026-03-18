@@ -329,7 +329,7 @@
         "token_in_mint": {
           "type": "token_mint",
           "required": true,
-          "label": "Token In",
+          "label": "From",
           "placeholder": "USDC or mint address",
           "help": "Input token symbol or mint address.",
           "group": "market",
@@ -338,7 +338,7 @@
         "token_out_mint": {
           "type": "token_mint",
           "required": true,
-          "label": "Token Out",
+          "label": "To",
           "placeholder": "SOL or mint address",
           "help": "Output token symbol or mint address.",
           "group": "market",
@@ -347,7 +347,7 @@
         "amount_in": {
           "type": "u64",
           "required": true,
-          "label": "Amount In",
+          "label": "Amount",
           "placeholder": "0.01",
           "group": "trade",
           "display_order": 2,
@@ -359,7 +359,7 @@
         "slippage_bps": {
           "type": "u16",
           "required": true,
-          "label": "Slippage",
+          "label": "Max slippage",
           "placeholder": "0.50",
           "help": "Enter a percentage value.",
           "group": "trade",
@@ -375,7 +375,7 @@
           "required": false,
           "default": "0",
           "read_from": "$derived.estimated_out_auto",
-          "label": "Estimated Out",
+          "label": "You receive",
           "placeholder": "0",
           "help": "Auto-quoted preview output (read-only).",
           "group": "trade",
@@ -428,7 +428,7 @@
         "token_in_mint": {
           "type": "token_mint",
           "required": true,
-          "label": "Token In",
+          "label": "From",
           "placeholder": "USDC or mint address",
           "help": "Search pools that include this input token.",
           "group": "market",
@@ -438,7 +438,7 @@
         "token_out_mint": {
           "type": "token_mint",
           "required": true,
-          "label": "Token Out",
+          "label": "To",
           "placeholder": "SOL or mint address",
           "help": "Search pools that include this output token.",
           "group": "market",

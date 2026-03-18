@@ -335,29 +335,6 @@ export function BuilderTab(props: BuilderTabProps) {
     return null;
   };
 
-  const resolveFriendlyLabel = (inputName: string, fallbackLabel: string): string => {
-    if (showTechnicalHints) {
-      return fallbackLabel;
-    }
-    const normalized = inputName.toLowerCase();
-    if (normalized === 'token_in_mint') {
-      return 'From';
-    }
-    if (normalized === 'token_out_mint') {
-      return 'To';
-    }
-    if (normalized === 'amount_in') {
-      return 'Amount';
-    }
-    if (normalized === 'estimated_out') {
-      return 'You receive';
-    }
-    if (normalized === 'slippage_bps') {
-      return 'Max slippage';
-    }
-    return fallbackLabel;
-  };
-
   return (
     <>
       {builderToast ? (
@@ -526,10 +503,7 @@ export function BuilderTab(props: BuilderTabProps) {
                           inputMode,
                           specHelp: selectedBuilderOperationEnhancement?.inputUi[inputName]?.help,
                         });
-                        const labelText = resolveFriendlyLabel(
-                          inputName,
-                          selectedBuilderOperationEnhancement?.inputUi[inputName]?.label ?? inputName,
-                        );
+                        const labelText = selectedBuilderOperationEnhancement?.inputUi[inputName]?.label ?? inputName;
                         const placeholderText = (() => {
                           const uiPlaceholder = selectedBuilderOperationEnhancement?.inputUi[inputName]?.placeholder;
                           if (uiPlaceholder) {
