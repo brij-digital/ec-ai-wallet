@@ -165,6 +165,10 @@ export function BuilderTab(props: BuilderTabProps) {
     if (raw.length === 0) {
       return '';
     }
+    // Keep temporary typing state (e.g. "1.") so users can continue entering decimals.
+    if (raw === '.' || raw.endsWith('.')) {
+      return raw;
+    }
     if (!/^\d*\.?\d*$/.test(raw)) {
       return displayRaw;
     }
@@ -197,6 +201,10 @@ export function BuilderTab(props: BuilderTabProps) {
     const raw = percentRaw.trim();
     if (raw.length === 0) {
       return '';
+    }
+    // Keep temporary typing state (e.g. "0.") during input editing.
+    if (raw === '.' || raw.endsWith('.')) {
+      return raw;
     }
     if (!/^\d*\.?\d*$/.test(raw)) {
       return percentRaw;
