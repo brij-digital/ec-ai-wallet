@@ -51,7 +51,6 @@ function App() {
     builderOperationId,
     builderViewMode,
     visibleBuilderInputs,
-    hiddenBuilderInputsCount,
     isBuilderAppMode,
     builderAppSubmitMode,
     setBuilderAppSubmitMode,
@@ -220,7 +219,6 @@ function App() {
             selectedBuilderAppSelectableItems={selectedBuilderAppSelectableItems}
             selectedBuilderSelectedItemValue={selectedBuilderSelectedItemValue}
             onSelectItem={handleBuilderAppSelectItem}
-            hiddenBuilderInputsCount={hiddenBuilderInputsCount}
             visibleBuilderInputs={visibleBuilderInputs}
             builderInputValues={builderInputValues}
             onInputChange={handleBuilderInputChange}

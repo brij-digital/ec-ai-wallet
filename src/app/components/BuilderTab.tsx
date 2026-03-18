@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import type { MetaAppSummary, MetaOperationSummary } from '@agentform/apppack-runtime/metaIdlRuntime';
 import { listSupportedTokens, resolveToken } from '../../constants/tokens';
 import {
@@ -56,7 +56,6 @@ type BuilderTabProps = {
   selectedBuilderAppSelectableItems: unknown[];
   selectedBuilderSelectedItemValue: unknown;
   onSelectItem: (item: unknown) => void;
-  hiddenBuilderInputsCount: number;
   visibleBuilderInputs: Array<[string, MetaOperationSummary['inputs'][string]]>;
   builderInputValues: Record<string, string>;
   onInputChange: (name: string, value: string) => void;
@@ -106,7 +105,6 @@ export function BuilderTab(props: BuilderTabProps) {
     selectedBuilderAppSelectableItems,
     selectedBuilderSelectedItemValue,
     onSelectItem,
-    hiddenBuilderInputsCount,
     visibleBuilderInputs,
     builderInputValues,
     onInputChange,
@@ -122,6 +120,7 @@ export function BuilderTab(props: BuilderTabProps) {
     builderShowRawDetails,
     onToggleRawDetails,
   } = props;
+  const [displayDraftByInput, setDisplayDraftByInput] = useState<Record<string, string>>({});
   const visibleStepActions = isBuilderAppMode ? selectedBuilderStepActions : [];
   const selectedOperationDisplayLabel =
     (selectedBuilderOperation && builderOperationLabelsByOperationId[selectedBuilderOperation.operationId]) ||
@@ -139,6 +138,10 @@ export function BuilderTab(props: BuilderTabProps) {
   const isTokenMintInput = (_inputName: string, spec: MetaOperationSummary['inputs'][string]): boolean => {
     return spec.type.toLowerCase() === 'token_mint';
   };
+
+  useEffect(() => {
+    setDisplayDraftByInput({});
+  }, [builderProtocolId, selectedBuilderOperation?.operationId, builderAppStepIndex, showBuilderSelectableItems]);
 
   const formatAtomicAmountForDisplay = (atomicRaw: string, decimals: number): string => {
     if (atomicRaw.trim().length === 0) {
@@ -158,17 +161,17 @@ export function BuilderTab(props: BuilderTabProps) {
     return `${whole.toString()}.${padded}`;
   };
 
-  const parseDisplayAmountToAtomic = (displayRaw: string, decimals: number): string => {
+  const parseDisplayAmountToAtomic = (displayRaw: string, decimals: number): string | null => {
     const raw = displayRaw.trim();
     if (raw.length === 0) {
       return '';
     }
     // Keep temporary typing state (e.g. "1.") so users can continue entering decimals.
     if (raw === '.' || raw.endsWith('.')) {
-      return raw;
+      return null;
     }
     if (!/^\d*\.?\d*$/.test(raw)) {
-      return displayRaw;
+      return null;
     }
     const [wholeRaw, fractionRaw = ''] = raw.split('.');
     const whole = wholeRaw.length > 0 ? wholeRaw : '0';
@@ -195,17 +198,17 @@ export function BuilderTab(props: BuilderTabProps) {
     return (bps / 100).toString();
   };
 
-  const parsePercentToBps = (percentRaw: string): string => {
+  const parsePercentToBps = (percentRaw: string): string | null => {
     const raw = percentRaw.trim();
     if (raw.length === 0) {
       return '';
     }
     // Keep temporary typing state (e.g. "0.") during input editing.
     if (raw === '.' || raw.endsWith('.')) {
-      return raw;
+      return null;
     }
     if (!/^\d*\.?\d*$/.test(raw)) {
-      return percentRaw;
+      return null;
     }
     const [wholeRaw, fractionRaw = ''] = raw.split('.');
     const whole = wholeRaw.length > 0 ? wholeRaw : '0';
@@ -373,12 +376,6 @@ export function BuilderTab(props: BuilderTabProps) {
                   </div>
                 ) : (
                   <>
-                    {hiddenBuilderInputsCount > 0 && builderViewMode === 'enduser' ? (
-                      <p className="builder-note">
-                        {hiddenBuilderInputsCount} field(s) are auto-resolved or hidden by form configuration.
-                      </p>
-                    ) : null}
-
                     <div className="builder-inputs">
                       {visibleBuilderInputs.map(([inputName, spec]) => {
                         const inputMode = getBuilderInputMode(spec);
@@ -394,7 +391,11 @@ export function BuilderTab(props: BuilderTabProps) {
                         const isAmountField = !showTokenPicker && spec.type.toLowerCase() === 'u64' && normalizedName.includes('amount');
                         const amountToken = isAmountField ? resolveAmountToken(inputName) : null;
                         const isSlippageField = !showTokenPicker && normalizedName === 'slippage_bps';
+                        const draftDisplayValue = displayDraftByInput[inputName];
                         const displayValue = (() => {
+                          if (draftDisplayValue !== undefined) {
+                            return draftDisplayValue;
+                          }
                           if (isAmountField && amountToken) {
                             return formatAtomicAmountForDisplay(value, amountToken.decimals);
                           }
@@ -440,14 +441,31 @@ export function BuilderTab(props: BuilderTabProps) {
                                 onChange={(event) => {
                                   const nextRaw = event.target.value;
                                   if (isAmountField && amountToken) {
-                                    onInputChange(inputName, parseDisplayAmountToAtomic(nextRaw, amountToken.decimals));
+                                    setDisplayDraftByInput((prev) => ({ ...prev, [inputName]: nextRaw }));
+                                    const nextAtomic = parseDisplayAmountToAtomic(nextRaw, amountToken.decimals);
+                                    if (nextAtomic !== null) {
+                                      onInputChange(inputName, nextAtomic);
+                                    }
                                     return;
                                   }
                                   if (isSlippageField) {
-                                    onInputChange(inputName, parsePercentToBps(nextRaw));
+                                    setDisplayDraftByInput((prev) => ({ ...prev, [inputName]: nextRaw }));
+                                    const nextBps = parsePercentToBps(nextRaw);
+                                    if (nextBps !== null) {
+                                      onInputChange(inputName, nextBps);
+                                    }
                                     return;
                                   }
                                   onInputChange(inputName, nextRaw);
+                                }}
+                                onBlur={() => {
+                                  if (isAmountField || isSlippageField) {
+                                    setDisplayDraftByInput((prev) => {
+                                      const next = { ...prev };
+                                      delete next[inputName];
+                                      return next;
+                                    });
+                                  }
                                 }}
                                 placeholder={
                                   selectedBuilderOperationEnhancement?.inputUi[inputName]?.placeholder ??
