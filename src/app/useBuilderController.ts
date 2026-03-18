@@ -64,7 +64,6 @@ const DEV_PREFILL_PRESETS: Record<string, Record<string, Record<string, string>>
     buy_exact_sol_in: {
       base_mint: 'C8KGwny4tfPwcLvXC9bgcaFMbqyDvroZgxW7AoBbpump',
       spendable_sol_in: '10000000',
-      min_tokens_out: '0',
       slippage_bps: '100',
     },
   },

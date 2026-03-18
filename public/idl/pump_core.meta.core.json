@@ -22,7 +22,6 @@
         "min_tokens_out": {
           "type": "u64",
           "required": false,
-          "default": "0",
           "read_from": "$derived.min_tokens_out_auto",
           "ui_mode": "readonly",
           "label": "Min Tokens Out"
@@ -256,16 +255,24 @@
           "divisor": "10000"
         },
         {
+          "name": "min_tokens_out_input",
+          "compute": "coalesce",
+          "values": [
+            "$input.min_tokens_out",
+            "0"
+          ]
+        },
+        {
           "name": "min_tokens_out_override_provided",
           "compute": "compare.gt",
-          "left": "$input.min_tokens_out",
+          "left": "$min_tokens_out_input",
           "right": "0"
         },
         {
           "name": "min_tokens_out_effective",
           "compute": "logic.if",
           "condition": "$min_tokens_out_override_provided",
-          "then": "$input.min_tokens_out",
+          "then": "$min_tokens_out_input",
           "else": "$min_tokens_out_auto"
         }
       ],
