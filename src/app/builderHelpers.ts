@@ -244,6 +244,10 @@ export function buildExampleInputsForOperation(
   const nextValues: Record<string, string> = {};
 
   for (const [inputName, spec] of Object.entries(operation.inputs)) {
+    if (typeof spec.read_from === 'string' && spec.read_from.trim().length > 0) {
+      nextValues[inputName] = '';
+      continue;
+    }
     if (spec.default !== undefined) {
       nextValues[inputName] = stringifyBuilderDefault(spec.default);
       continue;

@@ -57,6 +57,25 @@ describe('buildExampleInputsForOperation', () => {
     expect(values.price).toBe('0.1');
     expect(values.token_mint).toBe('');
   });
+
+  it('does not prefill computed readonly fields from read_from', () => {
+    const operation = opWithInputs({
+      min_tokens_out: {
+        type: 'u64',
+        required: false,
+        read_from: '$derived.min_tokens_out_auto',
+        ui_mode: 'readonly',
+      } as MetaOperationSummary['inputs'][string],
+      slippage_bps: {
+        type: 'u16',
+        required: true,
+      },
+    });
+
+    const values = buildExampleInputsForOperation(operation);
+    expect(values.min_tokens_out).toBe('');
+    expect(values.slippage_bps).toBe('1');
+  });
 });
 
 describe('buildDerivedFromReadOutputSource', () => {
