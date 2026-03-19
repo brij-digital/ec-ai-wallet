@@ -1,0 +1,50 @@
+name: Pack change
+description: Add or change a protocol pack, operation, compute block, or app flow.
+title: "pack: "
+labels:
+  - pack
+  - ai-safe
+body:
+  - type: input
+    id: protocol_id
+    attributes:
+      label: Protocol ID
+      placeholder: pump-amm-mainnet
+    validations:
+      required: true
+  - type: dropdown
+    id: change_type
+    attributes:
+      label: Change type
+      options:
+        - bug fix
+        - new operation
+        - new app flow
+        - compute refactor
+        - copy / UX cleanup
+        - test / fixture only
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should the pack do after this change?
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation plan
+      description: List checks or fixtures that should pass.
+      placeholder: |
+        - npm run aidl:compile
+        - npm run ci:protocol-packs
+        - add simulation fixture for ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Mention any known tx, docs, or constraints.

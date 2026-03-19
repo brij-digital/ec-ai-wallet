@@ -1,0 +1,33 @@
+name: Schema change
+description: Propose a MetaIDL or AppSpec schema change.
+title: "schema: "
+labels:
+  - schema-change
+  - needs-human-decision
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What concrete limitation in the current schema is blocking us?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Keep it strict and explicit. Avoid fallback behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Why can't this be solved in pack data or runtime primitives already?
+  - type: textarea
+    id: migration
+    attributes:
+      label: Migration impact
+      description: Which repos, schemas, packs, and docs would need updates?
+    validations:
+      required: true

@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible bug in wallet, runtime, pack, or view behavior.
+title: "bug: "
+labels:
+  - pack
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - wallet-ui
+        - pack
+        - runtime
+        - view-service
+        - docs
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the broken behavior and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Include command, form path, protocol/op, and exact inputs if relevant.
+      placeholder: |
+        1. Open Apps -> Pump AMM -> Buy
+        2. Use token X and amount Y
+        3. Click Buy
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or screenshots
+      description: Paste simulation logs, errors, screenshots, or tx links.
+  - type: textarea
+    id: scope
+    attributes:
+      label: Suspected layer
+      description: If you know, say whether the fix belongs in pack, runtime, view-service, or UI.

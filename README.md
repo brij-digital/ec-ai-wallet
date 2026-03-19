@@ -152,6 +152,9 @@ npm run ci:protocol-packs:rpc
 
 ## Additional Docs
 
+- [PROJECT_STATE.md](PROJECT_STATE.md)
+- [MAINTAINER_GUIDE.md](MAINTAINER_GUIDE.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
 - [docs/aidl-authoring.md](docs/aidl-authoring.md)
 - [docs/meta-idl-tutorial.md](docs/meta-idl-tutorial.md)
 - [docs/pack-builder.md](docs/pack-builder.md)

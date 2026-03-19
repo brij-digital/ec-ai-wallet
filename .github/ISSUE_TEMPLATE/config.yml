@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Project State
+    url: https://github.com/brij-digital/ec-ai-wallet/blob/main/PROJECT_STATE.md
+    about: Read the current project boundaries and operating model first.
+  - name: Maintainer Guide
+    url: https://github.com/brij-digital/ec-ai-wallet/blob/main/MAINTAINER_GUIDE.md
+    about: Review guardrails before proposing schema or runtime changes.
