@@ -677,11 +677,82 @@
         }
       ],
       "view": {
-        "kind": "list",
-        "source": "rpc",
-        "entity_keys": [
-          "pool"
-        ]
+        "kind": "search",
+        "source": "indexed",
+        "entity_type": "pump_pool",
+        "title": "List tokens",
+        "description": "List Pump AMM pools for a quote mint.",
+        "bootstrap": {
+          "kind": "scan_accounts",
+          "source": "rpc.getProgramAccounts",
+          "program_id": "$protocol.programId",
+          "account_type": "Pool",
+          "filters": []
+        },
+        "refresh": {
+          "mode": "stream",
+          "source": "program_account_updates"
+        },
+        "query": {
+          "indexed_filters": {
+            "all": [
+              {
+                "field": "memcmp.75",
+                "op": "=",
+                "value": "$input.quote_mint"
+              }
+            ]
+          },
+          "filters": {
+            "all": [
+              {
+                "field": "decoded.quote_mint",
+                "op": "=",
+                "value": "$input.quote_mint"
+              },
+              {
+                "field": "decoded.lp_supply",
+                "op": ">",
+                "value": "0"
+              }
+            ]
+          },
+          "hydrate": {
+            "mode": "accounts",
+            "candidate_limit": 30,
+            "fields": [
+              "pubkey",
+              "data_bytes",
+              "slot"
+            ]
+          },
+          "decode": {
+            "account_type": "Pool"
+          },
+          "sort": [
+            {
+              "field": "decoded.index",
+              "dir": "desc",
+              "mode": "indexed"
+            },
+            {
+              "field": "decoded.lp_supply",
+              "dir": "desc",
+              "mode": "indexed_then_live_refine",
+              "candidate_limit": 30
+            }
+          ],
+          "limit": 30,
+          "select": {
+            "pool": "$account.pubkey",
+            "baseMint": "$decoded.base_mint",
+            "quoteMint": "$decoded.quote_mint",
+            "index": "$decoded.index",
+            "lpSupply": "$decoded.lp_supply",
+            "coinCreator": "$decoded.coin_creator",
+            "isCashbackCoin": "$decoded.is_cashback_coin"
+          }
+        }
       },
       "read_output": {
         "source": "$derived.pool_candidates",
@@ -726,11 +797,94 @@
         }
       ],
       "view": {
-        "kind": "list",
-        "source": "rpc",
-        "entity_keys": [
-          "pool"
-        ]
+        "kind": "search",
+        "source": "indexed",
+        "entity_type": "pump_pool",
+        "title": "View pool",
+        "description": "Find a Pump AMM pool for a base/quote pair.",
+        "bootstrap": {
+          "kind": "scan_accounts",
+          "source": "rpc.getProgramAccounts",
+          "program_id": "$protocol.programId",
+          "account_type": "Pool",
+          "filters": []
+        },
+        "refresh": {
+          "mode": "stream",
+          "source": "program_account_updates"
+        },
+        "query": {
+          "indexed_filters": {
+            "all": [
+              {
+                "field": "memcmp.43",
+                "op": "=",
+                "value": "$input.base_mint"
+              },
+              {
+                "field": "memcmp.75",
+                "op": "=",
+                "value": "$input.quote_mint"
+              }
+            ]
+          },
+          "filters": {
+            "all": [
+              {
+                "field": "decoded.base_mint",
+                "op": "=",
+                "value": "$input.base_mint"
+              },
+              {
+                "field": "decoded.quote_mint",
+                "op": "=",
+                "value": "$input.quote_mint"
+              },
+              {
+                "field": "decoded.lp_supply",
+                "op": ">",
+                "value": "0"
+              }
+            ]
+          },
+          "hydrate": {
+            "mode": "accounts",
+            "candidate_limit": 5,
+            "fields": [
+              "pubkey",
+              "data_bytes",
+              "slot"
+            ]
+          },
+          "decode": {
+            "account_type": "Pool"
+          },
+          "sort": [
+            {
+              "field": "decoded.index",
+              "dir": "desc",
+              "mode": "indexed"
+            },
+            {
+              "field": "decoded.lp_supply",
+              "dir": "desc",
+              "mode": "indexed_then_live_refine",
+              "candidate_limit": 5
+            }
+          ],
+          "limit": 1,
+          "select": {
+            "pool": "$account.pubkey",
+            "baseMint": "$decoded.base_mint",
+            "quoteMint": "$decoded.quote_mint",
+            "index": "$decoded.index",
+            "lpSupply": "$decoded.lp_supply",
+            "poolBaseTokenAccount": "$decoded.pool_base_token_account",
+            "poolQuoteTokenAccount": "$decoded.pool_quote_token_account",
+            "coinCreator": "$decoded.coin_creator",
+            "isCashbackCoin": "$decoded.is_cashback_coin"
+          }
+        }
       },
       "read_output": {
         "source": "$derived.pool_detail",

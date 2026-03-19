@@ -149,52 +149,104 @@
   },
   "operations": {
     "resolve_reserve": {
+      "inputs": {},
       "use": [
         {
           "template": "kamino.resolve_reserve.v1"
         }
       ],
       "view": {
+        "kind": "search",
+        "source": "indexed",
+        "entity_type": "kamino_reserve",
+        "title": "Resolve reserve",
+        "description": "Resolve a Kamino reserve by reserve address or reserve vault.",
         "bootstrap": {
-          "kind": "query",
-          "steps": [
-            "reserve_by_address",
-            "reserve_by_liquidity_vault",
-            "reserve_by_collateral_vault"
-          ]
+          "kind": "scan_accounts",
+          "source": "rpc.getProgramAccounts",
+          "program_id": "$protocol.programId",
+          "account_type": "Reserve",
+          "filters": []
         },
-        "stream": {
-          "kind": "event",
-          "source": "substreams.transactions_by_programid_without_votes",
-          "filter": "program:$protocol.programId",
-          "cursor_path": "$event.slot",
-          "account_keys_paths": [
-            "$event.transaction.message.accountKeys",
-            "$event.meta.loadedWritableAddresses",
-            "$event.meta.loadedReadonlyAddresses"
-          ]
+        "refresh": {
+          "mode": "stream",
+          "source": "program_account_updates"
         },
-        "mapping": {
-          "source": "$derived.selected_reserve",
+        "query": {
+          "filters": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "field": "account.pubkey",
+                    "op": "=",
+                    "value": "$input.reserve_or_vault"
+                  },
+                  {
+                    "field": "decoded.liquidity.mintPubkey",
+                    "op": "=",
+                    "value": "$input.token_mint"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "field": "decoded.liquidity.supplyVault",
+                    "op": "=",
+                    "value": "$input.reserve_or_vault"
+                  },
+                  {
+                    "field": "decoded.liquidity.mintPubkey",
+                    "op": "=",
+                    "value": "$input.token_mint"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "field": "decoded.collateral.supplyVault",
+                    "op": "=",
+                    "value": "$input.reserve_or_vault"
+                  },
+                  {
+                    "field": "decoded.liquidity.mintPubkey",
+                    "op": "=",
+                    "value": "$input.token_mint"
+                  }
+                ]
+              }
+            ]
+          },
+          "hydrate": {
+            "mode": "accounts",
+            "candidate_limit": 10,
+            "fields": [
+              "pubkey",
+              "data_bytes",
+              "slot"
+            ]
+          },
+          "decode": {
+            "account_type": "Reserve"
+          },
+          "limit": 1,
           "select": {
-            "address": "$item.address",
-            "resolved_by": "$item.resolved_by",
-            "liquidity_mint": "$item.decoded.liquidity.mintPubkey",
-            "liquidity_vault": "$item.decoded.liquidity.supplyVault",
-            "collateral_vault": "$item.decoded.collateral.supplyVault"
+            "address": "$account.pubkey",
+            "resolved_by": "search",
+            "liquidity_mint": "$decoded.liquidity.mintPubkey",
+            "liquidity_vault": "$decoded.liquidity.supplyVault",
+            "collateral_vault": "$decoded.collateral.supplyVault"
           }
-        },
-        "entity_keys": [
-          "address"
-        ]
+        }
       },
       "read_output": {
-        "type": "object",
-        "source": "$derived.selected_reserve",
+        "type": "array",
+        "source": "$derived.reserve_candidates",
         "title": "Resolved reserve"
       },
-      "label": "Resolve Reserve",
-      "inputs": {}
+      "label": "Resolve Reserve"
     },
     "deposit_reserve_liquidity": {
       "instruction": "depositReserveLiquidity",
