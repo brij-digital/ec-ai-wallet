@@ -58,6 +58,8 @@ Bootstrap hot-set guidance:
 - example: `lookback_seconds: 600` keeps the initial sync focused on accounts changed in roughly the last 10 minutes instead of scanning the full universe
 - very hot protocols can also set `bootstrap.max_pages`
 - example: `max_pages: 5` forces the initial hot bootstrap to stop after a few recent pages and switch to incremental sync
+- cache-heavy hot views can set `bootstrap.retention_seconds`
+- example: `retention_seconds: 3600` prunes cached accounts for that program if they have not been seen for the last hour
 
 ## Rules
 
@@ -197,6 +199,7 @@ Required fields:
     "account_type": "Pool",
     "lookback_seconds": 600,
     "max_pages": 5,
+    "retention_seconds": 3600,
     "filters": []
   },
   "refresh": {

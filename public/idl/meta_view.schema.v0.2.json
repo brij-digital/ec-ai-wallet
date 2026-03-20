@@ -111,6 +111,10 @@
           "type": "integer",
           "minimum": 1
         },
+        "retention_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
         "filters": {
           "type": "array",
           "items": { "$ref": "#/$defs/bootstrapFilterSpec" }

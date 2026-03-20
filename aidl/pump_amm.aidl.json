@@ -695,6 +695,7 @@
           "account_type": "Pool",
           "lookback_seconds": 600,
           "max_pages": 5,
+          "retention_seconds": 3600,
           "filters": []
         },
         "refresh": {
@@ -825,6 +826,7 @@
           "source": "rpc.getProgramAccounts",
           "program_id": "$protocol.programId",
           "account_type": "Pool",
+          "retention_seconds": 3600,
           "filters": []
         },
         "refresh": {
