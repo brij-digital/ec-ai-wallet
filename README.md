@@ -66,7 +66,13 @@ Important behavior:
 - `/meta-run` requires explicit mode: `--simulate` or `--send`
 - search-view bootstrap/sync is expected to come from the view service cache layer, currently built around `getProgramAccountsV2` + local temporal metadata (`first_seen_slot`, `last_seen_slot`)
 - high-cardinality search views can now declare `bootstrap.lookback_seconds` to bootstrap a recent hot window instead of the full account universe
+- very hot search views can also declare `bootstrap.max_pages` to force convergence and `bootstrap.retention_seconds` to prune stale cache rows
 - the current search-view backend model is: `cached_program_accounts` + `view_sync_state`, not a separate entity table
+
+Conceptual split:
+- `search` views are for discovery and shortlist generation over a cached universe
+- `account` views are for reading one known account (for example a pool or reserve already identified by a previous step)
+- if we later run our own RPC, `account` views are good candidates for direct RPC reads while `search` views still benefit from cache/index infrastructure
 
 ## Quick Start
 

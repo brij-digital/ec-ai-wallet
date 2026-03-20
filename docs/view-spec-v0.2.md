@@ -61,6 +61,11 @@ Bootstrap hot-set guidance:
 - cache-heavy hot views can set `bootstrap.retention_seconds`
 - example: `retention_seconds: 3600` prunes cached accounts for that program if they have not been seen for the last hour
 
+Practical split between the two kinds:
+- `search` exists to discover entities in a large universe, so it benefits from cache/index infrastructure
+- `account` exists to read a known address, so it should stay much simpler
+- if the platform later runs its own RPC, `account` views are good candidates for direct RPC reads, while `search` remains cache/index oriented
+
 ## Rules
 
 1. The spec describes business intent, not infra implementation.
@@ -82,6 +87,11 @@ Use for:
 - `view_pool(pool)`
 - `view_reserve(reserve)`
 - `view_position(position)`
+
+Why this kind exists:
+- once an app or agent already knows the target pubkey, re-running a global search is wasteful
+- many dynamic fields such as liquidity or balances are best served by re-reading the exact account, not by rediscovering the universe
+- `account` should be thought of as "known-address read", not as "static cached read"
 
 Required fields:
 - `kind`

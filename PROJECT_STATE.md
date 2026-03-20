@@ -55,6 +55,10 @@ Owns:
 - Neon-backed account cache and refresh flow
 - sync state for search-view universes
 
+Current emphasis:
+- search/discovery views rely on the cached account universe
+- known-account reads are still part of the overall view model, but do not need the same indexing machinery
+
 Must not own:
 - protocol transaction execution logic
 - pack-specific UI assumptions
