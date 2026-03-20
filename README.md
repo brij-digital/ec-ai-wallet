@@ -64,6 +64,7 @@ This web app depends on:
 Important behavior:
 - no local view fallback in app command mode
 - `/meta-run` requires explicit mode: `--simulate` or `--send`
+- search-view bootstrap/sync is expected to come from the view service cache layer, currently built around `getProgramAccountsV2` + local temporal metadata (`first_seen_slot`, `last_seen_slot`)
 
 ## Quick Start
 
