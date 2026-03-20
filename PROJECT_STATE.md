@@ -47,12 +47,13 @@ Must not own:
 Role:
 - read/view execution service
 - indexed account cache
-- ingest + hydrator pipeline
+- bootstrap + incremental sync worker
 
 Owns:
 - `/view-run`
 - account cache and refresh flow
 - Neon-backed account cache and refresh flow
+- sync state for search-view universes
 
 Must not own:
 - protocol transaction execution logic
