@@ -56,6 +56,8 @@ Bootstrap hot-set guidance:
 - high-cardinality protocols can set `bootstrap.lookback_seconds`
 - this tells the sync worker to use `changedSinceSlot` on the initial bootstrap
 - example: `lookback_seconds: 600` keeps the initial sync focused on accounts changed in roughly the last 10 minutes instead of scanning the full universe
+- very hot protocols can also set `bootstrap.max_pages`
+- example: `max_pages: 5` forces the initial hot bootstrap to stop after a few recent pages and switch to incremental sync
 
 ## Rules
 
@@ -194,6 +196,7 @@ Required fields:
     "program_id": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
     "account_type": "Pool",
     "lookback_seconds": 600,
+    "max_pages": 5,
     "filters": []
   },
   "refresh": {

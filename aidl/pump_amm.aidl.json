@@ -694,6 +694,7 @@
           "program_id": "$protocol.programId",
           "account_type": "Pool",
           "lookback_seconds": 600,
+          "max_pages": 5,
           "filters": []
         },
         "refresh": {

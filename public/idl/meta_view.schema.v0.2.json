@@ -107,6 +107,10 @@
           "type": "integer",
           "minimum": 1
         },
+        "max_pages": {
+          "type": "integer",
+          "minimum": 1
+        },
         "filters": {
           "type": "array",
           "items": { "$ref": "#/$defs/bootstrapFilterSpec" }
