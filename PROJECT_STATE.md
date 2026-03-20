@@ -52,7 +52,7 @@ Role:
 Owns:
 - `/view-run`
 - account cache and refresh flow
-- QuickNode/Neon integration
+- Neon-backed account cache and refresh flow
 
 Must not own:
 - protocol transaction execution logic
