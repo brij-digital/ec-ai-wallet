@@ -6,6 +6,9 @@ import { listSupportedTokens } from './constants/tokens';
 import { BuilderTab } from './app/components/BuilderTab';
 import { CommandTab } from './app/components/CommandTab';
 import { ComputeDevTab } from './app/components/ComputeDevTab';
+import { ViewScenarioTab } from './app/components/ViewScenarioTab';
+import { ViewPlaygroundTab } from './app/components/ViewPlaygroundTab';
+import { DEFAULT_VIEW_SCENARIO } from './app/viewModels';
 import { useBuilderController } from './app/useBuilderController';
 import { useBuilderSubmitController } from './app/useBuilderSubmitController';
 import { useCommandController } from './app/useCommandController';
@@ -17,7 +20,7 @@ const VIEW_API_BASE_URL = String(import.meta.env.VITE_VIEW_API_BASE_URL ?? DEFAU
 const QUICK_PREFILL_META_RUN_COMMAND =
   '/meta-run orca-whirlpool-mainnet swap_exact_in {"token_in_mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","token_out_mint":"So11111111111111111111111111111111111111112","amount_in":"10000","slippage_bps":50,"estimated_out":"100000","whirlpool":"Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE","unwrap_sol_output":true} --simulate';
 
-type AppTab = 'apps' | 'raw' | 'command' | 'compute';
+type AppTab = 'apps' | 'raw' | 'command' | 'compute' | 'views' | 'scenario';
 
 function App() {
   const { connection } = useConnection();
@@ -188,6 +191,24 @@ function App() {
           >
             Compute
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'scenario'}
+            className={activeTab === 'scenario' ? 'active' : ''}
+            onClick={() => setActiveTab('scenario')}
+          >
+            Scenarios
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'views'}
+            className={activeTab === 'views' ? 'active' : ''}
+            onClick={() => setActiveTab('views')}
+          >
+            Views
+          </button>
         </div>
 
         {activeTab === 'command' ? (
@@ -201,6 +222,10 @@ function App() {
           />
         ) : activeTab === 'compute' ? (
           <ComputeDevTab isWorking={isWorking} />
+        ) : activeTab === 'scenario' ? (
+          <ViewScenarioTab viewApiBaseUrl={VIEW_API_BASE_URL} scenario={DEFAULT_VIEW_SCENARIO} />
+        ) : activeTab === 'views' ? (
+          <ViewPlaygroundTab viewApiBaseUrl={VIEW_API_BASE_URL} />
         ) : (
           <BuilderTab
             isWorking={isWorking}

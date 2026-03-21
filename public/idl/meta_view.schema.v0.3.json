@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentform.app/schemas/meta_view.v0.3.json",
+  "title": "Meta View v0.3",
+  "description": "View specification for current-state account/search reads plus time-series and feed views.",
+  "oneOf": [
+    { "$ref": "#/$defs/accountViewSpec" },
+    { "$ref": "#/$defs/searchViewSpec" },
+    { "$ref": "#/$defs/seriesViewSpec" },
+    { "$ref": "#/$defs/feedViewSpec" }
+  ],
+  "$defs": {
+    "freshnessSpec": {
+      "type": "object",
+      "required": ["class"],
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": ["realtime", "near_realtime", "best_effort", "historical"]
+        },
+        "target_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_staleness_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "filterValue": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" }
+      ]
+    },
+    "conditionSpec": {
+      "type": "object",
+      "required": ["field", "op", "value"],
+      "properties": {
+        "field": { "type": "string" },
+        "op": {
+          "type": "string",
+          "enum": ["=", "!=", ">", ">=", "<", "<=", "in"]
+        },
+        "value": {}
+      },
+      "additionalProperties": false
+    },
+    "filterGroupAll": {
+      "type": "object",
+      "required": ["all"],
+      "properties": {
+        "all": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/conditionSpec" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "filterGroupAny": {
+      "type": "object",
+      "required": ["any"],
+      "properties": {
+        "any": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/filterGroupAll" },
+              { "$ref": "#/$defs/conditionSpec" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sortSpec": {
+      "type": "object",
+      "required": ["field", "dir"],
+      "properties": {
+        "field": { "type": "string" },
+        "dir": { "type": "string", "enum": ["asc", "desc"] },
+        "mode": {
+          "type": "string",
+          "enum": ["indexed", "live", "indexed_then_live_refine"]
+        },
+        "candidate_limit": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "bootstrapFilterSpec": {
+      "type": "object",
+      "properties": {
+        "memcmp": {
+          "type": "object",
+          "required": ["offset"],
+          "properties": {
+            "offset": { "type": "integer", "minimum": 0 },
+            "bytes": { "type": "string" },
+            "bytesFrom": { "type": "string" }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            { "required": ["bytes"] },
+            { "required": ["bytesFrom"] }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": ["memcmp"]
+    },
+    "bootstrapSpec": {
+      "type": "object",
+      "required": ["kind", "source", "program_id", "account_type"],
+      "properties": {
+        "kind": { "const": "scan_accounts" },
+        "source": { "const": "rpc.getProgramAccounts" },
+        "program_id": { "type": "string" },
+        "account_type": { "type": "string" },
+        "lookback_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_pages": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retention_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "filters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/bootstrapFilterSpec" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "refreshSpec": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["stream", "poll", "on_demand", "manual"]
+        },
+        "source": { "type": "string" },
+        "interval_ms": { "type": "integer", "minimum": 0 },
+        "cursor_path": { "type": "string" },
+        "account_keys_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "hydrateSpec": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["none", "accounts"]
+        },
+        "candidate_limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "decodeSpec": {
+      "type": "object",
+      "required": ["account_type"],
+      "properties": {
+        "account_type": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "querySpec": {
+      "type": "object",
+      "required": ["select"],
+      "properties": {
+        "indexed_filters": {
+          "oneOf": [
+            { "$ref": "#/$defs/filterGroupAll" },
+            { "$ref": "#/$defs/filterGroupAny" }
+          ]
+        },
+        "filters": {
+          "oneOf": [
+            { "$ref": "#/$defs/filterGroupAll" },
+            { "$ref": "#/$defs/filterGroupAny" }
+          ]
+        },
+        "hydrate": { "$ref": "#/$defs/hydrateSpec" },
+        "decode": { "$ref": "#/$defs/decodeSpec" },
+        "sort": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sortSpec" }
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "select": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "accountTargetSpec": {
+      "type": "object",
+      "required": ["address", "account_type"],
+      "properties": {
+        "address": {},
+        "account_type": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "metricSpec": {
+      "type": "object",
+      "required": ["name", "field", "agg"],
+      "properties": {
+        "name": { "type": "string" },
+        "field": { "type": "string" },
+        "agg": {
+          "type": "string",
+          "enum": ["first", "last", "min", "max", "sum", "avg", "count"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "timeSpec": {
+      "type": "object",
+      "required": ["field", "bucket"],
+      "properties": {
+        "field": { "type": "string" },
+        "bucket": { "type": "string" },
+        "from": {},
+        "to": {},
+        "timezone": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "entitySpec": {
+      "type": "object",
+      "required": ["type", "id"],
+      "properties": {
+        "type": { "type": "string" },
+        "id": {}
+      },
+      "additionalProperties": false
+    },
+    "accountViewSpec": {
+      "type": "object",
+      "required": ["kind", "source", "target", "select"],
+      "properties": {
+        "kind": { "const": "account" },
+        "source": {
+          "type": "string",
+          "enum": ["rpc", "indexed", "hybrid"]
+        },
+        "source_kind": { "type": "string" },
+        "freshness": { "$ref": "#/$defs/freshnessSpec" },
+        "entity_type": { "type": "string" },
+        "target": { "$ref": "#/$defs/accountTargetSpec" },
+        "refresh": { "$ref": "#/$defs/refreshSpec" },
+        "select": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "title": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "searchViewSpec": {
+      "type": "object",
+      "required": ["kind", "source", "entity_type", "bootstrap", "query"],
+      "properties": {
+        "kind": { "const": "search" },
+        "source": {
+          "type": "string",
+          "enum": ["rpc", "indexed", "hybrid"]
+        },
+        "source_kind": { "type": "string" },
+        "freshness": { "$ref": "#/$defs/freshnessSpec" },
+        "entity_type": { "type": "string" },
+        "sync_disabled": { "type": "boolean" },
+        "bootstrap": { "$ref": "#/$defs/bootstrapSpec" },
+        "refresh": { "$ref": "#/$defs/refreshSpec" },
+        "query": { "$ref": "#/$defs/querySpec" },
+        "title": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "seriesViewSpec": {
+      "type": "object",
+      "required": ["kind", "source", "entity_type"],
+      "properties": {
+        "kind": { "const": "series" },
+        "source": {
+          "type": "string",
+          "enum": ["rpc", "indexed", "hybrid"]
+        },
+        "source_kind": { "type": "string" },
+        "freshness": { "$ref": "#/$defs/freshnessSpec" },
+        "entity_type": { "type": "string" },
+        "entity": { "$ref": "#/$defs/entitySpec" },
+        "time": { "$ref": "#/$defs/timeSpec" },
+        "metrics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/metricSpec" }
+        },
+        "title": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "feedViewSpec": {
+      "type": "object",
+      "required": ["kind", "source", "entity_type"],
+      "properties": {
+        "kind": { "const": "feed" },
+        "source": {
+          "type": "string",
+          "enum": ["rpc", "indexed", "hybrid"]
+        },
+        "source_kind": { "type": "string" },
+        "freshness": { "$ref": "#/$defs/freshnessSpec" },
+        "entity_type": { "type": "string" },
+        "entity": { "$ref": "#/$defs/entitySpec" },
+        "title": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

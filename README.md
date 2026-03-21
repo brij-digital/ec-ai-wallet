@@ -100,6 +100,23 @@ Defaults:
 - wallet RPC defaults to Solana public mainnet endpoint
 - view API defaults to `https://apppack-view-service.onrender.com`
 
+For local iteration against a local view/indexer loop:
+
+```bash
+cp local.env.example .env.local
+npm run dev
+```
+
+The app now includes a `Views` tab that can:
+- ping `/health`
+- run a view directly against the configured view API
+- show both a structured preview and the raw JSON response
+
+It also includes a `Scenarios` tab that can run a multi-view page recipe.
+The default recipe currently uses Pump data, but the component is scenario-driven rather than protocol-specific.
+
+See [docs/local-view-dev.md](/Users/antoine/Documents/github/Espresso%20Cash/ec-ai-wallet/docs/local-view-dev.md) for the full local loop, including PostgreSQL and the local view-service worker.
+
 ## Command Mode
 
 Use `/help` in the app for current command help.
@@ -169,3 +186,4 @@ npm run ci:protocol-packs:rpc
 - [docs/pack-builder.md](docs/pack-builder.md)
 - [docs/protocol-pack-ci.md](docs/protocol-pack-ci.md)
 - [docs/view-spec-v0.2.md](docs/view-spec-v0.2.md)
+- [docs/view-spec-v0.3.md](docs/view-spec-v0.3.md)
