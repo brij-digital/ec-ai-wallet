@@ -18,13 +18,13 @@ import {
   listIdlProtocols,
   sendIdlInstruction,
   simulateIdlInstruction,
-} from '@agentform/apppack-runtime/idlDeclarativeRuntime';
+} from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   explainMetaOperation,
   listMetaOperations,
   prepareMetaOperation,
   type MetaOperationSummary,
-} from '@agentform/apppack-runtime/metaIdlRuntime';
+} from '@brij-digital/apppack-runtime/metaIdlRuntime';
 import { asPrettyJson, renderMetaExplain } from './builderHelpers';
 import { resolveToken } from '../constants/tokens';
 import {

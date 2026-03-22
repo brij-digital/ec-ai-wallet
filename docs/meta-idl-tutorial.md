@@ -19,7 +19,7 @@ A protocol pack has three layers:
 ## Where Runtime Lives
 
 Execution runtime is externalized in package:
-- `@agentform/apppack-runtime`
+- `@brij-digital/apppack-runtime`
 
 This web app consumes runtime APIs and renders UI.
 

@@ -1,12 +1,12 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from 'react';
-import { listIdlProtocols } from '@agentform/apppack-runtime/idlDeclarativeRuntime';
+import { listIdlProtocols } from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   listMetaApps,
   listMetaOperations,
   type MetaAppSummary,
   type MetaOperationSummary,
-} from '@agentform/apppack-runtime/metaIdlRuntime';
+} from '@brij-digital/apppack-runtime/metaIdlRuntime';
 import {
   asPrettyJson,
   buildExampleInputsForOperation,

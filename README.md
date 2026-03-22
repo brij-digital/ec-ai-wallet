@@ -67,7 +67,7 @@ Schemas:
 ## Runtime + View Architecture
 
 This web app depends on:
-- `@agentform/apppack-runtime` (external package): deterministic IDL/MetaIDL execution runtime
+- `@brij-digital/apppack-runtime` (external package): deterministic IDL/MetaIDL execution runtime
 - `apppack-view-service` (separate repo/service): read/view execution and indexed data endpoint (`/view-run`)
 
 Important behavior:

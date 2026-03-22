@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import type { MetaAppSummary, MetaOperationSummary } from '@agentform/apppack-runtime/metaIdlRuntime';
+import type { MetaAppSummary, MetaOperationSummary } from '@brij-digital/apppack-runtime/metaIdlRuntime';
 import { listSupportedTokens, resolveToken } from '../../constants/tokens';
 import {
   formatBuilderSelectableItemLabel,

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { listIdlProtocols } from '@agentform/apppack-runtime/idlDeclarativeRuntime';
+import { listIdlProtocols } from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   explainMetaOperation,
   listMetaOperations,
   type MetaOperationExplain,
   type MetaOperationSummary,
-} from '@agentform/apppack-runtime/metaIdlRuntime';
+} from '@brij-digital/apppack-runtime/metaIdlRuntime';
 
 type ProtocolSummary = {
   id: string;

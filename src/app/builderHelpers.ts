@@ -1,4 +1,4 @@
-import type { MetaAppSummary, MetaOperationExplain, MetaOperationSummary } from '@agentform/apppack-runtime/metaIdlRuntime';
+import type { MetaAppSummary, MetaOperationExplain, MetaOperationSummary } from '@brij-digital/apppack-runtime/metaIdlRuntime';
 import { resolveToken } from '../constants/tokens';
 
 export type BuilderAppStepContext = {

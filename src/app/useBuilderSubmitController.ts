@@ -11,8 +11,8 @@ import type { FormEvent } from 'react';
 import {
   sendIdlInstruction,
   simulateIdlInstruction,
-} from '@agentform/apppack-runtime/idlDeclarativeRuntime';
-import { prepareMetaOperation, type MetaOperationSummary } from '@agentform/apppack-runtime/metaIdlRuntime';
+} from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
+import { prepareMetaOperation, type MetaOperationSummary } from '@brij-digital/apppack-runtime/metaIdlRuntime';
 import {
   buildDerivedFromReadOutputSource,
   buildReadOnlyHighlightsFromSpec,

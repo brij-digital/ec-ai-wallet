@@ -2,10 +2,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useBuilderController } from './useBuilderController';
-import { listIdlProtocols } from '@agentform/apppack-runtime/idlDeclarativeRuntime';
-import { listMetaApps, listMetaOperations } from '@agentform/apppack-runtime/metaIdlRuntime';
+import { listIdlProtocols } from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
+import { listMetaApps, listMetaOperations } from '@brij-digital/apppack-runtime/metaIdlRuntime';
 
-vi.mock('@agentform/apppack-runtime/idlDeclarativeRuntime', async () => {
+vi.mock('@brij-digital/apppack-runtime/idlDeclarativeRuntime', async () => {
   return {
     listIdlProtocols: vi.fn(async () => ({
       protocols: [{ id: 'orca-whirlpool-mainnet', name: 'Orca', status: 'active' }],
@@ -13,7 +13,7 @@ vi.mock('@agentform/apppack-runtime/idlDeclarativeRuntime', async () => {
   };
 });
 
-vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
+vi.mock('@brij-digital/apppack-runtime/metaIdlRuntime', async () => {
   return {
     listMetaOperations: vi.fn(async () => ({
       operations: [

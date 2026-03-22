@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MetaOperationSummary } from '@agentform/apppack-runtime/metaIdlRuntime';
+import type { MetaOperationSummary } from '@brij-digital/apppack-runtime/metaIdlRuntime';
 import { buildDerivedFromReadOutputSource, buildExampleInputsForOperation } from './builderHelpers';
 
 function opWithInputs(inputs: MetaOperationSummary['inputs']): MetaOperationSummary {

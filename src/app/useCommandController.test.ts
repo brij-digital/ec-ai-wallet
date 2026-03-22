@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useCommandController } from './useCommandController';
 
-vi.mock('@agentform/apppack-runtime/idlDeclarativeRuntime', async () => {
+vi.mock('@brij-digital/apppack-runtime/idlDeclarativeRuntime', async () => {
   return {
     listIdlProtocols: vi.fn(),
     getInstructionTemplate: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('@agentform/apppack-runtime/idlDeclarativeRuntime', async () => {
   };
 });
 
-vi.mock('@agentform/apppack-runtime/metaIdlRuntime', async () => {
+vi.mock('@brij-digital/apppack-runtime/metaIdlRuntime', async () => {
   return {
     explainMetaOperation: vi.fn(),
     listMetaOperations: vi.fn(),

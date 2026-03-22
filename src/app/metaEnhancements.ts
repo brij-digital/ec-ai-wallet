@@ -1,4 +1,4 @@
-import type { MetaOperationSummary } from '@agentform/apppack-runtime/metaIdlRuntime';
+import type { MetaOperationSummary } from '@brij-digital/apppack-runtime/metaIdlRuntime';
 import { readBuilderPath } from './builderHelpers';
 
 type JsonRecord = Record<string, unknown>;
@@ -225,7 +225,7 @@ export async function loadRawMetaForProtocol(protocolId: string): Promise<unknow
   }
 
   const promise = (async () => {
-    const { listIdlProtocols } = await import('@agentform/apppack-runtime/idlDeclarativeRuntime');
+    const { listIdlProtocols } = await import('@brij-digital/apppack-runtime/idlDeclarativeRuntime');
     const registry = await listIdlProtocols();
     const protocol = registry.protocols.find((entry) => entry.id === protocolId);
     if (!protocol) {

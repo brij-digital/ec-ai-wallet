@@ -4,7 +4,7 @@ AIDL is the authoring format for MetaIDL packs in this repo.
 
 Goal:
 - keep authoring concise for humans
-- compile to strict runtime JSON consumed by `@agentform/apppack-runtime`
+- compile to strict runtime JSON consumed by `@brij-digital/apppack-runtime`
 
 ## Source Files
 
