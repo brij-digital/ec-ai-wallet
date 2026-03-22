@@ -13,6 +13,15 @@ It provides:
 - Runtime package: [brij-digital/apppack-runtime](https://github.com/brij-digital/apppack-runtime)
 - View/index service: [brij-digital/apppack-view-service](https://github.com/brij-digital/apppack-view-service)
 
+## Repo Relationship
+
+This is one of the three main AppPack repositories:
+- `apppack-runtime`: shared runtime package published to GitHub Packages
+- `ec-ai-wallet`: this web app, which consumes the published runtime package
+- `apppack-view-service`: backend read/index service, which also consumes the published runtime package
+
+Package installs in this repo are expected to resolve the runtime from GitHub Packages under the `@brij-digital` scope.
+
 ## Current Scope
 
 Active protocols in this repo:
