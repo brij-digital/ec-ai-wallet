@@ -276,6 +276,27 @@ async function fetchWatchStatus(
   return body.item ?? null;
 }
 
+async function unwatchEntity(
+  baseUrl: string,
+  protocolId: string,
+  input: Record<string, unknown>,
+): Promise<void> {
+  const response = await fetch(`${baseUrl}/market/unwatch`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      protocol_id: protocolId,
+      input,
+    }),
+  });
+  const body = (await response.json()) as { ok: boolean; error?: string };
+  if (!response.ok || !body.ok) {
+    throw new Error(body.error ?? `unwatch failed with ${response.status}`);
+  }
+}
+
 export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabProps) {
   const REFRESH_INTERVAL_MS = 60_000;
   const savedEntitiesStorageKey = `view-scenario:${scenario.id}:saved-entities`;
@@ -373,9 +394,14 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
       setStats(statsResult.items?.[0] ?? null);
       setSeries((seriesResult.items as DataRecord[] | undefined) ?? []);
       setFeed((feedResult.items as DataRecord[] | undefined) ?? []);
-      setWatchStatus(await fetchWatchStatus(trimmedBaseUrl, scenario.protocolId, scenario.resolve.input(targetValue)));
+      const nextWatchStatus = await fetchWatchStatus(trimmedBaseUrl, scenario.protocolId, scenario.resolve.input(targetValue));
+      setWatchStatus(nextWatchStatus);
       setLastUpdatedAt(new Date().toISOString());
-      setStatusText(`Loaded ${scenario.resource.label.toLowerCase()} ${resourceValue}.`);
+      setStatusText(
+        nextWatchStatus?.syncStatus === 'catching_up'
+          ? `Loaded ${scenario.resource.label.toLowerCase()} ${resourceValue}. Backend is catching up recent activity...`
+          : `Loaded ${scenario.resource.label.toLowerCase()} ${resourceValue}.`,
+      );
     } catch (error) {
       setErrorText(error instanceof Error ? error.message : 'Scenario load failed.');
       setStatusText(null);
@@ -428,7 +454,18 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
 
   const removeSavedEntity = useCallback((value: string) => {
     setSavedEntities((current) => current.filter((entry) => entry !== value));
-  }, []);
+    if (value === entityValue.trim()) {
+      setWatchStatus(null);
+    }
+    void (async () => {
+      try {
+        await unwatchEntity(trimmedBaseUrl, scenario.protocolId, scenario.resolve.input(value));
+        setStatusText(`Removed ${shortPubkey(value)} and disabled backend watch.`);
+      } catch (error) {
+        setErrorText(error instanceof Error ? error.message : 'Unable to disable backend watch.');
+      }
+    })();
+  }, [entityValue, scenario.protocolId, scenario.resolve, trimmedBaseUrl]);
 
   const loadSavedEntity = useCallback(async (value: string) => {
     setEntityValue(value);
