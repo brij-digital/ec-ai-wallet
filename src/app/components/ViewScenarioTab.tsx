@@ -222,7 +222,9 @@ async function runView<T>(
 
 export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabProps) {
   const REFRESH_INTERVAL_MS = 60_000;
+  const savedEntitiesStorageKey = `view-scenario:${scenario.id}:saved-entities`;
   const [entityValue, setEntityValue] = useState(scenario.entity.defaultValue);
+  const [savedEntities, setSavedEntities] = useState<string[]>([]);
   const [resolvedResource, setResolvedResource] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<DataRecord | null>(null);
   const [stats, setStats] = useState<DataRecord | null>(null);
@@ -238,6 +240,33 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
 
   const trimmedBaseUrl = useMemo(() => viewApiBaseUrl.trim().replace(/\/+$/, ''), [viewApiBaseUrl]);
   const chartGeometry = useMemo(() => buildChartGeometry(series, scenario.chart.valueFields, 720, 220), [scenario.chart.valueFields, series]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(savedEntitiesStorageKey);
+      if (!raw) {
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setSavedEntities(
+          parsed
+            .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+            .map((value) => value.trim()),
+        );
+      }
+    } catch {
+      // Ignore invalid local state and start with an empty watchlist.
+    }
+  }, [savedEntitiesStorageKey]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(savedEntitiesStorageKey, JSON.stringify(savedEntities));
+    } catch {
+      // Ignore persistence errors in local/dev mode.
+    }
+  }, [savedEntities, savedEntitiesStorageKey]);
 
   const readMetric = (metric: ScenarioMetric): string => {
     const sourceRecord =
@@ -313,6 +342,30 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
     await fetchScenarioData(targetValue, 'initial');
   }, [fetchScenarioData]);
 
+  const addCurrentEntity = useCallback(() => {
+    const nextValue = entityValue.trim();
+    if (!nextValue) {
+      return;
+    }
+    setSavedEntities((current) => {
+      if (current.includes(nextValue)) {
+        return current;
+      }
+      return [nextValue, ...current].slice(0, 12);
+    });
+    setStatusText(`Saved ${scenario.entity.label.toLowerCase()} ${shortPubkey(nextValue)}.`);
+    setErrorText(null);
+  }, [entityValue, scenario.entity.label]);
+
+  const removeSavedEntity = useCallback((value: string) => {
+    setSavedEntities((current) => current.filter((entry) => entry !== value));
+  }, []);
+
+  const loadSavedEntity = useCallback(async (value: string) => {
+    setEntityValue(value);
+    await loadScenario(value);
+  }, [loadScenario]);
+
   const loadLatest = useCallback(async () => {
     if (!scenario.latest) {
       return;
@@ -379,6 +432,9 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
           <button type="button" onClick={() => void loadScenario(entityValue)} disabled={isLoading}>
             {isLoading ? 'Loading...' : 'Load Scenario'}
           </button>
+          <button type="button" className="secondary" onClick={addCurrentEntity} disabled={isLoading || entityValue.trim().length === 0}>
+            Save Token
+          </button>
           <button
             type="button"
             className="secondary"
@@ -393,6 +449,31 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
             </button>
           ) : null}
         </div>
+      </div>
+
+      <div className="view-scenario-saved-bar">
+        <span>Saved Tokens</span>
+        {savedEntities.length > 0 ? (
+          <div className="view-scenario-saved-list">
+            {savedEntities.map((value) => (
+              <div key={value} className="view-scenario-saved-chip">
+                <button type="button" className="view-scenario-saved-load" onClick={() => void loadSavedEntity(value)}>
+                  {shortPubkey(value)}
+                </button>
+                <button
+                  type="button"
+                  className="view-scenario-saved-remove"
+                  aria-label={`Remove ${value}`}
+                  onClick={() => removeSavedEntity(value)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="view-scenario-saved-empty">Save a mint here to keep a few Pump tokens handy while you compare screens.</p>
+        )}
       </div>
 
       {statusText ? <p className="view-playground-info">{statusText}</p> : null}

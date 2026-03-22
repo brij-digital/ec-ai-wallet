@@ -332,6 +332,72 @@
   border: 1px solid #304156;
 }
 
+.view-scenario-saved-bar {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.view-scenario-saved-bar > span {
+  color: #dce6f3;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.view-scenario-saved-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.view-scenario-saved-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem;
+  border: 1px solid #223044;
+  border-radius: 999px;
+  background: rgba(9, 14, 21, 0.82);
+}
+
+.view-scenario-saved-load,
+.view-scenario-saved-remove {
+  border: 0;
+  background: transparent;
+  color: #dce6f3;
+  cursor: pointer;
+}
+
+.view-scenario-saved-load {
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+}
+
+.view-scenario-saved-load:hover,
+.view-scenario-saved-load:focus-visible {
+  background: rgba(74, 222, 128, 0.12);
+  outline: none;
+}
+
+.view-scenario-saved-remove {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.view-scenario-saved-remove:hover,
+.view-scenario-saved-remove:focus-visible {
+  background: rgba(251, 113, 133, 0.14);
+  outline: none;
+}
+
+.view-scenario-saved-empty {
+  margin: 0;
+  color: #8da2bd;
+  font-size: 0.92rem;
+}
+
 .view-scenario-meta {
   display: flex;
   align-items: center;
