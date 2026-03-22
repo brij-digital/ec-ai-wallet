@@ -14,6 +14,20 @@ type ViewRunResponse<T = unknown> = {
 };
 
 type DataRecord = Record<string, unknown>;
+type WatchStatus = {
+  protocolId: string;
+  marketType: string;
+  resourceId: string;
+  entityId: string;
+  active: boolean;
+  lastSignature: string | null;
+  lastEventTime: string | null;
+  lastBackfillAt: string | null;
+  lastStreamEventAt: string | null;
+  syncStatus: 'pending' | 'live' | 'catching_up' | 'stale';
+  lagMs: number | null;
+  updatedAt: string;
+};
 
 function formatCompact(value: number | null | undefined, digits = 2): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
@@ -220,6 +234,48 @@ async function runView<T>(
   return body;
 }
 
+async function ensureWatchedEntity(
+  baseUrl: string,
+  protocolId: string,
+  input: Record<string, unknown>,
+): Promise<Record<string, unknown> | null> {
+  const response = await fetch(`${baseUrl}/market/watch`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      protocol_id: protocolId,
+      input,
+    }),
+  });
+  const body = (await response.json()) as { ok: boolean; item?: Record<string, unknown> | null; error?: string };
+  if (!response.ok || !body.ok) {
+    throw new Error(body.error ?? `watch failed with ${response.status}`);
+  }
+  return body.item ?? null;
+}
+
+async function fetchWatchStatus(
+  baseUrl: string,
+  protocolId: string,
+  input: Record<string, unknown>,
+): Promise<WatchStatus | null> {
+  const url = new URL(`${baseUrl}/market/watch-status`);
+  url.searchParams.set('protocol_id', protocolId);
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === 'string') {
+      url.searchParams.set(key, value);
+    }
+  }
+  const response = await fetch(url.toString());
+  const body = (await response.json()) as { ok: boolean; item?: WatchStatus | null; error?: string };
+  if (!response.ok || !body.ok) {
+    throw new Error(body.error ?? `watch-status failed with ${response.status}`);
+  }
+  return body.item ?? null;
+}
+
 export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabProps) {
   const REFRESH_INTERVAL_MS = 60_000;
   const savedEntitiesStorageKey = `view-scenario:${scenario.id}:saved-entities`;
@@ -236,6 +292,7 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
   const [errorText, setErrorText] = useState<string | null>(null);
   const [statusText, setStatusText] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
+  const [watchStatus, setWatchStatus] = useState<WatchStatus | null>(null);
   const lastEntityRef = useRef<string | null>(null);
 
   const trimmedBaseUrl = useMemo(() => viewApiBaseUrl.trim().replace(/\/+$/, ''), [viewApiBaseUrl]);
@@ -285,6 +342,7 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
     }
     setErrorText(null);
     try {
+      await ensureWatchedEntity(trimmedBaseUrl, scenario.protocolId, scenario.resolve.input(targetValue));
       const resolved = await runView<DataRecord>(
         trimmedBaseUrl,
         scenario.protocolId,
@@ -315,6 +373,7 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
       setStats(statsResult.items?.[0] ?? null);
       setSeries((seriesResult.items as DataRecord[] | undefined) ?? []);
       setFeed((feedResult.items as DataRecord[] | undefined) ?? []);
+      setWatchStatus(await fetchWatchStatus(trimmedBaseUrl, scenario.protocolId, scenario.resolve.input(targetValue)));
       setLastUpdatedAt(new Date().toISOString());
       setStatusText(`Loaded ${scenario.resource.label.toLowerCase()} ${resourceValue}.`);
     } catch (error) {
@@ -326,6 +385,7 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
         setSeries([]);
         setFeed([]);
         setResolvedResource(null);
+        setWatchStatus(null);
         lastEntityRef.current = null;
         setLastUpdatedAt(null);
       }
@@ -353,9 +413,18 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
       }
       return [nextValue, ...current].slice(0, 12);
     });
-    setStatusText(`Saved ${scenario.entity.label.toLowerCase()} ${shortPubkey(nextValue)}.`);
     setErrorText(null);
-  }, [entityValue, scenario.entity.label]);
+    void (async () => {
+      try {
+        await ensureWatchedEntity(trimmedBaseUrl, scenario.protocolId, scenario.resolve.input(nextValue));
+        setWatchStatus(await fetchWatchStatus(trimmedBaseUrl, scenario.protocolId, scenario.resolve.input(nextValue)));
+        setStatusText(`Saved ${scenario.entity.label.toLowerCase()} ${shortPubkey(nextValue)} and enabled backend watch.`);
+      } catch (error) {
+        setStatusText(`Saved ${scenario.entity.label.toLowerCase()} ${shortPubkey(nextValue)} locally.`);
+        setErrorText(error instanceof Error ? error.message : 'Unable to enable backend watch.');
+      }
+    })();
+  }, [entityValue, scenario.entity.label, scenario.protocolId, scenario.resolve, trimmedBaseUrl]);
 
   const removeSavedEntity = useCallback((value: string) => {
     setSavedEntities((current) => current.filter((entry) => entry !== value));
@@ -484,6 +553,11 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
           {autoRefreshEnabled ? 'Pause Auto-refresh' : 'Enable Auto-refresh'}
         </button>
         <span>{lastUpdatedAt ? `Last updated ${new Date(lastUpdatedAt).toLocaleTimeString()}` : 'Not loaded yet'}</span>
+        <span>
+          {watchStatus
+            ? `Sync ${watchStatus.syncStatus}${watchStatus.lastEventTime ? ` · last event ${formatRelativeTime(watchStatus.lastEventTime)}` : ''}`
+            : 'Not watched yet'}
+        </span>
       </div>
 
       <section className="view-scenario-hero">
