@@ -139,6 +139,12 @@ function getField(record: DataRecord | null, field?: string): unknown {
   }, record);
 }
 
+function getNumericField(record: DataRecord | null, field?: string): number | null {
+  const value = getField(record, field);
+  const numeric = typeof value === 'number' ? value : Number(value ?? NaN);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 function formatMetricValue(value: unknown, metric: ScenarioMetric): string {
   switch (metric.format) {
     case 'compact':
@@ -162,50 +168,175 @@ function formatMetricValue(value: unknown, metric: ScenarioMetric): string {
   }
 }
 
-function buildChartGeometry(points: DataRecord[], fields: string[], width: number, height: number): {
-  path: string;
-  points: Array<{ x: number; y: number; value: number }>;
+function resolveSeriesField(fields: string[], prefix: 'open' | 'high' | 'low' | 'close'): string[] {
+  const resolved = new Set<string>();
+  for (const field of fields) {
+    if (field === 'close') {
+      resolved.add(prefix);
+      continue;
+    }
+    if (field.startsWith('close') && field.length > 'close'.length) {
+      resolved.add(`${prefix}${field.slice('close'.length)}`);
+      continue;
+    }
+    if (prefix === 'close') {
+      resolved.add(field);
+    }
+  }
+  return Array.from(resolved);
+}
+
+function firstNumeric(record: DataRecord, fields: string[]): number | null {
+  for (const field of fields) {
+    const value = getNumericField(record, field);
+    if (value !== null) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function formatAxisValue(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return '—';
+  }
+  return value >= 1 ? formatCurrencyCompact(value, 2) : formatPrice(value);
+}
+
+function formatBucketTime(value: unknown): string {
+  const date = typeof value === 'string' || value instanceof Date ? new Date(value) : null;
+  if (!date || !Number.isFinite(date.getTime())) {
+    return '';
+  }
+  return date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function buildTradingChartGeometry(points: DataRecord[], fields: string[], width: number, height: number): {
+  candles: Array<{
+    x: number;
+    wickTop: number;
+    wickBottom: number;
+    bodyTop: number;
+    bodyHeight: number;
+    bodyWidth: number;
+    bullish: boolean;
+    volumeTop: number;
+    volumeHeight: number;
+    label: string;
+  }>;
+  linePath: string;
+  areaPath: string;
+  yAxis: { min: number; max: number; mid: number };
+  latest: { open: number; high: number; low: number; close: number; volume: number } | null;
 } {
   if (points.length === 0) {
-    return { path: '', points: [] };
+    return {
+      candles: [],
+      linePath: '',
+      areaPath: '',
+      yAxis: { min: 0, max: 0, mid: 0 },
+      latest: null,
+    };
   }
-  const values = points
+
+  const openFields = resolveSeriesField(fields, 'open');
+  const highFields = resolveSeriesField(fields, 'high');
+  const lowFields = resolveSeriesField(fields, 'low');
+  const closeFields = resolveSeriesField(fields, 'close');
+
+  const normalized = points
     .map((point) => {
-      for (const field of fields) {
-        const value = getField(point, field);
-        const numeric = typeof value === 'number' ? value : Number(value ?? NaN);
-        if (Number.isFinite(numeric)) {
-          return numeric;
-        }
+      const close = firstNumeric(point, closeFields);
+      const open = firstNumeric(point, openFields) ?? close;
+      const high = firstNumeric(point, highFields) ?? close;
+      const low = firstNumeric(point, lowFields) ?? close;
+      const volume = getNumericField(point, 'volumeQuote') ?? 0;
+      if (open === null || high === null || low === null || close === null) {
+        return null;
       }
-      return NaN;
+      return {
+        open,
+        high,
+        low,
+        close,
+        volume,
+        label: formatBucketTime(getField(point, 'bucketStart')),
+      };
     })
-    .filter((value) => Number.isFinite(value));
-  if (values.length === 0) {
-    return { path: '', points: [] };
+    .filter((value): value is NonNullable<typeof value> => value !== null);
+
+  if (normalized.length === 0) {
+    return {
+      candles: [],
+      linePath: '',
+      areaPath: '',
+      yAxis: { min: 0, max: 0, mid: 0 },
+      latest: null,
+    };
   }
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const chartPoints = points.map((point, index) => {
-      let numeric = NaN;
-      for (const field of fields) {
-        const value = getField(point, field);
-        const candidate = typeof value === 'number' ? value : Number(value ?? NaN);
-        if (Number.isFinite(candidate)) {
-          numeric = candidate;
-          break;
-        }
-      }
-      const safe = Number.isFinite(numeric) ? numeric : min;
-      const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
-      const y = height - ((safe - min) / range) * height;
-      return { x, y, value: safe };
-    });
-  const path = chartPoints
+
+  const volumeBand = 46;
+  const topPadding = 10;
+  const bottomPadding = 12;
+  const chartHeight = height - volumeBand - bottomPadding;
+  const min = Math.min(...normalized.map((point) => point.low));
+  const max = Math.max(...normalized.map((point) => point.high));
+  const range = max - min || Math.max(Math.abs(max) * 0.01, 1);
+  const maxVolume = Math.max(...normalized.map((point) => point.volume), 1);
+  const spacing = width / Math.max(normalized.length, 1);
+  const candleWidth = Math.max(4, Math.min(12, spacing * 0.56));
+
+  const yFor = (value: number) => topPadding + ((max - value) / range) * (chartHeight - topPadding);
+
+  const closePoints = normalized.map((point, index) => {
+    const x = normalized.length === 1 ? width / 2 : (index / Math.max(normalized.length - 1, 1)) * width;
+    return { x, y: yFor(point.close) };
+  });
+
+  const linePath = closePoints
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
     .join(' ');
-  return { path, points: chartPoints };
+  const areaPath = closePoints.length > 0
+    ? `${linePath} L ${closePoints[closePoints.length - 1]!.x.toFixed(2)} ${(chartHeight).toFixed(2)} L ${closePoints[0]!.x.toFixed(2)} ${(chartHeight).toFixed(2)} Z`
+    : '';
+
+  const candles = normalized.map((point, index) => {
+    const x = normalized.length === 1 ? width / 2 : (index / Math.max(normalized.length - 1, 1)) * width;
+    const openY = yFor(point.open);
+    const closeY = yFor(point.close);
+    const highY = yFor(point.high);
+    const lowY = yFor(point.low);
+    const bodyTop = Math.min(openY, closeY);
+    const bodyHeight = Math.max(Math.abs(openY - closeY), 2);
+    const volumeHeight = maxVolume > 0 ? (point.volume / maxVolume) * (volumeBand - 10) : 0;
+    return {
+      x,
+      wickTop: highY,
+      wickBottom: lowY,
+      bodyTop,
+      bodyHeight,
+      bodyWidth: candleWidth,
+      bullish: point.close >= point.open,
+      volumeTop: height - volumeHeight - 6,
+      volumeHeight,
+      label: point.label,
+    };
+  });
+
+  return {
+    candles,
+    linePath,
+    areaPath,
+    yAxis: {
+      min,
+      max,
+      mid: min + range / 2,
+    },
+    latest: normalized[normalized.length - 1] ?? null,
+  };
 }
 
 async function runView<T>(
@@ -317,7 +448,7 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
   const lastEntityRef = useRef<string | null>(null);
 
   const trimmedBaseUrl = useMemo(() => viewApiBaseUrl.trim().replace(/\/+$/, ''), [viewApiBaseUrl]);
-  const chartGeometry = useMemo(() => buildChartGeometry(series, scenario.chart.valueFields, 720, 220), [scenario.chart.valueFields, series]);
+  const chartGeometry = useMemo(() => buildTradingChartGeometry(series, scenario.chart.valueFields, 720, 260), [scenario.chart.valueFields, series]);
 
   useEffect(() => {
     try {
@@ -638,30 +769,63 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
             <h3>{scenario.chart.title}</h3>
             <span>{scenario.chart.valueLabel ? `${series.length} point(s) · ${scenario.chart.valueLabel}` : `${series.length} point(s)`}</span>
           </div>
-          {series.length > 0 && chartGeometry.points.length > 0 ? (
+          {chartGeometry.latest ? (
             <div className="view-scenario-chart-shell">
-              <svg viewBox="0 0 720 220" preserveAspectRatio="none" role="img" aria-label="Scenario chart">
-                {chartGeometry.points.length > 1 ? (
-                  <path d={chartGeometry.path} fill="none" stroke="#4ade80" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+              <div className="view-scenario-chart-summary">
+                <span>O {formatAxisValue(chartGeometry.latest.open)}</span>
+                <span>H {formatAxisValue(chartGeometry.latest.high)}</span>
+                <span>L {formatAxisValue(chartGeometry.latest.low)}</span>
+                <span>C {formatAxisValue(chartGeometry.latest.close)}</span>
+                <span>Vol {formatCurrencyCompact(chartGeometry.latest.volume, 2)}</span>
+              </div>
+              <svg viewBox="0 0 720 260" preserveAspectRatio="none" role="img" aria-label="Scenario chart">
+                <line x1="0" y1="10" x2="720" y2="10" className="view-scenario-grid-line" />
+                <line x1="0" y1="104" x2="720" y2="104" className="view-scenario-grid-line" />
+                <line x1="0" y1="198" x2="720" y2="198" className="view-scenario-grid-line" />
+                {chartGeometry.areaPath ? (
+                  <path d={chartGeometry.areaPath} className="view-scenario-chart-area" />
                 ) : null}
-                {chartGeometry.points.map((point, index) => (
-                  <circle
-                    key={`${index}:${point.x}:${point.y}`}
-                    cx={point.x}
-                    cy={point.y}
-                    r={chartGeometry.points.length === 1 ? 6 : 4}
-                    fill="#4ade80"
-                    stroke="#d9ffe7"
-                    strokeWidth="2"
-                  />
+                {chartGeometry.linePath ? (
+                  <path d={chartGeometry.linePath} className="view-scenario-chart-line" />
+                ) : null}
+                {chartGeometry.candles.map((candle, index) => (
+                  <g key={`${index}:${candle.x}:${candle.label}`}>
+                    <line
+                      x1={candle.x}
+                      y1={candle.wickTop}
+                      x2={candle.x}
+                      y2={candle.wickBottom}
+                      className={candle.bullish ? 'view-scenario-candle-wick bullish' : 'view-scenario-candle-wick bearish'}
+                    />
+                    <rect
+                      x={candle.x - candle.bodyWidth / 2}
+                      y={candle.bodyTop}
+                      width={candle.bodyWidth}
+                      height={candle.bodyHeight}
+                      rx="1.5"
+                      className={candle.bullish ? 'view-scenario-candle-body bullish' : 'view-scenario-candle-body bearish'}
+                    />
+                    <rect
+                      x={candle.x - candle.bodyWidth / 2}
+                      y={candle.volumeTop}
+                      width={candle.bodyWidth}
+                      height={Math.max(candle.volumeHeight, 1)}
+                      className={candle.bullish ? 'view-scenario-volume-bar bullish' : 'view-scenario-volume-bar bearish'}
+                    />
+                  </g>
                 ))}
               </svg>
+              <div className="view-scenario-chart-axis">
+                <span>{formatAxisValue(chartGeometry.yAxis.max)}</span>
+                <span>{formatAxisValue(chartGeometry.yAxis.mid)}</span>
+                <span>{formatAxisValue(chartGeometry.yAxis.min)}</span>
+              </div>
             </div>
           ) : (
             <p className="view-playground-empty">No series points yet for this scenario.</p>
           )}
           {series.length === 1 ? (
-            <p className="view-playground-empty">Only one 1-minute bucket so far. The line will appear as more trades arrive.</p>
+            <p className="view-playground-empty">Only one 1-minute candle so far. More trades will build out the chart.</p>
           ) : null}
         </section>
       </div>

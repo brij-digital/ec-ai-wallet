@@ -206,10 +206,10 @@ export const DEFAULT_VIEW_SCENARIO: ViewScenarioDefinition = {
   },
   hero: {
     title: {
-      label: 'Primary Value',
+      label: 'Market Cap',
       source: 'snapshot',
       field: 'marketCapQuote',
-      format: 'compact',
+      format: 'currencyCompact',
       digits: 1,
     },
     subtitle: [
@@ -236,9 +236,9 @@ export const DEFAULT_VIEW_SCENARIO: ViewScenarioDefinition = {
     { label: '24h Volume', source: 'stats', field: 'volume24hQuote', format: 'currencyCompact', digits: 2 },
   ],
   chart: {
-    title: 'Market Cap Series',
+    title: 'Trading Chart',
     valueFields: ['closeMarketCap', 'close'],
-    valueLabel: 'Market Cap / Price',
+    valueLabel: '1m OHLC + volume',
   },
   feed: {
     title: 'Recent Trades',
