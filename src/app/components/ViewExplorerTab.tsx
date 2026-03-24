@@ -94,6 +94,22 @@ type ExplorerCandidates = {
   orca: OrcaCandidate[];
 };
 
+type ActionableViewItem = {
+  mint?: string;
+  pool?: string;
+  marketType?: string;
+  tradeable?: boolean;
+  summary?: string;
+  confidence?: string;
+  confidenceScore?: number;
+  liquidityQuote?: number;
+  volume24hQuote?: number;
+  marketCapQuote?: number | null;
+  latestTradeAt?: string | null;
+  warnings?: string[];
+  actionContext?: Record<string, unknown>;
+};
+
 const INDEXED_PROTOCOL_IDS = new Set(['pump-amm-mainnet', 'orca-whirlpool-mainnet']);
 
 function formatJson(value: unknown): string {
@@ -119,7 +135,7 @@ function fallbackPreset(view: ExplorerView): { input: string; limit: string } {
 }
 
 function defaultLimitForView(view: ExplorerView): string {
-  if (view.operationId === 'resolve_pool' || view.operationId === 'pool_snapshot' || view.operationId === 'stat_cards') {
+  if (view.operationId === 'resolve_pool' || view.operationId === 'pool_snapshot' || view.operationId === 'stat_cards' || view.operationId === 'token_trade_context') {
     return '1';
   }
   if (view.operationId === 'trade_feed' || view.operationId === 'market_cap_series' || view.operationId === 'list_tokens' || view.operationId === 'list_pools') {
@@ -210,6 +226,56 @@ async function resolveRunnableSample(
         input: formatJson({
           mint: first.mint,
           quote_mint: first.quoteMint,
+        }),
+        limit: '1',
+      };
+    }
+
+    if (view.operationId === 'token_trade_context') {
+      let bestCandidate: { mint: string; quoteMint: string; score: number } | null = null;
+      for (const candidate of candidates.pump) {
+        const response = await runView(
+          baseUrl,
+          view.protocolId,
+          view.operationId,
+          { mint: candidate.mint, quote_mint: candidate.quoteMint },
+          1,
+        );
+        const firstItem = Array.isArray(response.items) ? (response.items[0] as ActionableViewItem | undefined) : undefined;
+        if (!firstItem) {
+          continue;
+        }
+        const score =
+          (firstItem.tradeable ? 100 : 0)
+          + ((typeof firstItem.confidenceScore === 'number' ? firstItem.confidenceScore : 0) * 50)
+          + (typeof firstItem.liquidityQuote === 'number' ? Math.min(firstItem.liquidityQuote, 250) : 0)
+          + (typeof firstItem.volume24hQuote === 'number' ? Math.min(firstItem.volume24hQuote, 250) : 0)
+          - ((Array.isArray(firstItem.warnings) ? firstItem.warnings.length : 0) * 15);
+        if (!bestCandidate || score > bestCandidate.score) {
+          bestCandidate = {
+            mint: candidate.mint,
+            quoteMint: candidate.quoteMint,
+            score,
+          };
+        }
+      }
+      if (!bestCandidate) {
+        const fallback = candidates.pump[0];
+        if (!fallback) {
+          return null;
+        }
+        return {
+          input: formatJson({
+            mint: fallback.mint,
+            quote_mint: fallback.quoteMint,
+          }),
+          limit: '1',
+        };
+      }
+      return {
+        input: formatJson({
+          mint: bestCandidate.mint,
+          quote_mint: bestCandidate.quoteMint,
         }),
         limit: '1',
       };
@@ -316,6 +382,93 @@ async function resolveRunnableSample(
   }
 
   return null;
+}
+
+function isActionableViewItem(value: unknown): value is ActionableViewItem {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const row = value as Record<string, unknown>;
+  return 'tradeable' in row || 'actionContext' in row || 'confidence' in row;
+}
+
+function renderItemPreview(item: unknown, index: number) {
+  if (!isActionableViewItem(item)) {
+    return (
+      <article key={index} className="view-result-card">
+        <strong>Item {index + 1}</strong>
+        {item && typeof item === 'object' && !Array.isArray(item) ? (
+          <dl>
+            {Object.entries(item as Record<string, unknown>).map(([key, value]) => (
+              <div key={key} className="view-result-row">
+                <dt>{key}</dt>
+                <dd>{summarizeValue(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <pre>{formatJson(item)}</pre>
+        )}
+      </article>
+    );
+  }
+
+  const warnings = Array.isArray(item.warnings) ? item.warnings : [];
+  const actions = item.actionContext && typeof item.actionContext === 'object'
+    ? Object.entries(item.actionContext)
+    : [];
+
+  return (
+    <article key={index} className="view-result-card view-result-card-actionable">
+      <div className="view-actionable-head">
+        <div>
+          <strong>{item.tradeable ? 'Tradeable Context' : 'Context Needs Caution'}</strong>
+          <span>{item.summary ?? 'Action-oriented Pump context built from indexed state.'}</span>
+        </div>
+        <div className={item.tradeable ? 'view-actionable-badge good' : 'view-actionable-badge warn'}>
+          {item.tradeable ? 'tradeable' : 'restricted'}
+        </div>
+      </div>
+
+      <div className="view-actionable-grid">
+        <div><span>Mint</span><strong>{item.mint ?? '—'}</strong></div>
+        <div><span>Pool</span><strong>{item.pool ?? '—'}</strong></div>
+        <div><span>Market</span><strong>{item.marketType ?? '—'}</strong></div>
+        <div><span>Confidence</span><strong>{item.confidence ?? '—'}{typeof item.confidenceScore === 'number' ? ` (${item.confidenceScore})` : ''}</strong></div>
+        <div><span>Liquidity</span><strong>{typeof item.liquidityQuote === 'number' ? item.liquidityQuote.toFixed(4) : '—'}</strong></div>
+        <div><span>24h Volume</span><strong>{typeof item.volume24hQuote === 'number' ? item.volume24hQuote.toFixed(4) : '—'}</strong></div>
+        <div><span>Market Cap</span><strong>{typeof item.marketCapQuote === 'number' ? item.marketCapQuote.toFixed(4) : '—'}</strong></div>
+        <div><span>Latest Trade</span><strong>{item.latestTradeAt ?? '—'}</strong></div>
+      </div>
+
+      <div className="view-actionable-section">
+        <span>Warnings</span>
+        {warnings.length > 0 ? (
+          <div className="view-actionable-tags">
+            {warnings.map((warning) => <code key={warning}>{warning}</code>)}
+          </div>
+        ) : (
+          <strong>No major warnings</strong>
+        )}
+      </div>
+
+      <div className="view-actionable-section">
+        <span>Execution Handoff</span>
+        {actions.length > 0 ? (
+          <div className="view-actionable-actions">
+            {actions.map(([name, action]) => (
+              <div key={name} className="view-actionable-action">
+                <strong>{name}</strong>
+                <pre>{formatJson(action)}</pre>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <strong>No action context</strong>
+        )}
+      </div>
+    </article>
+  );
 }
 
 export function ViewExplorerTab({ viewApiBaseUrl }: ViewExplorerTabProps) {
@@ -652,23 +805,7 @@ export function ViewExplorerTab({ viewApiBaseUrl }: ViewExplorerTabProps) {
             </div>
             {Array.isArray(result?.items) && result.items.length > 0 ? (
               <div className="view-result-grid">
-                {result.items.map((item, index) => (
-                  <article key={index} className="view-result-card">
-                    <strong>Item {index + 1}</strong>
-                    {item && typeof item === 'object' && !Array.isArray(item) ? (
-                      <dl>
-                        {Object.entries(item as Record<string, unknown>).map(([key, value]) => (
-                          <div key={key} className="view-result-row">
-                            <dt>{key}</dt>
-                            <dd>{summarizeValue(value)}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    ) : (
-                      <pre>{formatJson(item)}</pre>
-                    )}
-                  </article>
-                ))}
+                {result.items.map((item, index) => renderItemPreview(item, index))}
               </div>
             ) : (
               <p className="view-playground-empty">Run a view to inspect items here.</p>

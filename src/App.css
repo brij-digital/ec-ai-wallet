@@ -1099,6 +1099,113 @@
   color: #16284d;
 }
 
+.view-result-card-actionable {
+  gap: 0.9rem;
+}
+
+.view-actionable-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.view-actionable-head span {
+  display: block;
+  margin-top: 0.25rem;
+  color: #48607f;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.view-actionable-badge {
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.view-actionable-badge.good {
+  background: #e9f8ef;
+  color: #1f7a40;
+}
+
+.view-actionable-badge.warn {
+  background: #fff2e5;
+  color: #9a4a03;
+}
+
+.view-actionable-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.65rem;
+}
+
+.view-actionable-grid div,
+.view-actionable-section {
+  border: 1px solid #dce4f4;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 0.7rem;
+}
+
+.view-actionable-grid span,
+.view-actionable-section span {
+  display: block;
+  color: #5c6f90;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.view-actionable-grid strong,
+.view-actionable-section strong {
+  color: #183055;
+  overflow-wrap: anywhere;
+}
+
+.view-actionable-tags {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.view-actionable-tags code {
+  background: #fff3e8;
+  border: 1px solid #ffd2ad;
+  color: #8a4d14;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.view-actionable-actions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.view-actionable-action {
+  border: 1px solid #dce4f4;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.65rem;
+}
+
+.view-actionable-action pre {
+  margin: 0.45rem 0 0;
+  background: #f3f7ff;
+  border: 1px solid #dce4f4;
+  border-radius: 8px;
+  padding: 0.55rem;
+  overflow: auto;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #213357;
+}
+
 .view-result-card dl {
   margin: 0;
   display: grid;
