@@ -6,9 +6,8 @@ import { listSupportedTokens } from './constants/tokens';
 import { BuilderTab } from './app/components/BuilderTab';
 import { CommandTab } from './app/components/CommandTab';
 import { ComputeDevTab } from './app/components/ComputeDevTab';
-import { ViewScenarioTab } from './app/components/ViewScenarioTab';
+import { ViewExplorerTab } from './app/components/ViewExplorerTab';
 import { ViewPlaygroundTab } from './app/components/ViewPlaygroundTab';
-import { DEFAULT_VIEW_SCENARIO, VIEW_SCENARIOS } from './app/viewModels';
 import { useBuilderController } from './app/useBuilderController';
 import { useBuilderSubmitController } from './app/useBuilderSubmitController';
 import { useCommandController } from './app/useCommandController';
@@ -27,12 +26,7 @@ function App() {
   const wallet = useWallet();
 
   const [activeTab, setActiveTab] = useState<AppTab>('apps');
-  const [scenarioId, setScenarioId] = useState(DEFAULT_VIEW_SCENARIO.id);
   const [isBuilderWorking, setIsBuilderWorking] = useState(false);
-  const selectedScenario = useMemo(
-    () => VIEW_SCENARIOS.find((scenario) => scenario.id === scenarioId) ?? DEFAULT_VIEW_SCENARIO,
-    [scenarioId],
-  );
 
   const builder = useBuilderController();
   const {
@@ -203,7 +197,7 @@ function App() {
             className={activeTab === 'scenario' ? 'active' : ''}
             onClick={() => setActiveTab('scenario')}
           >
-            Scenarios
+            Explorer
           </button>
           <button
             type="button"
@@ -228,21 +222,7 @@ function App() {
         ) : activeTab === 'compute' ? (
           <ComputeDevTab isWorking={isWorking} />
         ) : activeTab === 'scenario' ? (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#52606d' }}>
-                Scenario
-                <select value={scenarioId} onChange={(event) => setScenarioId(event.target.value)}>
-                  {VIEW_SCENARIOS.map((scenario) => (
-                    <option key={scenario.id} value={scenario.id}>
-                      {scenario.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <ViewScenarioTab key={selectedScenario.id} viewApiBaseUrl={VIEW_API_BASE_URL} scenario={selectedScenario} />
-          </>
+          <ViewExplorerTab viewApiBaseUrl={VIEW_API_BASE_URL} />
         ) : activeTab === 'views' ? (
           <ViewPlaygroundTab viewApiBaseUrl={VIEW_API_BASE_URL} />
         ) : (
