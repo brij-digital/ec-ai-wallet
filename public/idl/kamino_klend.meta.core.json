@@ -157,7 +157,6 @@
       ],
       "view": {
         "kind": "search",
-        "source": "indexed",
         "entity_type": "kamino_reserve",
         "title": "Resolve reserve",
         "description": "Resolve a Kamino reserve by reserve address or reserve vault.",

@@ -614,7 +614,6 @@
       ],
       "view": {
         "kind": "search",
-        "source": "indexed",
         "entity_type": "whirlpool_pool",
         "title": "List pools",
         "description": "Find Whirlpool pools for a token pair.",

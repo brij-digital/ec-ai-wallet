@@ -916,7 +916,6 @@
       },
       "view": {
         "kind": "search",
-        "source": "indexed",
         "entity_type": "pump_pool",
         "title": "List tokens",
         "description": "List Pump AMM pools for a quote mint.",
@@ -1048,7 +1047,6 @@
       },
       "view": {
         "kind": "search",
-        "source": "indexed",
         "entity_type": "pump_pool",
         "title": "View pool",
         "description": "Find a Pump AMM pool for a base/quote pair.",
@@ -1180,7 +1178,6 @@
       },
       "view": {
         "kind": "search",
-        "source": "indexed",
         "source_kind": "account_changes",
         "sync_disabled": true,
         "freshness": {
@@ -1289,7 +1286,6 @@
       },
       "view": {
         "kind": "account",
-        "source": "hybrid",
         "source_kind": "account_changes",
         "freshness": {
           "class": "near_realtime",
@@ -1333,7 +1329,6 @@
       },
       "view": {
         "kind": "feed",
-        "source": "indexed",
         "source_kind": "materialized_feed",
         "freshness": {
           "class": "near_realtime",
@@ -1373,7 +1368,6 @@
       },
       "view": {
         "kind": "series",
-        "source": "indexed",
         "source_kind": "materialized_series",
         "freshness": {
           "class": "near_realtime",
@@ -1397,7 +1391,6 @@
       },
       "view": {
         "kind": "series",
-        "source": "hybrid",
         "source_kind": "materialized_series",
         "freshness": {
           "class": "near_realtime",

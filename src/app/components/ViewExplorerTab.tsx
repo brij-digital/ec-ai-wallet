@@ -49,7 +49,6 @@ type ExplorerView = {
   operationLabel: string;
   description: string;
   kind: string;
-  source: string;
   entityType: string | null;
   supportedCommands: string[];
 };
@@ -316,7 +315,6 @@ export function ViewExplorerTab({ viewApiBaseUrl }: ViewExplorerTabProps) {
               operationLabel: operation.label ?? operation.view.title ?? opId,
               description: operation.view.description ?? operation.description ?? operation.read_output?.title ?? '',
               kind: operation.view.kind ?? 'view',
-              source: operation.view.source ?? 'unknown',
               entityType: operation.view.entity_type ?? null,
               supportedCommands: protocol.supportedCommands ?? [],
             });
@@ -517,7 +515,7 @@ export function ViewExplorerTab({ viewApiBaseUrl }: ViewExplorerTabProps) {
                 >
                   <strong>{view.operationLabel}</strong>
                   <span>{view.protocolLabel}</span>
-                  <span>{view.kind} · {view.source}</span>
+                  <span>{view.kind}</span>
                 </button>
               );
             })}

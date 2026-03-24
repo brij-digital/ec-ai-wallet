@@ -211,13 +211,9 @@
     },
     "accountViewSpec": {
       "type": "object",
-      "required": ["kind", "source", "target", "select"],
+      "required": ["kind", "target", "select"],
       "properties": {
         "kind": { "const": "account" },
-        "source": {
-          "type": "string",
-          "enum": ["rpc", "indexed", "hybrid"]
-        },
         "entity_type": { "type": "string" },
         "target": { "$ref": "#/$defs/accountTargetSpec" },
         "refresh": { "$ref": "#/$defs/refreshSpec" },
@@ -232,13 +228,9 @@
     },
     "searchViewSpec": {
       "type": "object",
-      "required": ["kind", "source", "entity_type", "bootstrap", "query"],
+      "required": ["kind", "entity_type", "bootstrap", "query"],
       "properties": {
         "kind": { "const": "search" },
-        "source": {
-          "type": "string",
-          "enum": ["rpc", "indexed", "hybrid"]
-        },
         "entity_type": { "type": "string" },
         "bootstrap": { "$ref": "#/$defs/bootstrapSpec" },
         "refresh": { "$ref": "#/$defs/refreshSpec" },
