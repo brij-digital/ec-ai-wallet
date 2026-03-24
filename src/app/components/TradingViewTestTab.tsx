@@ -27,6 +27,26 @@ type HistoryResponse = {
 
 const DEFAULT_SYMBOL = 'pump:GknmGPnRtnmfSW44t8NqtQG8opKmfiHRvNXxhq69pump';
 
+function formatPriceLabel(value: number): string {
+  if (!Number.isFinite(value)) {
+    return '0';
+  }
+  const abs = Math.abs(value);
+  if (abs === 0) {
+    return '0';
+  }
+  if (abs >= 1000) {
+    return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+  if (abs >= 1) {
+    return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 });
+  }
+  if (abs >= 0.000001) {
+    return value.toFixed(8);
+  }
+  return value.toExponential(4);
+}
+
 function buildHistoryUrl(baseUrl: string, symbol: string, resolution: string, from: number, to: number): string {
   const url = new URL(`${baseUrl.replace(/\/+$/, '')}/tradingview/history`);
   url.searchParams.set('symbol', symbol);
@@ -65,12 +85,16 @@ export function TradingViewTestTab({ viewApiBaseUrl }: TradingViewTestTabProps) 
         background: { type: ColorType.Solid, color: '#ffffff' },
         textColor: '#17325a',
       },
+      localization: {
+        priceFormatter: formatPriceLabel,
+      },
       grid: {
         vertLines: { color: '#edf2fb' },
         horzLines: { color: '#edf2fb' },
       },
       rightPriceScale: {
         borderColor: '#d7e2f2',
+        entireTextOnly: false,
       },
       timeScale: {
         borderColor: '#d7e2f2',
@@ -161,12 +185,16 @@ export function TradingViewTestTab({ viewApiBaseUrl }: TradingViewTestTabProps) 
           background: { type: ColorType.Solid, color: '#ffffff' },
           textColor: '#17325a',
         },
+        localization: {
+          priceFormatter: formatPriceLabel,
+        },
         grid: {
           vertLines: { color: '#edf2fb' },
           horzLines: { color: '#edf2fb' },
         },
         rightPriceScale: {
           borderColor: '#d7e2f2',
+          entireTextOnly: false,
         },
         timeScale: {
           borderColor: '#d7e2f2',
@@ -184,6 +212,8 @@ export function TradingViewTestTab({ viewApiBaseUrl }: TradingViewTestTabProps) 
         borderDownColor: '#c64545',
         wickUpColor: '#2e8b57',
         wickDownColor: '#c64545',
+        priceLineVisible: true,
+        lastValueVisible: true,
       });
       const volumeSeries = rebuilt.addSeries(HistogramSeries, {
         priceFormat: { type: 'volume' },
