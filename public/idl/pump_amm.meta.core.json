@@ -1364,6 +1364,18 @@
           "type": "string",
           "required": false,
           "label": "To ISO"
+        },
+        "interval": {
+          "type": "string",
+          "required": false,
+          "default": "1m",
+          "label": "Interval"
+        },
+        "mode": {
+          "type": "string",
+          "required": false,
+          "default": "sparse",
+          "label": "Mode"
         }
       },
       "view": {
@@ -1376,7 +1388,7 @@
         },
         "entity_type": "pump_market_cap_series",
         "title": "Market cap series",
-        "description": "Materialized 1 minute market-cap and price series for a Pump AMM pool."
+        "description": "Materialized Pump market-cap and price series with 1m base candles, interval rollups, and optional dense fill."
       },
       "label": "Market Cap Series",
       "use": []
