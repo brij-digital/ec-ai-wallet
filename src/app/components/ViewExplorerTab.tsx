@@ -117,6 +117,21 @@ type ActionableViewItem = {
   actionContext?: Record<string, unknown>;
 };
 
+type RankedTokenViewItem = {
+  mint?: string;
+  pool?: string | null;
+  marketType?: string;
+  score?: number;
+  liquidityQuote?: number;
+  volumeWindowQuote?: number;
+  tradeCountWindow?: number;
+  uniqueTradersWindow?: number;
+  buyCountWindow?: number;
+  sellCountWindow?: number;
+  lastTradeAt?: string | null;
+  warnings?: string[];
+};
+
 const INDEXED_PROTOCOL_IDS = new Set(['pump-amm-mainnet', 'orca-whirlpool-mainnet']);
 
 function formatJson(value: unknown): string {
@@ -145,7 +160,7 @@ function defaultLimitForView(view: ExplorerView): string {
   if (view.operationId === 'resolve_pool' || view.operationId === 'pool_snapshot' || view.operationId === 'stat_cards' || view.operationId === 'token_trade_context') {
     return '1';
   }
-  if (view.operationId === 'trade_feed' || view.operationId === 'market_cap_series' || view.operationId === 'list_tokens' || view.operationId === 'list_pools') {
+  if (view.operationId === 'trade_feed' || view.operationId === 'market_cap_series' || view.operationId === 'list_tokens' || view.operationId === 'list_pools' || view.operationId === 'ranked_active_tokens') {
     return '20';
   }
   return '20';
@@ -219,6 +234,19 @@ async function resolveRunnableSample(
         input: formatJson({
           quote_mint: first.quoteMint,
           min_last_seen_slot: '0',
+        }),
+        limit: defaultLimitForView(view),
+      };
+    }
+
+    if (view.operationId === 'ranked_active_tokens') {
+      const first = candidates.pump[0];
+      return {
+        input: formatJson({
+          quote_mint: first?.quoteMint ?? 'So11111111111111111111111111111111111111112',
+          window_hours: 24,
+          min_liquidity: 0,
+          min_volume: 0,
         }),
         limit: defaultLimitForView(view),
       };
@@ -398,7 +426,68 @@ function isActionableViewItem(value: unknown): value is ActionableViewItem {
   return 'tradeable' in row || 'actionContext' in row || 'confidence' in row;
 }
 
+function isRankedTokenViewItem(value: unknown): value is RankedTokenViewItem {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const row = value as Record<string, unknown>;
+  return 'score' in row && 'tradeCountWindow' in row && 'uniqueTradersWindow' in row;
+}
+
 function renderItemPreview(item: unknown, index: number) {
+  if (isRankedTokenViewItem(item)) {
+    const warnings = Array.isArray(item.warnings) ? item.warnings : [];
+    return (
+      <article key={index} className="view-result-card view-result-card-actionable">
+        <div className="view-actionable-head">
+          <div>
+            <strong>Ranked Candidate #{index + 1}</strong>
+            <span>{item.mint ?? 'Unknown mint'}</span>
+          </div>
+          <div className="view-actionable-badge neutral">
+            score {typeof item.score === 'number' ? item.score.toFixed(3) : '—'}
+          </div>
+        </div>
+
+        <div className="view-actionable-grid">
+          <div><span>Mint</span><strong>{item.mint ?? '—'}</strong></div>
+          <div><span>Pool</span><strong>{item.pool ?? '—'}</strong></div>
+          <div><span>Market</span><strong>{item.marketType ?? '—'}</strong></div>
+          <div><span>Liquidity</span><strong>{typeof item.liquidityQuote === 'number' ? item.liquidityQuote.toFixed(4) : '—'}</strong></div>
+          <div><span>Window Volume</span><strong>{typeof item.volumeWindowQuote === 'number' ? item.volumeWindowQuote.toFixed(4) : '—'}</strong></div>
+          <div><span>Trades</span><strong>{typeof item.tradeCountWindow === 'number' ? item.tradeCountWindow : '—'}</strong></div>
+          <div><span>Unique Traders</span><strong>{typeof item.uniqueTradersWindow === 'number' ? item.uniqueTradersWindow : '—'}</strong></div>
+          <div><span>Last Trade</span><strong>{item.lastTradeAt ?? '—'}</strong></div>
+        </div>
+
+        <div className="view-actionable-section">
+          <span>Flow Shape</span>
+          <div className="view-actionable-checks">
+            <div className="view-actionable-check">
+              <strong>Buys</strong>
+              <span>{typeof item.buyCountWindow === 'number' ? item.buyCountWindow : '—'}</span>
+            </div>
+            <div className="view-actionable-check">
+              <strong>Sells</strong>
+              <span>{typeof item.sellCountWindow === 'number' ? item.sellCountWindow : '—'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="view-actionable-section">
+          <span>Warning Codes</span>
+          {warnings.length > 0 ? (
+            <div className="view-actionable-tags">
+              {warnings.map((warning) => <code key={warning}>{warning}</code>)}
+            </div>
+          ) : (
+            <strong>No major warnings</strong>
+          )}
+        </div>
+      </article>
+    );
+  }
+
   if (!isActionableViewItem(item)) {
     return (
       <article key={index} className="view-result-card">

@@ -134,6 +134,22 @@ export const VIEW_PLAYGROUND_PRESETS: ViewExample[] = [
     limit: '60',
   },
   {
+    label: 'Ranked active Pump tokens',
+    protocolId: 'pump-amm-mainnet',
+    operationId: 'ranked_active_tokens',
+    input: JSON.stringify(
+      {
+        quote_mint: DEFAULT_QUOTE_MINT,
+        window_hours: 24,
+        min_liquidity: 0,
+        min_volume: 0,
+      },
+      null,
+      2,
+    ),
+    limit: '20',
+  },
+  {
     label: 'Orca pool search',
     protocolId: 'orca-whirlpool-mainnet',
     operationId: 'list_pools',
