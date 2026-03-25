@@ -141,6 +141,7 @@ export const VIEW_PLAYGROUND_PRESETS: ViewExample[] = [
       {
         quote_mint: DEFAULT_QUOTE_MINT,
         window_hours: 24,
+        max_activity_age_minutes: 30,
         min_liquidity: 0,
         min_volume: 0,
       },

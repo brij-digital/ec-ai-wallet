@@ -81,6 +81,8 @@ type PumpCandidate = {
   pool: string;
   mint: string;
   quoteMint: string;
+  score?: number;
+  warnings?: string[];
 };
 
 type OrcaCandidate = {
@@ -188,9 +190,10 @@ async function runView(
 
 async function fetchIndexedCandidates(baseUrl: string): Promise<ExplorerCandidates> {
   const [pumpBody, orcaBody] = await Promise.all([
-    runView(baseUrl, 'pump-amm-mainnet', 'list_tokens', {
+    runView(baseUrl, 'pump-amm-mainnet', 'ranked_active_tokens', {
       quote_mint: 'So11111111111111111111111111111111111111112',
-      min_last_seen_slot: '0',
+      window_hours: 24,
+      max_activity_age_minutes: 30,
     }, 10),
     runView(baseUrl, 'orca-whirlpool-mainnet', 'list_pools', {
       token_in_mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
@@ -201,8 +204,14 @@ async function fetchIndexedCandidates(baseUrl: string): Promise<ExplorerCandidat
   const pump = Array.isArray(pumpBody.items)
     ? pumpBody.items.flatMap((item) => {
         const row = item as Record<string, unknown>;
-        return typeof row.pool === 'string' && typeof row.baseMint === 'string' && typeof row.quoteMint === 'string'
-          ? [{ pool: row.pool, mint: row.baseMint, quoteMint: row.quoteMint }]
+        return typeof row.pool === 'string' && typeof row.mint === 'string' && typeof row.quoteMint === 'string'
+          ? [{
+              pool: row.pool,
+              mint: row.mint,
+              quoteMint: row.quoteMint,
+              score: typeof row.score === 'number' ? row.score : undefined,
+              warnings: Array.isArray(row.warnings) ? row.warnings.filter((entry): entry is string => typeof entry === 'string') : undefined,
+            }]
           : [];
       })
     : [];
@@ -245,6 +254,7 @@ async function resolveRunnableSample(
         input: formatJson({
           quote_mint: first?.quoteMint ?? 'So11111111111111111111111111111111111111112',
           window_hours: 24,
+          max_activity_age_minutes: 30,
           min_liquidity: 0,
           min_volume: 0,
         }),
