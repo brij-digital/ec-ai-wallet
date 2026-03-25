@@ -95,6 +95,37 @@ type CandleInspect = {
 
 const DEFAULT_QUOTE_MINT = 'So11111111111111111111111111111111111111112';
 
+type WorkspaceCallConfig = {
+  operation: string;
+  input?: Record<string, unknown>;
+  limit?: number;
+};
+
+type WorkspaceChartConfig = {
+  provider?: string;
+  symbol_prefix?: string;
+  resolution?: string;
+  lookback_seconds?: number;
+  limit?: number;
+};
+
+type WorkspaceSeedConfig = WorkspaceCallConfig & {
+  entity_field?: string;
+};
+
+type WorkspaceMeta = {
+  title?: string;
+  description?: string;
+  seed?: WorkspaceSeedConfig;
+  context?: WorkspaceCallConfig;
+  feed?: WorkspaceCallConfig;
+  chart?: WorkspaceChartConfig;
+};
+
+type ProtocolMetaResponse = {
+  workspaces?: Record<string, WorkspaceMeta>;
+};
+
 function formatPriceLabel(value: number): string {
   if (!Number.isFinite(value)) {
     return '0';
@@ -169,15 +200,24 @@ async function runView(
   return response.json() as Promise<ViewRunResponse>;
 }
 
-function buildHistoryUrl(baseUrl: string, mint: string): string {
+function substituteEntity(input: Record<string, unknown> | undefined, entity: string): Record<string, unknown> {
+  if (!input) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(input).map(([key, value]) => [key, value === '$entity' ? entity : value]),
+  );
+}
+
+function buildHistoryUrl(baseUrl: string, mint: string, chartConfig?: WorkspaceChartConfig): string {
   const now = Math.floor(Date.now() / 1000);
-  const from = now - (24 * 60 * 60);
+  const from = now - (chartConfig?.lookback_seconds ?? (24 * 60 * 60));
   const url = new URL(`${baseUrl.replace(/\/+$/, '')}/tradingview/history`);
-  url.searchParams.set('symbol', `pump:${mint}`);
-  url.searchParams.set('resolution', '1');
+  url.searchParams.set('symbol', `${chartConfig?.symbol_prefix ?? 'pump:'}${mint}`);
+  url.searchParams.set('resolution', chartConfig?.resolution ?? '1');
   url.searchParams.set('from', String(from));
   url.searchParams.set('to', String(now));
-  url.searchParams.set('limit', '500');
+  url.searchParams.set('limit', String(chartConfig?.limit ?? 500));
   return url.toString();
 }
 
@@ -197,8 +237,12 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [selectedCandle, setSelectedCandle] = useState<CandleInspect | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [workspaceMeta, setWorkspaceMeta] = useState<WorkspaceMeta | null>(null);
 
   const selectedRanked = rankedTokens.find((item) => item.mint === selectedMint) ?? null;
+
+  const workspaceTitle = workspaceMeta?.title ?? 'Pump Workspace';
+  const workspaceDescription = workspaceMeta?.description ?? 'Discover active mints, inspect execution context, validate price action, and jump straight into handoff-ready buy or sell inputs.';
 
   useEffect(() => {
     if (!chartContainerRef.current) {
@@ -242,16 +286,13 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
   }, []);
 
   async function loadRankedTokens(): Promise<void> {
+    const seed = workspaceMeta?.seed;
     const response = await runView(
       baseUrl,
       'pump-amm-mainnet',
-      'ranked_active_tokens',
-      {
-        quote_mint: DEFAULT_QUOTE_MINT,
-        window_hours: 24,
-        max_activity_age_minutes: 30,
-      },
-      12,
+      seed?.operation ?? 'ranked_active_tokens',
+      substituteEntity(seed?.input, selectedMint ?? ''),
+      seed?.limit ?? 12,
     );
     if (!response.ok || !Array.isArray(response.items)) {
       throw new Error(response.error ?? 'Failed to load ranked Pump tokens.');
@@ -272,26 +313,34 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
   }
 
   async function loadWorkspace(mint: string): Promise<void> {
+    const contextConfig = workspaceMeta?.context;
+    const feedConfig = workspaceMeta?.feed;
     const [contextResponse, feedResponse] = await Promise.all([
       runView(
         baseUrl,
         'pump-amm-mainnet',
-        'token_trade_context',
-        {
+        contextConfig?.operation ?? 'token_trade_context',
+        substituteEntity(
+          contextConfig?.input ?? {
+            mint,
+            quote_mint: DEFAULT_QUOTE_MINT,
+          },
           mint,
-          quote_mint: DEFAULT_QUOTE_MINT,
-        },
-        1,
+        ),
+        contextConfig?.limit ?? 1,
       ),
       runView(
         baseUrl,
         'pump-amm-mainnet',
-        'trade_feed',
-        {
+        feedConfig?.operation ?? 'trade_feed',
+        substituteEntity(
+          feedConfig?.input ?? {
+            mint,
+            quote_mint: DEFAULT_QUOTE_MINT,
+          },
           mint,
-          quote_mint: DEFAULT_QUOTE_MINT,
-        },
-        12,
+        ),
+        feedConfig?.limit ?? 12,
       ),
     ]);
 
@@ -306,7 +355,7 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
   async function loadChart(mint: string): Promise<void> {
     setChartError(null);
     setChartStatus(null);
-    const historyUrl = buildHistoryUrl(baseUrl, mint);
+    const historyUrl = buildHistoryUrl(baseUrl, mint, workspaceMeta?.chart);
     const response = await fetch(historyUrl);
     const body = await response.json() as HistoryResponse;
     if (!response.ok || body.s === 'error') {
@@ -445,12 +494,26 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
   }
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const metaResponse = await fetch('/idl/pump_amm.meta.core.json');
+        if (metaResponse.ok) {
+          const metaJson = (await metaResponse.json()) as ProtocolMetaResponse;
+          setWorkspaceMeta(metaJson.workspaces?.market_mint ?? null);
+        }
+      } catch {
+        setWorkspaceMeta(null);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     void refreshAll();
     const interval = window.setInterval(() => {
       void refreshAll(selectedMint ?? undefined);
     }, 15000);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [workspaceMeta]);
 
   useEffect(() => {
     if (!selectedMint) {
@@ -474,8 +537,8 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
     <section className="pump-workspace-shell">
       <div className="pump-workspace-header">
         <div>
-          <h2>Pump Workspace</h2>
-          <p>Discover active mints, inspect execution context, validate price action, and jump straight into handoff-ready buy or sell inputs.</p>
+          <h2>{workspaceTitle}</h2>
+          <p>{workspaceDescription}</p>
         </div>
         <div className="pump-workspace-target">
           <span>Target</span>

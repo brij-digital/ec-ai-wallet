@@ -4,6 +4,45 @@
   "version": "0.2.0",
   "protocolId": "pump-amm-mainnet",
   "label": "Pump Amm Mainnet",
+  "workspaces": {
+    "market_mint": {
+      "title": "Pump Workspace",
+      "description": "Discover active mints, inspect execution context, validate the chart and recent flow, then jump into handoff-ready buy or sell inputs.",
+      "seed": {
+        "operation": "ranked_active_tokens",
+        "input": {
+          "quote_mint": "So11111111111111111111111111111111111111112",
+          "window_hours": 24,
+          "max_activity_age_minutes": 30
+        },
+        "limit": 12,
+        "entity_field": "mint"
+      },
+      "context": {
+        "operation": "token_trade_context",
+        "input": {
+          "mint": "$entity",
+          "quote_mint": "So11111111111111111111111111111111111111112"
+        },
+        "limit": 1
+      },
+      "feed": {
+        "operation": "trade_feed",
+        "input": {
+          "mint": "$entity",
+          "quote_mint": "So11111111111111111111111111111111111111112"
+        },
+        "limit": 12
+      },
+      "chart": {
+        "provider": "tradingview_history",
+        "symbol_prefix": "pump:",
+        "resolution": "1",
+        "lookback_seconds": 86400,
+        "limit": 500
+      }
+    }
+  },
   "templates": {
     "pump.buy.v1": {
       "params": {
