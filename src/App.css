@@ -328,6 +328,33 @@
   overflow: hidden;
 }
 
+.tv-ohlc-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
+}
+
+.tv-ohlc-strip div {
+  border: 1px solid #dce4f4;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.65rem 0.75rem;
+}
+
+.tv-ohlc-strip span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #5c6f90;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tv-ohlc-strip strong {
+  color: #183055;
+  overflow-wrap: anywhere;
+}
+
 .tv-test-panels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

@@ -4,9 +4,14 @@ import {
   ColorType,
   HistogramSeries,
   createChart,
+  isBusinessDay,
+  isUTCTimestamp,
   type IChartApi,
   type CandlestickData,
+  type MouseEventParams,
   type HistogramData,
+  type ISeriesApi,
+  type Time,
   type UTCTimestamp,
 } from 'lightweight-charts';
 
@@ -23,6 +28,16 @@ type HistoryResponse = {
   l?: number[];
   c?: number[];
   v?: number[];
+};
+
+type CandleInspect = {
+  timeLabel: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  changePct: number | null;
 };
 
 const DEFAULT_SYMBOL = 'pump:GknmGPnRtnmfSW44t8NqtQG8opKmfiHRvNXxhq69pump';
@@ -66,6 +81,8 @@ function buildSymbolUrl(baseUrl: string, symbol: string): string {
 export function TradingViewTestTab({ viewApiBaseUrl }: TradingViewTestTabProps) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const candleSeriesRef = useRef<ISeriesApi<'Candlestick', Time> | null>(null);
+  const latestInspectRef = useRef<CandleInspect | null>(null);
   const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
   const [resolution, setResolution] = useState('1');
   const [statusText, setStatusText] = useState<string | null>(null);
@@ -74,6 +91,21 @@ export function TradingViewTestTab({ viewApiBaseUrl }: TradingViewTestTabProps) 
   const [historyUrl, setHistoryUrl] = useState('');
   const [symbolUrl, setSymbolUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedCandle, setSelectedCandle] = useState<CandleInspect | null>(null);
+
+  function formatTimeLabel(time: Time | unknown): string {
+    const value = time as Time;
+    if (isUTCTimestamp(value)) {
+      return new Date(value * 1000).toISOString();
+    }
+    if (isBusinessDay(value)) {
+      return `${value.year}-${String(value.month).padStart(2, '0')}-${String(value.day).padStart(2, '0')}`;
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    return '';
+  }
 
   useEffect(() => {
     if (!chartContainerRef.current) {
@@ -180,6 +212,26 @@ export function TradingViewTestTab({ viewApiBaseUrl }: TradingViewTestTabProps) 
         color: (closes[index] ?? 0) >= (opens[index] ?? 0) ? '#2e8b57' : '#c64545',
       }));
 
+      const latest = candleData.at(-1);
+      const latestVolume = volumeData.at(-1)?.value ?? 0;
+      if (latest) {
+        const changePct = latest.open === 0 ? null : ((latest.close - latest.open) / latest.open) * 100;
+        const initialInspect = {
+          timeLabel: formatTimeLabel(latest.time),
+          open: latest.open,
+          high: latest.high,
+          low: latest.low,
+          close: latest.close,
+          volume: latestVolume,
+          changePct,
+        };
+        latestInspectRef.current = initialInspect;
+        setSelectedCandle(initialInspect);
+      } else {
+        latestInspectRef.current = null;
+        setSelectedCandle(null);
+      }
+
       const chart = chartRef.current;
       if (!chart) {
         throw new Error('Chart is not ready.');
@@ -224,6 +276,7 @@ export function TradingViewTestTab({ viewApiBaseUrl }: TradingViewTestTabProps) 
         priceLineVisible: true,
         lastValueVisible: true,
       });
+      candleSeriesRef.current = candleSeries;
       const volumeSeries = rebuilt.addSeries(HistogramSeries, {
         priceFormat: { type: 'volume' },
         priceScaleId: '',
@@ -237,6 +290,29 @@ export function TradingViewTestTab({ viewApiBaseUrl }: TradingViewTestTabProps) 
       candleSeries.setData(candleData);
       volumeSeries.setData(volumeData);
       rebuilt.timeScale().fitContent();
+      rebuilt.subscribeCrosshairMove((param: MouseEventParams<Time>) => {
+        const series = candleSeriesRef.current;
+        if (!series || !param.point || !param.time) {
+          setSelectedCandle(latestInspectRef.current);
+          return;
+        }
+        const data = param.seriesData.get(series);
+        if (!data || !('open' in data) || !('high' in data) || !('low' in data) || !('close' in data)) {
+          setSelectedCandle(latestInspectRef.current);
+          return;
+        }
+        const matchedVolume = volumeData.find((entry) => String(entry.time) === String(param.time))?.value ?? 0;
+        const changePct = data.open === 0 ? null : ((data.close - data.open) / data.open) * 100;
+        setSelectedCandle({
+          timeLabel: formatTimeLabel(param.time),
+          open: data.open,
+          high: data.high,
+          low: data.low,
+          close: data.close,
+          volume: matchedVolume,
+          changePct,
+        });
+      });
 
       setStatusText(`Loaded ${candleData.length} bars from TradingView history endpoint.`);
     } catch (error) {
@@ -281,6 +357,18 @@ export function TradingViewTestTab({ viewApiBaseUrl }: TradingViewTestTabProps) 
 
       {statusText ? <p className="view-playground-info">{statusText}</p> : null}
       {errorText ? <p className="view-playground-error">{errorText}</p> : null}
+
+      {selectedCandle ? (
+        <div className="tv-ohlc-strip">
+          <div><span>Time</span><strong>{selectedCandle.timeLabel}</strong></div>
+          <div><span>Open</span><strong>{formatPriceLabel(selectedCandle.open)}</strong></div>
+          <div><span>High</span><strong>{formatPriceLabel(selectedCandle.high)}</strong></div>
+          <div><span>Low</span><strong>{formatPriceLabel(selectedCandle.low)}</strong></div>
+          <div><span>Close</span><strong>{formatPriceLabel(selectedCandle.close)}</strong></div>
+          <div><span>Volume</span><strong>{selectedCandle.volume.toLocaleString(undefined, { maximumFractionDigits: 8 })}</strong></div>
+          <div><span>Change</span><strong>{selectedCandle.changePct == null ? '—' : `${selectedCandle.changePct >= 0 ? '+' : ''}${selectedCandle.changePct.toFixed(2)}%`}</strong></div>
+        </div>
+      ) : null}
 
       <div className="tv-test-chart" ref={chartContainerRef} />
 
