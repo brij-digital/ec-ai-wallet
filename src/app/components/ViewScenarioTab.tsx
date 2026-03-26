@@ -512,13 +512,16 @@ export function ViewScenarioTab({ viewApiBaseUrl, scenario }: ViewScenarioTabPro
       lastEntityRef.current = targetValue;
       setResolvedResource(resourceValue);
       if (mode === 'initial') {
-        setStatusText(`Loading ${scenario.views.snapshot}, ${scenario.views.stats}, ${scenario.views.series}, and ${scenario.views.feed}...`);
+        const statsLabel = scenario.views.stats ? `, ${scenario.views.stats}` : '';
+        setStatusText(`Loading ${scenario.views.snapshot}${statsLabel}, ${scenario.views.series}, and ${scenario.views.feed}...`);
       }
       const resourceInput = { [scenario.resource.inputKey]: resourceValue };
 
       const [snapshotResult, statsResult, seriesResult, feedResult] = await Promise.all([
         runView<DataRecord>(trimmedBaseUrl, scenario.protocolId, scenario.views.snapshot, resourceInput, 1),
-        runView<DataRecord>(trimmedBaseUrl, scenario.protocolId, scenario.views.stats, resourceInput, 1),
+        scenario.views.stats
+          ? runView<DataRecord>(trimmedBaseUrl, scenario.protocolId, scenario.views.stats, resourceInput, 1)
+          : Promise.resolve({ ok: true, items: [] } as ViewRunResponse<DataRecord>),
         runView<DataRecord>(trimmedBaseUrl, scenario.protocolId, scenario.views.series, resourceInput, 240),
         runView<DataRecord>(trimmedBaseUrl, scenario.protocolId, scenario.views.feed, resourceInput, 200),
       ]);

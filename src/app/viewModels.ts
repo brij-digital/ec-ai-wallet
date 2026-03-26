@@ -49,7 +49,7 @@ export type ViewScenarioDefinition = {
   };
   views: {
     snapshot: string;
-    stats: string;
+    stats?: string;
     series: string;
     feed: string;
   };
@@ -217,7 +217,6 @@ export const PUMP_VIEW_SCENARIO: ViewScenarioDefinition = {
   },
   views: {
     snapshot: 'pool_snapshot',
-    stats: 'stat_cards',
     series: 'market_cap_series',
     feed: 'trade_feed',
   },
@@ -235,8 +234,8 @@ export const PUMP_VIEW_SCENARIO: ViewScenarioDefinition = {
     ],
     highlights: [
       { label: 'Price (SOL)', source: 'snapshot', field: 'priceQuote', format: 'decimal', digits: 12 },
-      { label: '24h', source: 'stats', field: 'priceChange24hPct', format: 'percent' },
-      { label: '24h Vol (SOL)', source: 'stats', field: 'volume24hQuote', format: 'compact', digits: 2 },
+      { label: 'Liquidity (SOL)', source: 'snapshot', field: 'liquidityQuote', format: 'compact', digits: 2 },
+      { label: 'Observed', source: 'snapshot', field: 'observedAt', format: 'time' },
     ],
     sideMetrics: [
       { label: 'Market', source: 'snapshot', field: 'marketType', format: 'text' },
@@ -245,13 +244,7 @@ export const PUMP_VIEW_SCENARIO: ViewScenarioDefinition = {
       { label: 'Observed', source: 'snapshot', field: 'observedAt', format: 'time' },
     ],
   },
-  statCards: [
-    { label: 'Price (SOL)', source: 'stats', field: 'priceQuote', format: 'decimal', digits: 12 },
-    { label: '5m', source: 'stats', field: 'priceChange5mPct', format: 'percent' },
-    { label: '1h', source: 'stats', field: 'priceChange1hPct', format: 'percent' },
-    { label: '6h', source: 'stats', field: 'priceChange6hPct', format: 'percent' },
-    { label: '24h Volume (SOL)', source: 'stats', field: 'volume24hQuote', format: 'compact', digits: 2 },
-  ],
+  statCards: [],
   chart: {
     title: 'Trading Chart',
     valueFields: ['closeMarketCap', 'close'],

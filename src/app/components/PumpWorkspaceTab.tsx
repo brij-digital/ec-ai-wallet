@@ -44,13 +44,21 @@ type TokenTradeContext = {
   mint: string;
   pool: string;
   marketType: string;
-  priceQuote: number;
+  quoteMint?: string;
+  priceQuote: number | null;
   marketCapQuote: number | null;
-  liquidityQuote: number;
-  volume24hQuote: number;
+  liquidityQuote: number | null;
+  volume24hQuote: number | null;
+  priceChange5mPct?: number | null;
+  priceChange1hPct?: number | null;
+  priceChange24hPct?: number | null;
   latestTradeAt: string | null;
+  latestTradeSide?: string | null;
+  freshnessMs?: number | null;
   confidence?: string;
   confidenceScore?: number;
+  tradeable?: boolean;
+  summary?: string;
   warnings?: string[];
   checks?: Array<{
     code?: string;
@@ -272,11 +280,11 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
   }
 
   async function loadWorkspace(mint: string): Promise<void> {
-    const [contextResponse, feedResponse] = await Promise.all([
+    const [resolveResponse, feedResponse] = await Promise.all([
       runView(
         baseUrl,
         'pump-amm-mainnet',
-        'token_trade_context',
+        'resolve_pool',
         {
           mint,
           quote_mint: DEFAULT_QUOTE_MINT,
@@ -295,11 +303,34 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
       ),
     ]);
 
-    if (!contextResponse.ok || !Array.isArray(contextResponse.items) || !contextResponse.items[0]) {
-      throw new Error(contextResponse.error ?? 'Failed to load token trade context.');
+    if (!resolveResponse.ok || !Array.isArray(resolveResponse.items) || !resolveResponse.items[0]) {
+      throw new Error(resolveResponse.error ?? 'Failed to resolve Pump pool.');
     }
 
-    setContext(contextResponse.items[0] as TokenTradeContext);
+    const resolved = resolveResponse.items[0] as Record<string, unknown>;
+    setContext({
+      mint,
+      pool: typeof resolved.pool === 'string' ? resolved.pool : '',
+      marketType: typeof resolved.marketType === 'string' ? resolved.marketType : 'amm',
+      quoteMint: typeof resolved.quoteMint === 'string' ? resolved.quoteMint : DEFAULT_QUOTE_MINT,
+      priceQuote: typeof resolved.priceQuote === 'number' ? resolved.priceQuote : null,
+      marketCapQuote: typeof resolved.marketCapQuote === 'number' ? resolved.marketCapQuote : null,
+      liquidityQuote: typeof resolved.liquidityQuote === 'number' ? resolved.liquidityQuote : null,
+      volume24hQuote: null,
+      priceChange5mPct: null,
+      priceChange1hPct: null,
+      priceChange24hPct: null,
+      latestTradeAt: null,
+      latestTradeSide: null,
+      freshnessMs: null,
+      confidence: 'low',
+      confidenceScore: 0,
+      tradeable: true,
+      warnings: [],
+      summary: 'Canonical Pump snapshot workspace.',
+      checks: [],
+      actionContext: undefined,
+    } as TokenTradeContext);
     setFeed(Array.isArray(feedResponse.items) ? (feedResponse.items as TradeFeedItem[]) : []);
   }
 
@@ -550,7 +581,7 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
                 <div className="pump-hero-grid">
                   <div className="pump-hero-card">
                     <span>Price</span>
-                    <strong>{formatPriceLabel(context.priceQuote)}</strong>
+                    <strong>{formatPriceLabel(context.priceQuote ?? 0)}</strong>
                   </div>
                   <div className="pump-hero-card">
                     <span>Market Cap</span>

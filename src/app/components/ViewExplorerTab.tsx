@@ -159,7 +159,7 @@ function fallbackPreset(view: ExplorerView): { input: string; limit: string } {
 }
 
 function defaultLimitForView(view: ExplorerView): string {
-  if (view.operationId === 'resolve_pool' || view.operationId === 'pool_snapshot' || view.operationId === 'stat_cards' || view.operationId === 'token_trade_context') {
+  if (view.operationId === 'resolve_pool' || view.operationId === 'pool_snapshot') {
     return '1';
   }
   if (view.operationId === 'trade_feed' || view.operationId === 'market_cap_series' || view.operationId === 'list_tokens' || view.operationId === 'list_pools' || view.operationId === 'ranked_active_tokens') {
@@ -276,56 +276,7 @@ async function resolveRunnableSample(
       };
     }
 
-    if (view.operationId === 'token_trade_context') {
-      let bestCandidate: { mint: string; quoteMint: string; score: number } | null = null;
-      for (const candidate of candidates.pump) {
-        const response = await runView(
-          baseUrl,
-          view.protocolId,
-          view.operationId,
-          { mint: candidate.mint, quote_mint: candidate.quoteMint },
-          1,
-        );
-        const firstItem = Array.isArray(response.items) ? (response.items[0] as ActionableViewItem | undefined) : undefined;
-        if (!firstItem) {
-          continue;
-        }
-        const score =
-          ((typeof firstItem.confidenceScore === 'number' ? firstItem.confidenceScore : 0) * 50)
-          + (typeof firstItem.liquidityQuote === 'number' ? Math.min(firstItem.liquidityQuote, 250) : 0)
-          + (typeof firstItem.volume24hQuote === 'number' ? Math.min(firstItem.volume24hQuote, 250) : 0)
-          - ((Array.isArray(firstItem.warnings) ? firstItem.warnings.length : 0) * 15);
-        if (!bestCandidate || score > bestCandidate.score) {
-          bestCandidate = {
-            mint: candidate.mint,
-            quoteMint: candidate.quoteMint,
-            score,
-          };
-        }
-      }
-      if (!bestCandidate) {
-        const fallback = candidates.pump[0];
-        if (!fallback) {
-          return null;
-        }
-        return {
-          input: formatJson({
-            mint: fallback.mint,
-            quote_mint: fallback.quoteMint,
-          }),
-          limit: '1',
-        };
-      }
-      return {
-        input: formatJson({
-          mint: bestCandidate.mint,
-          quote_mint: bestCandidate.quoteMint,
-        }),
-        limit: '1',
-      };
-    }
-
-    if (['pool_snapshot', 'stat_cards', 'market_cap_series', 'trade_feed'].includes(view.operationId)) {
+    if (['pool_snapshot', 'market_cap_series', 'trade_feed'].includes(view.operationId)) {
       let bestCandidate: { pool: string; count: number } | null = null;
       for (const candidate of candidates.pump) {
         const sampleLimit = view.operationId === 'market_cap_series' ? 20 : 1;
@@ -389,7 +340,7 @@ async function resolveRunnableSample(
       };
     }
 
-    if (['pool_snapshot', 'stat_cards', 'market_cap_series', 'trade_feed'].includes(view.operationId)) {
+    if (['pool_snapshot', 'market_cap_series', 'trade_feed'].includes(view.operationId)) {
       let bestCandidate: { pool: string; count: number } | null = null;
       for (const candidate of candidates.orca) {
         const sampleLimit = view.operationId === 'market_cap_series' ? 20 : 1;
