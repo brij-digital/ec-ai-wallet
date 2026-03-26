@@ -11,7 +11,20 @@
       "decoder": "pump_swap",
       "processor": "pump_swap",
       "commitment": "confirmed",
-      "filters": {}
+      "filters": {},
+      "handlers": {
+        "CreatePoolEvent": {
+          "action": "upsert_pool_metadata"
+        },
+        "BuyEvent": {
+          "action": "amm_trade",
+          "side": "buy"
+        },
+        "SellEvent": {
+          "action": "amm_trade",
+          "side": "sell"
+        }
+      }
     }
   },
   "templates": {

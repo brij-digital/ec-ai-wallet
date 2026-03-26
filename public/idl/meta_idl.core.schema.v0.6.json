@@ -40,6 +40,29 @@
           },
           "filters": {
             "type": "object"
+          },
+          "handlers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "upsert_pool_metadata",
+                    "amm_trade",
+                    "core_create_state",
+                    "core_trade"
+                  ]
+                },
+                "side": {
+                  "type": "string",
+                  "enum": ["buy", "sell"]
+                }
+              },
+              "required": ["action"],
+              "additionalProperties": true
+            }
           }
         },
         "required": ["kind", "programId", "decoder"],

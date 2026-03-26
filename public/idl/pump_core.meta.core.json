@@ -11,7 +11,15 @@
       "decoder": "pumpfun",
       "processor": "pumpfun",
       "commitment": "confirmed",
-      "filters": {}
+      "filters": {},
+      "handlers": {
+        "CreateEvent": {
+          "action": "core_create_state"
+        },
+        "TradeEvent": {
+          "action": "core_trade"
+        }
+      }
     }
   },
   "templates": {},
