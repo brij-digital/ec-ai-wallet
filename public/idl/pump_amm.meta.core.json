@@ -1185,6 +1185,15 @@
           "target_ms": 5000,
           "max_staleness_ms": 20000
         },
+        "canonical": {
+          "source": "indexed_entity_state",
+          "protocol_id": "pump-amm-mainnet",
+          "entity_type": "market",
+          "entity_input": "mint",
+          "entity_field": "entity_id",
+          "resource_field": "resource_id",
+          "notes": "Resolve a mint to its current canonical market state row."
+        },
         "entity_type": "pump_pool",
         "title": "Resolve pool",
         "description": "Resolve the Pump AMM pool for a token mint against a quote mint.",
@@ -1292,6 +1301,14 @@
           "target_ms": 2000,
           "max_staleness_ms": 10000
         },
+        "canonical": {
+          "source": "indexed_entity_state",
+          "protocol_id": "pump-amm-mainnet",
+          "entity_type": "market",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "notes": "Read the latest canonical market state row by pool/resource id."
+        },
         "entity_type": "pump_pool",
         "title": "Pool snapshot",
         "description": "Read the current Pump AMM pool snapshot for a known pool address.",
@@ -1334,6 +1351,16 @@
           "class": "near_realtime",
           "target_ms": 1000,
           "max_staleness_ms": 5000
+        },
+        "canonical": {
+          "source": "indexed_events",
+          "protocol_id": "pump-amm-mainnet",
+          "entity_type": "market",
+          "event_type": "trade",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "time_field": "event_time",
+          "notes": "Recent trade events from the canonical append-only event log."
         },
         "entity_type": "pump_trade",
         "title": "Trade feed",
@@ -1386,6 +1413,16 @@
           "target_ms": 5000,
           "max_staleness_ms": 30000
         },
+        "canonical": {
+          "source": "indexed_series_1m",
+          "protocol_id": "pump-amm-mainnet",
+          "entity_type": "market",
+          "series_id": "pump.market.1m",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "time_field": "bucket_start",
+          "notes": "Canonical 1m market series with rollups and optional dense fill in the runner."
+        },
         "entity_type": "pump_market_cap_series",
         "title": "Market cap series",
         "description": "Materialized Pump market-cap and price series with 1m base candles, interval rollups, and optional dense fill."
@@ -1409,11 +1446,92 @@
           "target_ms": 5000,
           "max_staleness_ms": 30000
         },
+        "canonical": {
+          "source": "indexed_entity_state",
+          "protocol_id": "pump-amm-mainnet",
+          "entity_type": "market",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "notes": "Stat cards are derived from canonical state plus canonical market series."
+        },
         "entity_type": "pump_stat_cards",
         "title": "Stat cards",
         "description": "Fast stat cards derived from current snapshot plus 1 minute market series."
       },
       "label": "Stat Cards",
+      "use": []
+    },
+    "ranked_active_tokens": {
+      "inputs": {
+        "quote_mint": {
+          "type": "pubkey",
+          "required": false,
+          "default": "So11111111111111111111111111111111111111112",
+          "label": "Quote Mint"
+        },
+        "window_hours": {
+          "type": "u32",
+          "required": false,
+          "default": 24,
+          "label": "Window Hours"
+        },
+        "max_activity_age_minutes": {
+          "type": "u32",
+          "required": false,
+          "default": 30,
+          "label": "Max Activity Age Minutes"
+        },
+        "min_liquidity": {
+          "type": "u64",
+          "required": false,
+          "default": 0,
+          "label": "Min Liquidity"
+        },
+        "min_volume": {
+          "type": "u64",
+          "required": false,
+          "default": 0,
+          "label": "Min Volume"
+        }
+      },
+      "view": {
+        "kind": "search",
+        "source_kind": "derived_sql",
+        "freshness": {
+          "class": "near_realtime",
+          "target_ms": 10000,
+          "max_staleness_ms": 60000
+        },
+        "canonical": {
+          "source": "indexed_events",
+          "protocol_id": "pump-amm-mainnet",
+          "entity_type": "market",
+          "event_type": "trade",
+          "time_field": "event_time",
+          "notes": "Ranking is computed from canonical events joined with canonical entity state."
+        },
+        "entity_type": "pump_ranked_token",
+        "title": "Ranked active tokens",
+        "description": "Rank Pump tokens by recent activity while penalizing thin, stale, or suspicious flow.",
+        "bootstrap": {
+          "kind": "scan_accounts",
+          "source": "rpc.getProgramAccounts",
+          "program_id": "$protocol.programId",
+          "account_type": "Pool",
+          "retention_seconds": 3600,
+          "filters": []
+        },
+        "refresh": {
+          "mode": "stream",
+          "source": "program_account_updates"
+        },
+        "query": {
+          "decode": {
+            "account_type": "Pool"
+          }
+        }
+      },
+      "label": "Ranked Active Tokens",
       "use": []
     },
     "token_trade_context": {
@@ -1437,6 +1555,14 @@
           "class": "near_realtime",
           "target_ms": 5000,
           "max_staleness_ms": 30000
+        },
+        "canonical": {
+          "source": "indexed_entity_state",
+          "protocol_id": "pump-amm-mainnet",
+          "entity_type": "market",
+          "entity_input": "mint",
+          "entity_field": "entity_id",
+          "notes": "Trade context is composed from canonical state, canonical events, and canonical series."
         },
         "entity_type": "pump_trade_context",
         "title": "Token trade context",

@@ -264,6 +264,28 @@
       },
       "additionalProperties": false
     },
+    "canonicalSpec": {
+      "type": "object",
+      "required": ["source", "protocol_id"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["indexed_events", "indexed_entity_state", "indexed_series_1m"]
+        },
+        "protocol_id": { "type": "string" },
+        "entity_type": { "type": "string" },
+        "event_type": { "type": "string" },
+        "series_id": { "type": "string" },
+        "market_type": { "type": "string" },
+        "entity_input": { "type": "string" },
+        "resource_input": { "type": "string" },
+        "entity_field": { "type": "string" },
+        "resource_field": { "type": "string" },
+        "time_field": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "accountViewSpec": {
       "type": "object",
       "required": ["kind", "target", "select"],
@@ -274,6 +296,7 @@
         "entity_type": { "type": "string" },
         "target": { "$ref": "#/$defs/accountTargetSpec" },
         "refresh": { "$ref": "#/$defs/refreshSpec" },
+        "canonical": { "$ref": "#/$defs/canonicalSpec" },
         "select": {
           "type": "object",
           "additionalProperties": {}
@@ -294,6 +317,7 @@
         "sync_disabled": { "type": "boolean" },
         "bootstrap": { "$ref": "#/$defs/bootstrapSpec" },
         "refresh": { "$ref": "#/$defs/refreshSpec" },
+        "canonical": { "$ref": "#/$defs/canonicalSpec" },
         "query": { "$ref": "#/$defs/querySpec" },
         "title": { "type": "string" },
         "description": { "type": "string" }
@@ -309,6 +333,7 @@
         "freshness": { "$ref": "#/$defs/freshnessSpec" },
         "entity_type": { "type": "string" },
         "entity": { "$ref": "#/$defs/entitySpec" },
+        "canonical": { "$ref": "#/$defs/canonicalSpec" },
         "time": { "$ref": "#/$defs/timeSpec" },
         "metrics": {
           "type": "array",
@@ -328,6 +353,7 @@
         "freshness": { "$ref": "#/$defs/freshnessSpec" },
         "entity_type": { "type": "string" },
         "entity": { "$ref": "#/$defs/entitySpec" },
+        "canonical": { "$ref": "#/$defs/canonicalSpec" },
         "title": { "type": "string" },
         "description": { "type": "string" }
       },
