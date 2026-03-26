@@ -19,6 +19,66 @@
         "BuyEvent": {
           "action": "amm_trade",
           "side": "buy",
+          "compute": [
+            {
+              "name": "baseAmountUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.baseAmountAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "quoteAmountUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.quoteAmountAtomic",
+              "decimals": "$ctx.quoteDecimals"
+            },
+            {
+              "name": "priceQuote",
+              "compute": "math.safe_div",
+              "dividend": "$quoteAmountUi",
+              "divisor": "$baseAmountUi"
+            },
+            {
+              "name": "supplyPositive",
+              "compute": "compare.gt",
+              "left": "$ctx.baseSupplyUi",
+              "right": 0
+            },
+            {
+              "name": "marketCapRaw",
+              "compute": "math.mul",
+              "values": ["$priceQuote", "$ctx.baseSupplyUi"]
+            },
+            {
+              "name": "marketCapQuote",
+              "compute": "logic.if",
+              "condition": "$supplyPositive",
+              "then": "$marketCapRaw",
+              "else": "$null"
+            },
+            {
+              "name": "baseReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.poolBaseReservesAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "quoteReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.poolQuoteReservesAtomic",
+              "decimals": "$ctx.quoteDecimals"
+            },
+            {
+              "name": "baseReserveQuoteValue",
+              "compute": "math.mul",
+              "values": ["$baseReserveUi", "$priceQuote"]
+            },
+            {
+              "name": "liquidityQuote",
+              "compute": "math.add",
+              "values": ["$baseReserveQuoteValue", "$quoteReserveUi"]
+            }
+          ],
           "emit": {
             "record": {
               "recordName": "BuyEvent",
@@ -63,6 +123,66 @@
         "SellEvent": {
           "action": "amm_trade",
           "side": "sell",
+          "compute": [
+            {
+              "name": "baseAmountUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.baseAmountAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "quoteAmountUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.quoteAmountAtomic",
+              "decimals": "$ctx.quoteDecimals"
+            },
+            {
+              "name": "priceQuote",
+              "compute": "math.safe_div",
+              "dividend": "$quoteAmountUi",
+              "divisor": "$baseAmountUi"
+            },
+            {
+              "name": "supplyPositive",
+              "compute": "compare.gt",
+              "left": "$ctx.baseSupplyUi",
+              "right": 0
+            },
+            {
+              "name": "marketCapRaw",
+              "compute": "math.mul",
+              "values": ["$priceQuote", "$ctx.baseSupplyUi"]
+            },
+            {
+              "name": "marketCapQuote",
+              "compute": "logic.if",
+              "condition": "$supplyPositive",
+              "then": "$marketCapRaw",
+              "else": "$null"
+            },
+            {
+              "name": "baseReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.poolBaseReservesAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "quoteReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.poolQuoteReservesAtomic",
+              "decimals": "$ctx.quoteDecimals"
+            },
+            {
+              "name": "baseReserveQuoteValue",
+              "compute": "math.mul",
+              "values": ["$baseReserveUi", "$priceQuote"]
+            },
+            {
+              "name": "liquidityQuote",
+              "compute": "math.add",
+              "values": ["$baseReserveQuoteValue", "$quoteReserveUi"]
+            }
+          ],
           "emit": {
             "record": {
               "recordName": "SellEvent",

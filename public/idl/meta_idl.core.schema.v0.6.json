@@ -59,6 +59,10 @@
                   "type": "string",
                   "enum": ["buy", "sell"]
                 },
+                "compute": {
+                  "type": "array",
+                  "items": { "type": "object" }
+                },
                 "emit": {
                   "type": "object",
                   "properties": {

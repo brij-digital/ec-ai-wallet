@@ -15,6 +15,90 @@
       "handlers": {
         "CreateEvent": {
           "action": "core_create_state",
+          "compute": [
+            {
+              "name": "virtualTokenReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.virtualTokenReservesAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "quoteReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.virtualSolReservesAtomic",
+              "decimals": "$ctx.quoteDecimals"
+            },
+            {
+              "name": "priceQuote",
+              "compute": "math.safe_div",
+              "dividend": "$quoteReserveUi",
+              "divisor": "$virtualTokenReserveUi"
+            },
+            {
+              "name": "supplyPositive",
+              "compute": "compare.gt",
+              "left": "$ctx.baseSupplyUi",
+              "right": 0
+            },
+            {
+              "name": "marketCapRaw",
+              "compute": "math.mul",
+              "values": ["$priceQuote", "$ctx.baseSupplyUi"]
+            },
+            {
+              "name": "marketCapQuote",
+              "compute": "logic.if",
+              "condition": "$supplyPositive",
+              "then": "$marketCapRaw",
+              "else": "$null"
+            },
+            {
+              "name": "baseReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.realTokenReservesAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "liquidityQuote",
+              "compute": "math.add",
+              "values": ["$quoteReserveUi"]
+            },
+            {
+              "name": "initialRealTokenReservesUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.tokenTotalSupplyAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "initialPositive",
+              "compute": "compare.gt",
+              "left": "$initialRealTokenReservesUi",
+              "right": 0
+            },
+            {
+              "name": "progressNumerator",
+              "compute": "math.sub",
+              "values": ["$initialRealTokenReservesUi", "$baseReserveUi"]
+            },
+            {
+              "name": "progressRatio",
+              "compute": "math.safe_div",
+              "dividend": "$progressNumerator",
+              "divisor": "$initialRealTokenReservesUi"
+            },
+            {
+              "name": "progressPctRaw",
+              "compute": "math.mul",
+              "values": ["$progressRatio", 100]
+            },
+            {
+              "name": "bondingCurveProgressPct",
+              "compute": "logic.if",
+              "condition": "$initialPositive",
+              "then": "$progressPctRaw",
+              "else": "$null"
+            }
+          ],
           "emit": {
             "state": {
               "recordName": "BondingCurve",
@@ -41,6 +125,111 @@
         },
         "TradeEvent": {
           "action": "core_trade",
+          "compute": [
+            {
+              "name": "virtualTokenReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.virtualTokenReservesAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "virtualSolReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.virtualSolReservesAtomic",
+              "decimals": "$ctx.quoteDecimals"
+            },
+            {
+              "name": "priceQuote",
+              "compute": "math.safe_div",
+              "dividend": "$virtualSolReserveUi",
+              "divisor": "$virtualTokenReserveUi"
+            },
+            {
+              "name": "supplyPositive",
+              "compute": "compare.gt",
+              "left": "$ctx.baseSupplyUi",
+              "right": 0
+            },
+            {
+              "name": "marketCapRaw",
+              "compute": "math.mul",
+              "values": ["$priceQuote", "$ctx.baseSupplyUi"]
+            },
+            {
+              "name": "marketCapQuote",
+              "compute": "logic.if",
+              "condition": "$supplyPositive",
+              "then": "$marketCapRaw",
+              "else": "$null"
+            },
+            {
+              "name": "quoteAmountUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.quoteAmountAtomic",
+              "decimals": "$ctx.quoteDecimals"
+            },
+            {
+              "name": "baseReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.realTokenReservesAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "quoteReserveUi",
+              "compute": "math.amount_ui",
+              "amount": "$ctx.realSolReservesAtomic",
+              "decimals": "$ctx.quoteDecimals"
+            },
+            {
+              "name": "liquidityQuote",
+              "compute": "math.add",
+              "values": ["$quoteReserveUi"]
+            },
+            {
+              "name": "initialRealTokenReservesAtomic",
+              "compute": "math.add",
+              "values": [
+                "$ctx.realTokenReservesAtomic",
+                "$ctx.totalUnclaimedTokensAtomic",
+                "$ctx.totalClaimedTokensAtomic"
+              ]
+            },
+            {
+              "name": "initialRealTokenReservesUi",
+              "compute": "math.amount_ui",
+              "amount": "$initialRealTokenReservesAtomic",
+              "decimals": "$ctx.baseDecimals"
+            },
+            {
+              "name": "initialPositive",
+              "compute": "compare.gt",
+              "left": "$initialRealTokenReservesUi",
+              "right": 0
+            },
+            {
+              "name": "progressNumerator",
+              "compute": "math.sub",
+              "values": ["$initialRealTokenReservesUi", "$baseReserveUi"]
+            },
+            {
+              "name": "progressRatio",
+              "compute": "math.safe_div",
+              "dividend": "$progressNumerator",
+              "divisor": "$initialRealTokenReservesUi"
+            },
+            {
+              "name": "progressPctRaw",
+              "compute": "math.mul",
+              "values": ["$progressRatio", 100]
+            },
+            {
+              "name": "bondingCurveProgressPct",
+              "compute": "logic.if",
+              "condition": "$initialPositive",
+              "then": "$progressPctRaw",
+              "else": "$null"
+            }
+          ],
           "emit": {
             "record": {
               "recordName": "TradeEvent",
