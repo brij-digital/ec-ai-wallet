@@ -1195,6 +1195,10 @@
           "resource_field": "resource_id",
           "notes": "Resolve a mint to its current projected state derived from IDL-native records."
         },
+        "projection": {
+          "projection_kind": "snapshot",
+          "group_by": ["subject_id"]
+        },
         "entity_type": "pump_pool",
         "title": "Resolve pool",
         "description": "Resolve the Pump AMM pool for a token mint against a quote mint.",
@@ -1311,6 +1315,10 @@
           "resource_field": "resource_id",
           "notes": "Read the latest projected state row by pool/resource id."
         },
+        "projection": {
+          "projection_kind": "snapshot",
+          "group_by": ["resource_id"]
+        },
         "entity_type": "pump_pool",
         "title": "Pool snapshot",
         "description": "Read the current Pump AMM pool snapshot for a known pool address.",
@@ -1359,10 +1367,19 @@
           "protocol_id": "pump-amm-mainnet",
           "record_kind": "event",
           "record_name": ["BuyEvent", "SellEvent", "TradeEvent"],
+          "subject_input": "mint",
+          "subject_field": "subject_id",
           "resource_input": "pool",
           "resource_field": "resource_id",
           "time_field": "event_time",
           "notes": "Recent trade records from the canonical append-only IDL record log."
+        },
+        "projection": {
+          "projection_kind": "feed",
+          "group_by": ["subject_id"],
+          "sort_by": [
+            { "field": "event_time", "dir": "desc" }
+          ]
         },
         "entity_type": "pump_trade",
         "title": "Trade feed",
@@ -1419,10 +1436,29 @@
           "source": "indexed_series_1m",
           "protocol_id": "pump-amm-mainnet",
           "series_id": "pump.market.1m",
+          "subject_input": "mint",
           "subject_field": "subject_id",
           "resource_input": "pool",
           "time_field": "bucket_start",
           "notes": "Canonical 1m market series projected from IDL-native trade records with rollups and optional dense fill in the runner."
+        },
+        "projection": {
+          "projection_kind": "series",
+          "group_by": ["subject_id"],
+          "bucket": "1m",
+          "fill_mode": "sparse",
+          "aggregations": [
+            { "name": "open", "field": "price_quote", "fn": "first" },
+            { "name": "high", "field": "price_quote", "fn": "max" },
+            { "name": "low", "field": "price_quote", "fn": "min" },
+            { "name": "close", "field": "price_quote", "fn": "last" },
+            { "name": "openMarketCap", "field": "market_cap_quote", "fn": "first" },
+            { "name": "highMarketCap", "field": "market_cap_quote", "fn": "max" },
+            { "name": "lowMarketCap", "field": "market_cap_quote", "fn": "min" },
+            { "name": "closeMarketCap", "field": "market_cap_quote", "fn": "last" },
+            { "name": "volumeQuote", "field": "quote_amount_ui", "fn": "sum" },
+            { "name": "tradeCount", "field": "*", "fn": "count" }
+          ]
         },
         "entity_type": "pump_market_cap_series",
         "title": "Market cap series",
@@ -1455,6 +1491,10 @@
           "resource_input": "pool",
           "resource_field": "resource_id",
           "notes": "Stat cards are derived from projected state plus canonical market series."
+        },
+        "projection": {
+          "projection_kind": "context",
+          "group_by": ["subject_id"]
         },
         "entity_type": "pump_stat_cards",
         "title": "Stat cards",
@@ -1512,6 +1552,10 @@
           "time_field": "event_time",
           "notes": "Ranking is computed from IDL-native trade records joined with projected current state."
         },
+        "projection": {
+          "projection_kind": "ranking",
+          "group_by": ["subject_id"]
+        },
         "entity_type": "pump_ranked_token",
         "title": "Ranked active tokens",
         "description": "Rank Pump tokens by recent activity while penalizing thin, stale, or suspicious flow.",
@@ -1566,6 +1610,10 @@
           "subject_input": "mint",
           "subject_field": "subject_id",
           "notes": "Trade context is composed from projected state, IDL-native trade records, and canonical series."
+        },
+        "projection": {
+          "projection_kind": "context",
+          "group_by": ["subject_id"]
         },
         "entity_type": "pump_trade_context",
         "title": "Token trade context",

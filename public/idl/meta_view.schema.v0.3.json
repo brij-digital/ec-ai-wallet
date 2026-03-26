@@ -295,6 +295,47 @@
       },
       "additionalProperties": false
     },
+    "projectionAggregationSpec": {
+      "type": "object",
+      "required": ["name", "field", "fn"],
+      "properties": {
+        "name": { "type": "string" },
+        "field": { "type": "string" },
+        "fn": {
+          "type": "string",
+          "enum": ["first", "last", "min", "max", "sum", "avg", "count", "count_distinct"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "projectionSpec": {
+      "type": "object",
+      "required": ["projection_kind"],
+      "properties": {
+        "projection_kind": {
+          "type": "string",
+          "enum": ["snapshot", "feed", "series", "ranking", "context"]
+        },
+        "group_by": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "bucket": { "type": "string" },
+        "fill_mode": {
+          "type": "string",
+          "enum": ["sparse", "dense"]
+        },
+        "aggregations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/projectionAggregationSpec" }
+        },
+        "sort_by": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sortSpec" }
+        }
+      },
+      "additionalProperties": false
+    },
     "accountViewSpec": {
       "type": "object",
       "required": ["kind", "target", "select"],
@@ -306,6 +347,7 @@
         "target": { "$ref": "#/$defs/accountTargetSpec" },
         "refresh": { "$ref": "#/$defs/refreshSpec" },
         "canonical": { "$ref": "#/$defs/canonicalSpec" },
+        "projection": { "$ref": "#/$defs/projectionSpec" },
         "select": {
           "type": "object",
           "additionalProperties": {}
@@ -327,6 +369,7 @@
         "bootstrap": { "$ref": "#/$defs/bootstrapSpec" },
         "refresh": { "$ref": "#/$defs/refreshSpec" },
         "canonical": { "$ref": "#/$defs/canonicalSpec" },
+        "projection": { "$ref": "#/$defs/projectionSpec" },
         "query": { "$ref": "#/$defs/querySpec" },
         "title": { "type": "string" },
         "description": { "type": "string" }
@@ -343,6 +386,7 @@
         "entity_type": { "type": "string" },
         "entity": { "$ref": "#/$defs/entitySpec" },
         "canonical": { "$ref": "#/$defs/canonicalSpec" },
+        "projection": { "$ref": "#/$defs/projectionSpec" },
         "time": { "$ref": "#/$defs/timeSpec" },
         "metrics": {
           "type": "array",
@@ -363,6 +407,7 @@
         "entity_type": { "type": "string" },
         "entity": { "$ref": "#/$defs/entitySpec" },
         "canonical": { "$ref": "#/$defs/canonicalSpec" },
+        "projection": { "$ref": "#/$defs/projectionSpec" },
         "title": { "type": "string" },
         "description": { "type": "string" }
       },
