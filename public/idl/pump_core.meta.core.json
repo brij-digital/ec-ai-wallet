@@ -14,13 +14,20 @@
       "filters": {},
       "handlers": {
         "CreateEvent": {
-          "action": "core_create_state",
+          "action": "emit_state",
+          "resolve": [
+            {
+              "name": "baseSupply",
+              "resolve": "rpc.token_supply",
+              "mint": "$ctx.mint"
+            }
+          ],
           "compute": [
             {
               "name": "virtualTokenReserveUi",
               "compute": "math.amount_ui",
               "amount": "$ctx.virtualTokenReservesAtomic",
-              "decimals": "$ctx.baseDecimals"
+              "decimals": "$baseSupply.decimals"
             },
             {
               "name": "quoteReserveUi",
@@ -37,13 +44,13 @@
             {
               "name": "supplyPositive",
               "compute": "compare.gt",
-              "left": "$ctx.baseSupplyUi",
+              "left": "$baseSupply.supplyUi",
               "right": 0
             },
             {
               "name": "marketCapRaw",
               "compute": "math.mul",
-              "values": ["$priceQuote", "$ctx.baseSupplyUi"]
+              "values": ["$priceQuote", "$baseSupply.supplyUi"]
             },
             {
               "name": "marketCapQuote",
@@ -56,7 +63,7 @@
               "name": "baseReserveUi",
               "compute": "math.amount_ui",
               "amount": "$ctx.realTokenReservesAtomic",
-              "decimals": "$ctx.baseDecimals"
+              "decimals": "$baseSupply.decimals"
             },
             {
               "name": "liquidityQuote",
@@ -67,7 +74,7 @@
               "name": "initialRealTokenReservesUi",
               "compute": "math.amount_ui",
               "amount": "$ctx.tokenTotalSupplyAtomic",
-              "decimals": "$ctx.baseDecimals"
+              "decimals": "$baseSupply.decimals"
             },
             {
               "name": "initialPositive",
@@ -107,14 +114,14 @@
                 "pool": "$ctx.pool",
                 "marketType": "$ctx.marketType",
                 "quoteMint": "$ctx.quoteMint",
-                "baseDecimals": "$ctx.baseDecimals",
+                "baseDecimals": "$baseSupply.decimals",
                 "quoteDecimals": "$ctx.quoteDecimals",
                 "priceQuote": "$ctx.priceQuote",
                 "marketCapQuote": "$ctx.marketCapQuote",
                 "liquidityQuote": "$ctx.liquidityQuote",
                 "baseReserveUi": "$ctx.baseReserveUi",
                 "quoteReserveUi": "$ctx.quoteReserveUi",
-                "baseSupplyUi": "$ctx.baseSupplyUi",
+                "baseSupplyUi": "$baseSupply.supplyUi",
                 "creator": "$ctx.creator",
                 "bondingCurveProgressPct": "$ctx.bondingCurveProgressPct",
                 "complete": "$ctx.complete",
@@ -124,13 +131,20 @@
           }
         },
         "TradeEvent": {
-          "action": "core_trade",
+          "action": "emit_record_and_state",
+          "resolve": [
+            {
+              "name": "baseSupply",
+              "resolve": "rpc.token_supply",
+              "mint": "$ctx.mint"
+            }
+          ],
           "compute": [
             {
               "name": "virtualTokenReserveUi",
               "compute": "math.amount_ui",
               "amount": "$ctx.virtualTokenReservesAtomic",
-              "decimals": "$ctx.baseDecimals"
+              "decimals": "$baseSupply.decimals"
             },
             {
               "name": "virtualSolReserveUi",
@@ -147,13 +161,13 @@
             {
               "name": "supplyPositive",
               "compute": "compare.gt",
-              "left": "$ctx.baseSupplyUi",
+              "left": "$baseSupply.supplyUi",
               "right": 0
             },
             {
               "name": "marketCapRaw",
               "compute": "math.mul",
-              "values": ["$priceQuote", "$ctx.baseSupplyUi"]
+              "values": ["$priceQuote", "$baseSupply.supplyUi"]
             },
             {
               "name": "marketCapQuote",
@@ -172,7 +186,7 @@
               "name": "baseReserveUi",
               "compute": "math.amount_ui",
               "amount": "$ctx.realTokenReservesAtomic",
-              "decimals": "$ctx.baseDecimals"
+              "decimals": "$baseSupply.decimals"
             },
             {
               "name": "quoteReserveUi",
@@ -198,7 +212,7 @@
               "name": "initialRealTokenReservesUi",
               "compute": "math.amount_ui",
               "amount": "$initialRealTokenReservesAtomic",
-              "decimals": "$ctx.baseDecimals"
+              "decimals": "$baseSupply.decimals"
             },
             {
               "name": "initialPositive",
@@ -256,14 +270,14 @@
                 "pool": "$ctx.pool",
                 "marketType": "$ctx.marketType",
                 "quoteMint": "$ctx.quoteMint",
-                "baseDecimals": "$ctx.baseDecimals",
+                "baseDecimals": "$baseSupply.decimals",
                 "quoteDecimals": "$ctx.quoteDecimals",
                 "priceQuote": "$ctx.priceQuote",
                 "marketCapQuote": "$ctx.marketCapQuote",
                 "liquidityQuote": "$ctx.liquidityQuote",
                 "baseReserveUi": "$ctx.baseReserveUi",
                 "quoteReserveUi": "$ctx.quoteReserveUi",
-                "baseSupplyUi": "$ctx.baseSupplyUi",
+                "baseSupplyUi": "$baseSupply.supplyUi",
                 "creator": "$ctx.creator",
                 "bondingCurveProgressPct": "$ctx.bondingCurveProgressPct",
                 "complete": "$ctx.complete",

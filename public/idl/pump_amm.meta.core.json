@@ -14,10 +14,32 @@
       "filters": {},
       "handlers": {
         "CreatePoolEvent": {
-          "action": "upsert_pool_metadata"
+          "action": "emit_state",
+          "resolve": [
+            {
+              "name": "baseSupply",
+              "resolve": "rpc.token_supply",
+              "mint": "$ctx.mint"
+            }
+          ],
+          "emit": {
+            "state": {
+              "recordName": "PoolMetadata",
+              "payload": {
+                "pool": "$ctx.pool",
+                "mint": "$ctx.mint",
+                "quoteMint": "$ctx.quoteMint",
+                "baseDecimals": "$ctx.baseDecimals",
+                "quoteDecimals": "$ctx.quoteDecimals",
+                "baseSupplyUi": "$baseSupply.supplyUi",
+                "coinCreator": "$ctx.coinCreator",
+                "isCashbackCoin": "$ctx.isCashbackCoin"
+              }
+            }
+          }
         },
         "BuyEvent": {
-          "action": "amm_trade",
+          "action": "emit_record_and_state",
           "side": "buy",
           "compute": [
             {
@@ -121,7 +143,7 @@
           }
         },
         "SellEvent": {
-          "action": "amm_trade",
+          "action": "emit_record_and_state",
           "side": "sell",
           "compute": [
             {

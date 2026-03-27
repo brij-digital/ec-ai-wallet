@@ -49,15 +49,17 @@
                 "action": {
                   "type": "string",
                   "enum": [
-                    "upsert_pool_metadata",
-                    "amm_trade",
-                    "core_create_state",
-                    "core_trade"
+                    "emit_state",
+                    "emit_record_and_state"
                   ]
                 },
                 "side": {
                   "type": "string",
                   "enum": ["buy", "sell"]
+                },
+                "resolve": {
+                  "type": "array",
+                  "items": { "type": "object" }
                 },
                 "compute": {
                   "type": "array",
