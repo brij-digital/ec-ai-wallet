@@ -51,6 +51,16 @@
   ],
   "pipelines": {
     "pool_create": {
+      "extract": {
+        "pool": "$decoded.pool",
+        "mint": "$decoded.baseMint",
+        "quoteMint": "$decoded.quoteMint",
+        "baseDecimals": "$decoded.baseDecimals",
+        "quoteDecimals": "$decoded.quoteDecimals",
+        "coinCreator": "$decoded.coinCreator",
+        "isCashbackCoin": "$decoded.isCashbackCoin",
+        "observedAt": "$update.eventTime"
+      },
       "resolve": [
         {
           "name": "baseSupply",
@@ -80,7 +90,25 @@
     },
     "trade_buy": {
       "extract": {
-        "side": "buy"
+        "mint": "$poolMeta.mint",
+        "pool": "$decoded.pool",
+        "marketType": "amm",
+        "quoteMint": "$poolMeta.quoteMint",
+        "baseDecimals": "$poolMeta.baseDecimals",
+        "quoteDecimals": "$poolMeta.quoteDecimals",
+        "baseSupplyUi": "$poolMeta.baseSupplyUi",
+        "coinCreator": "$poolMeta.coinCreator",
+        "isCashbackCoin": "$poolMeta.isCashbackCoin",
+        "participant": "$decoded.user",
+        "side": "buy",
+        "baseAmountAtomic": "$decoded.baseAmountAtomic",
+        "quoteAmountAtomic": "$decoded.quoteAmountAtomic",
+        "poolBaseReservesAtomic": "$decoded.poolBaseReservesAtomic",
+        "poolQuoteReservesAtomic": "$decoded.poolQuoteReservesAtomic",
+        "signature": "$update.signature",
+        "slot": "$update.slot",
+        "observedAt": "$update.eventTime",
+        "raw": "$decoded.raw"
       },
       "compute": [
         {
@@ -198,7 +226,25 @@
     },
     "trade_sell": {
       "extract": {
-        "side": "sell"
+        "mint": "$poolMeta.mint",
+        "pool": "$decoded.pool",
+        "marketType": "amm",
+        "quoteMint": "$poolMeta.quoteMint",
+        "baseDecimals": "$poolMeta.baseDecimals",
+        "quoteDecimals": "$poolMeta.quoteDecimals",
+        "baseSupplyUi": "$poolMeta.baseSupplyUi",
+        "coinCreator": "$poolMeta.coinCreator",
+        "isCashbackCoin": "$poolMeta.isCashbackCoin",
+        "participant": "$decoded.user",
+        "side": "sell",
+        "baseAmountAtomic": "$decoded.baseAmountAtomic",
+        "quoteAmountAtomic": "$decoded.quoteAmountAtomic",
+        "poolBaseReservesAtomic": "$decoded.poolBaseReservesAtomic",
+        "poolQuoteReservesAtomic": "$decoded.poolQuoteReservesAtomic",
+        "signature": "$update.signature",
+        "slot": "$update.slot",
+        "observedAt": "$update.eventTime",
+        "raw": "$decoded.raw"
       },
       "compute": [
         {

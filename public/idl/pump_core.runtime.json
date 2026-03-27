@@ -43,6 +43,20 @@
   ],
   "pipelines": {
     "curve_create": {
+      "extract": {
+        "mint": "$decoded.mint",
+        "pool": "$decoded.mint",
+        "marketType": "core",
+        "quoteMint": "So11111111111111111111111111111111111111112",
+        "quoteDecimals": 9,
+        "creator": "$decoded.creator",
+        "complete": false,
+        "observedAt": "$update.eventTime",
+        "virtualTokenReservesAtomic": "$decoded.virtualTokenReservesAtomic",
+        "virtualSolReservesAtomic": "$decoded.virtualSolReservesAtomic",
+        "realTokenReservesAtomic": "$decoded.realTokenReservesAtomic",
+        "tokenTotalSupplyAtomic": "$decoded.tokenTotalSupplyAtomic"
+      },
       "resolve": [
         {
           "name": "baseSupply",
@@ -163,6 +177,36 @@
       }
     },
     "curve_trade": {
+      "extract": {
+        "mint": "$decoded.mint",
+        "pool": "$decoded.mint",
+        "marketType": "core",
+        "quoteMint": "So11111111111111111111111111111111111111112",
+        "quoteDecimals": 9,
+        "creator": "$decoded.creator",
+        "complete": false,
+        "observedAt": "$update.eventTime",
+        "participant": "$decoded.user",
+        "side": "$decoded.side",
+        "baseAmountAtomic": "$decoded.baseAmountAtomic",
+        "quoteAmountAtomic": "$decoded.quoteAmountAtomic",
+        "virtualTokenReservesAtomic": "$decoded.virtualTokenReservesAtomic",
+        "virtualSolReservesAtomic": "$decoded.virtualSolReservesAtomic",
+        "realTokenReservesAtomic": "$decoded.realTokenReservesAtomic",
+        "realSolReservesAtomic": "$decoded.realSolReservesAtomic",
+        "totalUnclaimedTokensAtomic": "$decoded.totalUnclaimedTokensAtomic",
+        "totalClaimedTokensAtomic": "$decoded.totalClaimedTokensAtomic",
+        "signature": "$update.signature",
+        "slot": "$update.slot",
+        "raw": "$decoded.raw"
+      },
+      "resolve": [
+        {
+          "name": "baseSupply",
+          "resolve": "rpc.token_supply",
+          "mint": "$ctx.mint"
+        }
+      ],
       "compute": [
         {
           "name": "virtualTokenReserveUi",
@@ -266,13 +310,6 @@
           "condition": "$initialPositive",
           "then": "$progressPctRaw",
           "else": "$null"
-        }
-      ],
-      "resolve": [
-        {
-          "name": "baseSupply",
-          "resolve": "rpc.token_supply",
-          "mint": "$ctx.mint"
         }
       ],
       "emit": {
