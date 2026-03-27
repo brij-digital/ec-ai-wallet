@@ -21,9 +21,27 @@
       "decoderRef": "pump_swap",
       "decodeTargets": ["instruction", "log_event"],
       "filters": {}
+    },
+    "pump_pool_snapshot": {
+      "kind": "rpc_account_snapshot",
+      "programId": "$protocol.programId",
+      "commitment": "confirmed",
+      "decoderRef": "pump_swap",
+      "decodeTargets": ["account"],
+      "filters": {
+        "accountName": "Pool"
+      }
     }
   },
   "matchRules": [
+    {
+      "source": "pump_pool_snapshot",
+      "match": {
+        "decodedType": "account",
+        "name": "Pool"
+      },
+      "pipeline": "pool_snapshot"
+    },
     {
       "source": "pump_swap_crawler",
       "match": {
@@ -50,6 +68,47 @@
     }
   ],
   "pipelines": {
+    "pool_snapshot": {
+      "extract": {
+        "pool": "$update.pubkey",
+        "mint": "$decoded.base_mint",
+        "quoteMint": "$decoded.quote_mint",
+        "coinCreator": "$decoded.coin_creator",
+        "isCashbackCoin": "$decoded.is_cashback_coin",
+        "observedAt": "$update.eventTime"
+      },
+      "resolve": [
+        {
+          "name": "baseSupply",
+          "resolve": "rpc.token_supply",
+          "mint": "$ctx.mint"
+        },
+        {
+          "name": "quoteSupply",
+          "resolve": "rpc.token_supply",
+          "mint": "$ctx.quoteMint"
+        }
+      ],
+      "emit": {
+        "state": {
+          "recordKind": "account",
+          "recordName": "PoolMetadata",
+          "subjectId": "$ctx.pool",
+          "resourceId": "$ctx.pool",
+          "eventTime": "$ctx.observedAt",
+          "payload": {
+            "pool": "$ctx.pool",
+            "mint": "$ctx.mint",
+            "quoteMint": "$ctx.quoteMint",
+            "baseDecimals": "$baseSupply.decimals",
+            "quoteDecimals": "$quoteSupply.decimals",
+            "baseSupplyUi": "$baseSupply.supplyUi",
+            "coinCreator": "$ctx.coinCreator",
+            "isCashbackCoin": "$ctx.isCashbackCoin"
+          }
+        }
+      }
+    },
     "pool_create": {
       "extract": {
         "pool": "$decoded.pool",
