@@ -1189,7 +1189,10 @@
           "source": "indexed_idl_state",
           "protocol_id": "pump-amm-mainnet",
           "record_kind": "account",
-          "record_name": ["Pool", "BondingCurve"],
+          "record_name": [
+            "Pool",
+            "BondingCurve"
+          ],
           "subject_input": "mint",
           "subject_field": "subject_id",
           "resource_field": "resource_id",
@@ -1306,7 +1309,10 @@
           "source": "indexed_idl_state",
           "protocol_id": "pump-amm-mainnet",
           "record_kind": "account",
-          "record_name": ["Pool", "BondingCurve"],
+          "record_name": [
+            "Pool",
+            "BondingCurve"
+          ],
           "resource_input": "pool",
           "resource_field": "resource_id",
           "notes": "Read the latest projected state row by pool/resource id."
@@ -1358,7 +1364,11 @@
           "source": "indexed_idl_records",
           "protocol_id": "pump-amm-mainnet",
           "record_kind": "event",
-          "record_name": ["BuyEvent", "SellEvent", "TradeEvent"],
+          "record_name": [
+            "BuyEvent",
+            "SellEvent",
+            "TradeEvent"
+          ],
           "resource_input": "pool",
           "resource_field": "resource_id",
           "time_field": "event_time",
@@ -1431,38 +1441,6 @@
       "label": "Market Cap Series",
       "use": []
     },
-    "stat_cards": {
-      "inputs": {
-        "pool": {
-          "type": "pubkey",
-          "required": true,
-          "label": "Pool"
-        }
-      },
-      "view": {
-        "kind": "series",
-        "source_kind": "materialized_series",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 5000,
-          "max_staleness_ms": 30000
-        },
-        "canonical": {
-          "source": "indexed_idl_state",
-          "protocol_id": "pump-amm-mainnet",
-          "record_kind": "account",
-          "record_name": ["Pool", "BondingCurve"],
-          "resource_input": "pool",
-          "resource_field": "resource_id",
-          "notes": "Stat cards are derived from projected state plus canonical market series."
-        },
-        "entity_type": "pump_stat_cards",
-        "title": "Stat cards",
-        "description": "Fast stat cards derived from current snapshot plus 1 minute market series."
-      },
-      "label": "Stat Cards",
-      "use": []
-    },
     "ranked_active_tokens": {
       "inputs": {
         "quote_mint": {
@@ -1508,7 +1486,11 @@
           "source": "indexed_idl_records",
           "protocol_id": "pump-amm-mainnet",
           "record_kind": "event",
-          "record_name": ["BuyEvent", "SellEvent", "TradeEvent"],
+          "record_name": [
+            "BuyEvent",
+            "SellEvent",
+            "TradeEvent"
+          ],
           "time_field": "event_time",
           "notes": "Ranking is computed from IDL-native trade records joined with projected current state."
         },
@@ -1534,122 +1516,6 @@
         }
       },
       "label": "Ranked Active Tokens",
-      "use": []
-    },
-    "token_trade_context": {
-      "inputs": {
-        "mint": {
-          "type": "pubkey",
-          "required": true,
-          "label": "Mint"
-        },
-        "quote_mint": {
-          "type": "pubkey",
-          "required": false,
-          "default": "So11111111111111111111111111111111111111112",
-          "label": "Quote Mint"
-        }
-      },
-      "view": {
-        "kind": "search",
-        "source_kind": "derived_sql",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 5000,
-          "max_staleness_ms": 30000
-        },
-        "canonical": {
-          "source": "indexed_idl_state",
-          "protocol_id": "pump-amm-mainnet",
-          "record_kind": "account",
-          "record_name": ["Pool", "BondingCurve"],
-          "subject_input": "mint",
-          "subject_field": "subject_id",
-          "notes": "Trade context is composed from projected state, IDL-native trade records, and canonical series."
-        },
-        "entity_type": "pump_trade_context",
-        "title": "Token trade context",
-        "description": "Resolve a Pump token into tradeability context, warnings, confidence, and execution handoff.",
-        "bootstrap": {
-          "kind": "scan_accounts",
-          "source": "rpc.getProgramAccounts",
-          "program_id": "$protocol.programId",
-          "account_type": "Pool",
-          "retention_seconds": 3600,
-          "filters": []
-        },
-        "refresh": {
-          "mode": "stream",
-          "source": "program_account_updates"
-        },
-        "query": {
-          "indexed_filters": {
-            "all": [
-              {
-                "field": "memcmp.43",
-                "op": "=",
-                "value": "$input.mint"
-              },
-              {
-                "field": "memcmp.75",
-                "op": "=",
-                "value": "$input.quote_mint"
-              }
-            ]
-          },
-          "filters": {
-            "all": [
-              {
-                "field": "decoded.base_mint",
-                "op": "=",
-                "value": "$input.mint"
-              },
-              {
-                "field": "decoded.quote_mint",
-                "op": "=",
-                "value": "$input.quote_mint"
-              },
-              {
-                "field": "decoded.lp_supply",
-                "op": ">",
-                "value": "0"
-              }
-            ]
-          },
-          "hydrate": {
-            "mode": "accounts",
-            "candidate_limit": 5,
-            "fields": [
-              "pubkey",
-              "data_bytes",
-              "slot"
-            ]
-          },
-          "decode": {
-            "account_type": "Pool"
-          },
-          "sort": [
-            {
-              "field": "decoded.index",
-              "dir": "desc",
-              "mode": "indexed"
-            },
-            {
-              "field": "decoded.lp_supply",
-              "dir": "desc",
-              "mode": "indexed_then_live_refine",
-              "candidate_limit": 5
-            }
-          ],
-          "limit": 1,
-          "select": {
-            "pool": "$account.pubkey",
-            "baseMint": "$decoded.base_mint",
-            "quoteMint": "$decoded.quote_mint"
-          }
-        }
-      },
-      "label": "Token Trade Context",
       "use": []
     },
     "buy": {
