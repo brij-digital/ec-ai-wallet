@@ -52,10 +52,10 @@
         "creator": "$decoded.creator",
         "complete": false,
         "observedAt": "$update.eventTime",
-        "virtualTokenReservesAtomic": "$decoded.virtualTokenReservesAtomic",
-        "virtualSolReservesAtomic": "$decoded.virtualSolReservesAtomic",
-        "realTokenReservesAtomic": "$decoded.realTokenReservesAtomic",
-        "tokenTotalSupplyAtomic": "$decoded.tokenTotalSupplyAtomic"
+        "virtualTokenReservesAtomic": "$decoded.virtual_token_reserves",
+        "virtualSolReservesAtomic": "$decoded.virtual_sol_reserves",
+        "realTokenReservesAtomic": "$decoded.real_token_reserves",
+        "tokenTotalSupplyAtomic": "$decoded.token_total_supply"
       },
       "resolve": [
         {
@@ -187,18 +187,17 @@
         "complete": false,
         "observedAt": "$update.eventTime",
         "participant": "$decoded.user",
-        "side": "$decoded.side",
-        "baseAmountAtomic": "$decoded.baseAmountAtomic",
-        "quoteAmountAtomic": "$decoded.quoteAmountAtomic",
-        "virtualTokenReservesAtomic": "$decoded.virtualTokenReservesAtomic",
-        "virtualSolReservesAtomic": "$decoded.virtualSolReservesAtomic",
-        "realTokenReservesAtomic": "$decoded.realTokenReservesAtomic",
-        "realSolReservesAtomic": "$decoded.realSolReservesAtomic",
-        "totalUnclaimedTokensAtomic": "$decoded.totalUnclaimedTokensAtomic",
-        "totalClaimedTokensAtomic": "$decoded.totalClaimedTokensAtomic",
+        "isBuy": "$decoded.is_buy",
+        "baseAmountAtomic": "$decoded.token_amount",
+        "quoteAmountAtomic": "$decoded.sol_amount",
+        "virtualTokenReservesAtomic": "$decoded.virtual_token_reserves",
+        "virtualSolReservesAtomic": "$decoded.virtual_sol_reserves",
+        "realTokenReservesAtomic": "$decoded.real_token_reserves",
+        "realSolReservesAtomic": "$decoded.real_sol_reserves",
+        "totalUnclaimedTokensAtomic": "$decoded.total_unclaimed_tokens",
+        "totalClaimedTokensAtomic": "$decoded.total_claimed_tokens",
         "signature": "$update.signature",
-        "slot": "$update.slot",
-        "raw": "$decoded.raw"
+        "slot": "$update.slot"
       },
       "resolve": [
         {
@@ -208,6 +207,13 @@
         }
       ],
       "compute": [
+        {
+          "name": "side",
+          "compute": "logic.if",
+          "condition": "$ctx.isBuy",
+          "then": "buy",
+          "else": "sell"
+        },
         {
           "name": "virtualTokenReserveUi",
           "compute": "math.amount_ui",

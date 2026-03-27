@@ -120,12 +120,12 @@
     "pool_create": {
       "extract": {
         "pool": "$decoded.pool",
-        "mint": "$decoded.baseMint",
-        "quoteMint": "$decoded.quoteMint",
-        "baseDecimals": "$decoded.baseDecimals",
-        "quoteDecimals": "$decoded.quoteDecimals",
-        "coinCreator": "$decoded.coinCreator",
-        "isCashbackCoin": "$decoded.isCashbackCoin",
+        "mint": "$decoded.base_mint",
+        "quoteMint": "$decoded.quote_mint",
+        "baseDecimals": "$decoded.base_mint_decimals",
+        "quoteDecimals": "$decoded.quote_mint_decimals",
+        "coinCreator": "$decoded.coin_creator",
+        "isCashbackCoin": false,
         "observedAt": "$update.eventTime"
       },
       "resolve": [
@@ -161,7 +161,8 @@
           "name": "poolMeta",
           "resolve": "state.lookup",
           "recordName": "PoolMetadata",
-          "subjectId": "$decoded.pool"
+          "subjectId": "$decoded.pool",
+          "required": true
         }
       ],
       "extract": {
@@ -176,14 +177,13 @@
         "isCashbackCoin": "$poolMeta.isCashbackCoin",
         "participant": "$decoded.user",
         "side": "buy",
-        "baseAmountAtomic": "$decoded.baseAmountAtomic",
-        "quoteAmountAtomic": "$decoded.quoteAmountAtomic",
-        "poolBaseReservesAtomic": "$decoded.poolBaseReservesAtomic",
-        "poolQuoteReservesAtomic": "$decoded.poolQuoteReservesAtomic",
+        "baseAmountAtomic": "$decoded.base_amount_out",
+        "quoteAmountAtomic": "$decoded.quote_amount_in",
+        "poolBaseReservesAtomic": "$decoded.pool_base_token_reserves",
+        "poolQuoteReservesAtomic": "$decoded.pool_quote_token_reserves",
         "signature": "$update.signature",
         "slot": "$update.slot",
-        "observedAt": "$update.eventTime",
-        "raw": "$decoded.raw"
+        "observedAt": "$update.eventTime"
       },
       "compute": [
         {
@@ -305,7 +305,8 @@
           "name": "poolMeta",
           "resolve": "state.lookup",
           "recordName": "PoolMetadata",
-          "subjectId": "$decoded.pool"
+          "subjectId": "$decoded.pool",
+          "required": true
         }
       ],
       "extract": {
@@ -320,14 +321,13 @@
         "isCashbackCoin": "$poolMeta.isCashbackCoin",
         "participant": "$decoded.user",
         "side": "sell",
-        "baseAmountAtomic": "$decoded.baseAmountAtomic",
-        "quoteAmountAtomic": "$decoded.quoteAmountAtomic",
-        "poolBaseReservesAtomic": "$decoded.poolBaseReservesAtomic",
-        "poolQuoteReservesAtomic": "$decoded.poolQuoteReservesAtomic",
+        "baseAmountAtomic": "$decoded.base_amount_in",
+        "quoteAmountAtomic": "$decoded.quote_amount_out",
+        "poolBaseReservesAtomic": "$decoded.pool_base_token_reserves",
+        "poolQuoteReservesAtomic": "$decoded.pool_quote_token_reserves",
         "signature": "$update.signature",
         "slot": "$update.slot",
-        "observedAt": "$update.eventTime",
-        "raw": "$decoded.raw"
+        "observedAt": "$update.eventTime"
       },
       "compute": [
         {
