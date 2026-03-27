@@ -21,16 +21,6 @@
       "decoderRef": "orca_whirlpool",
       "decodeTargets": ["instruction", "log_event"],
       "filters": {}
-    },
-    "orca_whirlpool_snapshot": {
-      "kind": "rpc_account_snapshot",
-      "programId": "$protocol.programId",
-      "commitment": "confirmed",
-      "decoderRef": "orca_whirlpool",
-      "decodeTargets": ["account"],
-      "filters": {
-        "accountName": "Whirlpool"
-      }
     }
   },
   "matchRules": [
@@ -41,14 +31,6 @@
         "name": "TradedEvent"
       },
       "pipeline": "whirlpool_trade"
-    },
-    {
-      "source": "orca_whirlpool_snapshot",
-      "match": {
-        "decodedType": "account",
-        "name": "Whirlpool"
-      },
-      "pipeline": "whirlpool_snapshot"
     }
   ],
   "pipelines": {
