@@ -19,6 +19,7 @@
     "pack:complexity": "node scripts/report-pack-complexity.mjs",
     "pack:complexity:enforce": "node scripts/report-pack-complexity.mjs --enforce",
     "pack:rpc-check": "node scripts/check-protocol-rpc.mjs",
+    "smoke:pack-metadata": "node scripts/smoke-pack-metadata.mjs",
     "ci:protocol-packs": "npm run aidl:check && npm run pack:check && npm run pack:lint && npm run pack:complexity:enforce",
     "ci:protocol-packs:rpc": "npm run ci:protocol-packs && npm run pack:rpc-check",
     "preview": "vite preview",

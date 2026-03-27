@@ -68,8 +68,14 @@ jobs:
           APPPACK_RUNTIME_DIR: ${{ github.workspace }}/apppack-runtime-source
         run: npm run schemas:check
 
+      - name: Runtime Validate Generated Pack Contracts
+        run: node apppack-runtime-source/scripts/check-pack-contracts.mjs --pack-dir public/idl
+
       - name: Verify AIDL Generated Outputs
         run: npm run aidl:check
+
+      - name: Smoke Load Wallet Pack Metadata
+        run: npm run smoke:pack-metadata
 
       - name: Run Protocol Pack Checks
         run: npm run pack:check
