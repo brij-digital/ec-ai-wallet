@@ -17,6 +17,7 @@
       "network": "mainnet-beta",
       "programId": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
       "idlPath": "/idl/orca_whirlpool.json",
+      "runtimeSpecPath": "/idl/orca_whirlpool.runtime.json",
       "metaPath": "/idl/orca_whirlpool.meta.json",
       "metaCorePath": "/idl/orca_whirlpool.meta.core.json",
       "appPath": "/idl/orca_whirlpool.app.json",
