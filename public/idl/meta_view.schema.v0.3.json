@@ -314,9 +314,15 @@
       "properties": {
         "projection_kind": {
           "type": "string",
-          "enum": ["snapshot", "feed", "series", "ranking", "context"]
+          "enum": ["snapshot", "feed", "series", "ranking", "context", "search"]
         },
         "source_operation": { "type": "string" },
+        "filters": {
+          "oneOf": [
+            { "$ref": "#/$defs/filterGroupAll" },
+            { "$ref": "#/$defs/filterGroupAny" }
+          ]
+        },
         "group_by": {
           "type": "array",
           "items": { "type": "string" }

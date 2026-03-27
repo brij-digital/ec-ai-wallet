@@ -832,6 +832,41 @@
       ],
       "view": {
         "kind": "search",
+        "source_kind": "account_changes",
+        "freshness": {
+          "class": "near_realtime",
+          "target_ms": 10000,
+          "max_staleness_ms": 60000
+        },
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "notes": "Search canonical Whirlpool state rows for a token pair."
+        },
+        "projection": {
+          "projection_kind": "search",
+          "filters": {
+            "any": [
+              {
+                "all": [
+                  { "field": "tokenMintA", "op": "=", "value": "$input.token_in_mint" },
+                  { "field": "tokenMintB", "op": "=", "value": "$input.token_out_mint" }
+                ]
+              },
+              {
+                "all": [
+                  { "field": "tokenMintA", "op": "=", "value": "$input.token_out_mint" },
+                  { "field": "tokenMintB", "op": "=", "value": "$input.token_in_mint" }
+                ]
+              }
+            ]
+          },
+          "sort_by": [
+            { "field": "liquidity", "dir": "desc" }
+          ]
+        },
         "entity_type": "whirlpool_pool",
         "title": "List pools",
         "description": "Find Whirlpool pools for a token pair.",
