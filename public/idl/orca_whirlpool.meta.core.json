@@ -569,6 +569,59 @@
         }
       ]
     },
+    "resolve_pool": {
+      "label": "Resolve Pool",
+      "inputs": {
+        "pool": {
+          "type": "pubkey",
+          "required": true,
+          "label": "Whirlpool"
+        }
+      },
+      "view": {
+        "kind": "search",
+        "source_kind": "account_changes",
+        "sync_disabled": true,
+        "freshness": {
+          "class": "near_realtime",
+          "target_ms": 5000,
+          "max_staleness_ms": 20000
+        },
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "notes": "Resolve a known Whirlpool address into its latest canonical state row."
+        },
+        "projection": {
+          "projection_kind": "snapshot",
+          "group_by": ["resource_id"]
+        },
+        "entity_type": "orca_whirlpool",
+        "title": "Resolve pool",
+        "description": "Resolve a known Orca Whirlpool address into the latest projected state.",
+        "bootstrap": {
+          "kind": "scan_accounts",
+          "source": "rpc.getProgramAccounts",
+          "program_id": "$protocol.programId",
+          "account_type": "Whirlpool",
+          "filters": []
+        },
+        "refresh": {
+          "mode": "stream",
+          "source": "program_account_updates"
+        },
+        "query": {
+          "decode": {
+            "account_type": "Whirlpool"
+          }
+        }
+      },
+      "use": []
+    },
     "pool_snapshot": {
       "label": "Pool Snapshot",
       "inputs": {
