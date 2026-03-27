@@ -139,20 +139,22 @@ No fake repair, no hidden magic.
 ### Tasks
 
 1. keep no read-path fallbacks
-2. expose freshness honestly
-3. keep sync state explicit:
+2. keep no hidden background repair fallback either
+3. expose freshness honestly
+4. keep sync state explicit:
    - `pending`
    - `live`
    - `catching_up`
    - `stale`
-4. make watched-resource behavior predictable if we keep it
-5. keep already-synced request latency tight
+5. make watched-resource behavior predictable if we keep it
+6. keep already-synced request latency tight
 
 ### Exit Criteria
 
 - loading a known resource is predictable
 - stale state is visible, not hidden
 - no magic repair in the request path
+- no magic repair outside the request path either
 
 ## Phase 6. Prove The Same Canonical Model On Orca
 
