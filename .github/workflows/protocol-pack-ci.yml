@@ -10,6 +10,7 @@ on:
       - "scripts/lint-protocol-packs.mjs"
       - "scripts/report-pack-complexity.mjs"
       - "scripts/compile-aidl.mjs"
+      - "scripts/sync-runtime-schemas.mjs"
       - "protocol-packs/complexity-budget.json"
       - "package.json"
       - "package-lock.json"
@@ -24,6 +25,7 @@ on:
       - "scripts/lint-protocol-packs.mjs"
       - "scripts/report-pack-complexity.mjs"
       - "scripts/compile-aidl.mjs"
+      - "scripts/sync-runtime-schemas.mjs"
       - "protocol-packs/complexity-budget.json"
       - "package.json"
       - "package-lock.json"
@@ -42,6 +44,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout apppack-runtime
+        uses: actions/checkout@v4
+        with:
+          repository: brij-digital/apppack-runtime
+          path: apppack-runtime-source
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -54,6 +62,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci
+
+      - name: Check Runtime-Owned Schemas
+        env:
+          APPPACK_RUNTIME_DIR: ${{ github.workspace }}/apppack-runtime-source
+        run: npm run schemas:check
 
       - name: Verify AIDL Generated Outputs
         run: npm run aidl:check
