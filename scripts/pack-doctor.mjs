@@ -97,12 +97,12 @@ async function resolveCodecIdlPath(manifest, protocolId) {
   const candidates = new Set();
   for (const [artifactName, artifactRaw] of Object.entries(decoderArtifacts)) {
     const artifact = asObject(artifactRaw, `${protocolId}.runtime.decoderArtifacts.${artifactName}`);
-    if (typeof artifact.codecIdlPath === 'string' && artifact.codecIdlPath.length > 0) {
-      candidates.add(resolvePublicAssetPath(artifact.codecIdlPath, `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`));
-      continue;
+    if (typeof artifact.codecIdlPath !== 'string' || artifact.codecIdlPath.length === 0) {
+      throw new Error(`${protocolId}: runtime decoder artifact ${artifactName} must declare codecIdlPath.`);
     }
-    if (typeof artifact.idlPath === 'string' && artifact.idlPath.length > 0) {
-      candidates.add(resolvePublicAssetPath(artifact.idlPath, `${protocolId}.runtime.decoderArtifacts.${artifactName}.idlPath`));
+    candidates.add(resolvePublicAssetPath(artifact.codecIdlPath, `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`));
+    if (artifact.idlPath !== undefined) {
+      throw new Error(`${protocolId}: runtime decoder artifact ${artifactName} must not declare legacy idlPath.`);
     }
   }
 
