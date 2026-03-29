@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from 'react';
-import { listIdlProtocols } from './runtimeIdlCompat';
+import { listIdlProtocols } from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   listApps as listMetaApps,
   listAppOperations as listMetaOperations,

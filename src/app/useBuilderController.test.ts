@@ -2,13 +2,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useBuilderController } from './useBuilderController';
-import { listIdlProtocols } from './runtimeIdlCompat';
+import { listIdlProtocols } from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   listApps as listMetaApps,
   listAppOperations as listMetaOperations,
 } from '@brij-digital/apppack-runtime/appSpecRuntime';
 
-vi.mock('./runtimeIdlCompat', async () => {
+vi.mock('@brij-digital/apppack-runtime/idlDeclarativeRuntime', async () => {
   return {
     listIdlProtocols: vi.fn(async () => ({
       protocols: [{ id: 'orca-whirlpool-mainnet', name: 'Orca', status: 'active' }],

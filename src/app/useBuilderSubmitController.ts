@@ -11,7 +11,7 @@ import type { FormEvent } from 'react';
 import {
   sendIdlInstruction,
   simulateIdlInstruction,
-} from './runtimeIdlCompat';
+} from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   prepareAppOperation as prepareMetaOperation,
   type AppOperationSummary as MetaOperationSummary,

@@ -18,7 +18,7 @@ import {
   listIdlProtocols,
   sendIdlInstruction,
   simulateIdlInstruction,
-} from './runtimeIdlCompat';
+} from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   explainAppOperation as explainMetaOperation,
   listAppOperations as listMetaOperations,

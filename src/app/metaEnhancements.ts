@@ -225,7 +225,7 @@ export async function loadRawMetaForProtocol(protocolId: string): Promise<unknow
   }
 
   const promise = (async () => {
-    const { listIdlProtocols } = await import('./runtimeIdlCompat');
+    const { listIdlProtocols } = await import('@brij-digital/apppack-runtime/idlDeclarativeRuntime');
     const registry = await listIdlProtocols();
     const protocol = registry.protocols.find((entry) => entry.id === protocolId);
     if (!protocol) {

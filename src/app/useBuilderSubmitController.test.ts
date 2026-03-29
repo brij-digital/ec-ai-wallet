@@ -7,14 +7,14 @@ import { useBuilderSubmitController } from './useBuilderSubmitController';
 import {
   listIdlProtocols,
   simulateIdlInstruction,
-} from './runtimeIdlCompat';
+} from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   listApps as listMetaApps,
   listAppOperations as listMetaOperations,
   prepareAppOperation as prepareMetaOperation,
 } from '@brij-digital/apppack-runtime/appSpecRuntime';
 
-vi.mock('./runtimeIdlCompat', async () => {
+vi.mock('@brij-digital/apppack-runtime/idlDeclarativeRuntime', async () => {
   return {
     listIdlProtocols: vi.fn(),
     simulateIdlInstruction: vi.fn(),

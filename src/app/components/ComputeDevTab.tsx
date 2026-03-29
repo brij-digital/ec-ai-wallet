@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { listIdlProtocols } from '../runtimeIdlCompat';
+import { listIdlProtocols } from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   explainAppOperation as explainMetaOperation,
   listAppOperations as listMetaOperations,
