@@ -10,8 +10,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
-    "aidl:compile": "npm run schemas:sync && node scripts/compile-aidl.mjs && node scripts/split-meta-packs.mjs",
-    "aidl:check": "npm run schemas:check && node scripts/compile-aidl.mjs --check && node scripts/split-meta-packs.mjs --check",
+    "codama:compile": "node scripts/compile-codama.mjs",
+    "codama:check": "node scripts/compile-codama.mjs --check",
+    "aidl:compile": "npm run schemas:sync && node scripts/compile-aidl.mjs && node scripts/split-meta-packs.mjs && npm run codama:compile",
+    "aidl:check": "npm run schemas:check && node scripts/compile-aidl.mjs --check && node scripts/split-meta-packs.mjs --check && npm run codama:check",
     "pack:init": "node scripts/pack-init.mjs",
     "pack:doctor": "node scripts/pack-doctor.mjs",
     "pack:check": "node scripts/check-protocol-packs.mjs",
@@ -40,6 +42,7 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@codama/nodes-from-anchor": "^1.4.0",
     "@eslint/js": "^9.39.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.10.1",
@@ -47,6 +50,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "buffer": "^6.0.3",
+    "codama": "^1.5.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

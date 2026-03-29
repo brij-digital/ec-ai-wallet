@@ -43,22 +43,32 @@ Main UI tabs:
 
 ## Spec Model
 
-Each protocol pack is split into 3 layers:
+Each protocol pack is now split into 4 layers:
 
-1. `IDL` (program truth)
-- instruction/account encoding from protocol program
+1. `Program IDL`
+- protocol-source instruction/account/event encoding
+- current Anchor-compatible source files still exist for codec compatibility
 - example: [public/idl/orca_whirlpool.json](public/idl/orca_whirlpool.json)
 
-2. `MetaIDL` (execution logic)
-- declarative operation pipeline: `discover -> derive -> compute -> args/accounts`
+2. `Codama IDL`
+- canonical declarative program description used by the indexing runtime
+- generated from the source IDL and versioned in `public/idl/*.codama.json`
+- examples:
+  - [public/idl/orca_whirlpool.codama.json](public/idl/orca_whirlpool.codama.json)
+  - [public/idl/pump_amm.codama.json](public/idl/pump_amm.codama.json)
+
+3. `Declarative Runtime Spec`
+- declarative indexing/runtime contract
+- sources, match rules, resolve, compute, emit, projections
+- examples:
+  - [public/idl/orca_whirlpool.runtime.json](public/idl/orca_whirlpool.runtime.json)
+  - [public/idl/pump_core.runtime.json](public/idl/pump_core.runtime.json)
+
+4. `MetaIDL + AppSpec`
+- `MetaIDL` = declarative execution/read surface
+- `AppSpec` = end-user flow
 - examples:
   - [public/idl/orca_whirlpool.meta.core.json](public/idl/orca_whirlpool.meta.core.json)
-  - [public/idl/pump_core.meta.core.json](public/idl/pump_core.meta.core.json)
-
-3. `AppSpec` (end-user flow)
-- step-based app UX: actions, transitions, statuses, selectable derived lists
-- examples:
-  - [public/idl/orca_whirlpool.app.json](public/idl/orca_whirlpool.app.json)
   - [public/idl/pump_amm.app.json](public/idl/pump_amm.app.json)
 
 Registry:
@@ -165,11 +175,19 @@ npm run aidl:compile
 This does:
 - compile `aidl/*.aidl.json` -> `public/idl/*.meta.json`
 - split each meta pack -> `*.meta.core.json` and `*.app.json`
+- regenerate `public/idl/*.codama.json` from the protocol IDLs referenced by the registry
 
 Check generated outputs are up to date:
 
 ```bash
 npm run aidl:check
+```
+
+Codama-only regeneration:
+
+```bash
+npm run codama:compile
+npm run codama:check
 ```
 
 ## Pack Quality Gates

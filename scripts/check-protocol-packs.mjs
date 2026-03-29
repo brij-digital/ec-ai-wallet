@@ -390,6 +390,12 @@ function validateManifest(manifest, seenIds) {
   asStringArray(manifest.supportedCommands, `${id}.supportedCommands`);
   asString(manifest.status, `${id}.status`);
   resolvePublicAssetPath(manifest.idlPath, `${id}.idlPath`);
+  if (manifest.codamaIdlPath !== undefined) {
+    resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
+  }
+  if (manifest.runtimeSpecPath !== undefined) {
+    resolvePublicAssetPath(manifest.runtimeSpecPath, `${id}.runtimeSpecPath`);
+  }
   resolvePublicAssetPath(manifest.metaPath, `${id}.metaPath`);
 }
 
@@ -454,9 +460,18 @@ async function run() {
     const protocolId = manifest.id;
     const idlPath = resolvePublicAssetPath(manifest.idlPath, `${protocolId}.idlPath`);
     const metaPath = resolvePublicAssetPath(manifest.metaPath, `${protocolId}.metaPath`);
+    const codamaPath = manifest.codamaIdlPath
+      ? resolvePublicAssetPath(manifest.codamaIdlPath, `${protocolId}.codamaIdlPath`)
+      : null;
 
     const idl = asObject(await readJsonFile(idlPath, `${protocolId} IDL`), `${protocolId} IDL`);
     const meta = asObject(await readJsonFile(metaPath, `${protocolId} Meta IDL`), `${protocolId} Meta IDL`);
+    if (codamaPath) {
+      const codama = asObject(await readJsonFile(codamaPath, `${protocolId} Codama IDL`), `${protocolId} Codama IDL`);
+      if (codama.standard !== 'codama') {
+        fail(`${protocolId}: ${manifest.codamaIdlPath} is not a Codama IDL.`);
+      }
+    }
 
     validateMetaSchema(meta, manifest);
 

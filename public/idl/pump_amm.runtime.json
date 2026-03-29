@@ -8,8 +8,9 @@
   "decoderArtifacts": {
     "pump_swap": {
       "kind": "generated_idl_decoder",
-      "idlPath": "/idl/pump_amm.json",
-      "family": "anchor",
+      "family": "codama",
+      "codamaPath": "/idl/pump_amm.codama.json",
+      "codecIdlPath": "/idl/pump_amm.json",
       "artifact": "pump_swap"
     }
   },

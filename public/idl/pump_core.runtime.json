@@ -8,8 +8,9 @@
   "decoderArtifacts": {
     "pumpfun": {
       "kind": "generated_idl_decoder",
-      "idlPath": "/idl/pump_core.json",
-      "family": "anchor",
+      "family": "codama",
+      "codamaPath": "/idl/pump_core.codama.json",
+      "codecIdlPath": "/idl/pump_core.json",
       "artifact": "pumpfun"
     }
   },

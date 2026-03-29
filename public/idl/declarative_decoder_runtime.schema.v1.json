@@ -93,6 +93,12 @@
         "idlPath": {
           "type": "string"
         },
+        "codamaPath": {
+          "type": "string"
+        },
+        "codecIdlPath": {
+          "type": "string"
+        },
         "artifact": {
           "type": "string"
         },
@@ -103,7 +109,35 @@
           "type": "string"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "family": {
+                "const": "anchor"
+              }
+            },
+            "required": ["family"]
+          },
+          "then": {
+            "required": ["idlPath"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "family": {
+                "const": "codama"
+              }
+            },
+            "required": ["family"]
+          },
+          "then": {
+            "required": ["codamaPath"]
+          }
+        }
+      ]
     },
     "sourceSpec": {
       "type": "object",

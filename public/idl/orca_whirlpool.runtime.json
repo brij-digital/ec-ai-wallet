@@ -8,8 +8,9 @@
   "decoderArtifacts": {
     "orca_whirlpool": {
       "kind": "generated_idl_decoder",
-      "idlPath": "/idl/orca_whirlpool.json",
-      "family": "anchor",
+      "family": "codama",
+      "codamaPath": "/idl/orca_whirlpool.codama.json",
+      "codecIdlPath": "/idl/orca_whirlpool.json",
       "artifact": "orca_whirlpool"
     }
   },
