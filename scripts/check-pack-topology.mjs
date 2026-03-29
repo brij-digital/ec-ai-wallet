@@ -114,21 +114,11 @@ async function main() {
       if (runtimeProtocolId !== protocolId) {
         fail(`${protocolId}: runtime.protocolId mismatch (${runtimeProtocolId}).`);
       }
-      if (protocol.metaPath != null || protocol.metaCorePath != null) {
-        fail(`${protocolId}: migrated protocols must not keep metaPath/metaCorePath once runtimeSpecPath is present.`);
-      }
       migratedCount += 1;
     }
 
-    if (protocol.metaPath) {
-      const metaPath = resolveIdlPath(protocol.metaPath, `${protocolId}.metaPath`);
-      await readJson(metaPath, `${protocolId} legacy meta`);
-    }
-
-    if (protocol.metaCorePath) {
-      const metaCorePath = resolveIdlPath(protocol.metaCorePath, `${protocolId}.metaCorePath`);
-      const metaCore = asObject(await readJson(metaCorePath, `${protocolId} legacy meta core`), `${protocolId} legacy meta core`);
-      validateLegacyMetaCore(protocolId, metaCore);
+    if (protocol.metaPath != null || protocol.metaCorePath != null) {
+      fail(`${protocolId}: legacy metaPath/metaCorePath is no longer allowed in the active registry.`);
     }
   }
 
