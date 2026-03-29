@@ -12,6 +12,7 @@ const VIEW_API_BASE_URL = String(import.meta.env.VITE_VIEW_API_BASE_URL ?? DEFAU
   .replace(/\/+$/, '');
 
 type AppTab = 'views' | 'pump' | 'raw' | 'tv';
+const DISABLED_TABS = ['Apps', 'Command', 'Compute', 'Explorer'] as const;
 
 function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('pump');
@@ -64,7 +65,24 @@ function App() {
           >
             TradingView
           </button>
+          {DISABLED_TABS.map((label) => (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              className="disabled-tab"
+              aria-disabled="true"
+              disabled
+              title={`${label} is disabled until the app spec is brought back into the active path.`}
+            >
+              {label}
+              <span>off</span>
+            </button>
+          ))}
         </div>
+        <p className="tab-status-note">
+          App-driven tabs are intentionally disabled for now. Active path is `Codama + runtime`.
+        </p>
 
         {activeTab === 'pump' ? (
           <PumpWorkspaceTab viewApiBaseUrl={VIEW_API_BASE_URL} />

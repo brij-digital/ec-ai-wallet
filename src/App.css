@@ -167,6 +167,37 @@
   color: #fff;
 }
 
+.tab-switcher button.disabled-tab {
+  background: #f4f4f2;
+  color: #7a7f89;
+  cursor: not-allowed;
+  border-left: 1px solid #dde2ea;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  opacity: 1;
+}
+
+.tab-switcher button.disabled-tab span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.8rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: #e7e8eb;
+  color: #5f6570;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tab-status-note {
+  margin: -0.2rem 0 0.9rem;
+  color: #5d6472;
+  font-size: 0.86rem;
+}
+
 .compute-shell {
   margin-top: 1rem;
   border: 1px solid #d9dfeb;
