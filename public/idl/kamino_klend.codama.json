@@ -5,7 +5,7 @@
   "program": {
     "kind": "programNode",
     "name": "kaminoLending",
-    "publicKey": "",
+    "publicKey": "KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD",
     "version": "1.13.0",
     "origin": "anchor",
     "docs": [],

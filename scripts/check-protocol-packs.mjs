@@ -308,6 +308,17 @@ function collectIdlInstructionNames(idl, label) {
   return names;
 }
 
+function collectCodamaInstructionNames(codama, label) {
+  const program = asObject(codama.program, `${label}.program`);
+  const instructions = asArray(program.instructions, `${label}.program.instructions`);
+  const names = new Set();
+  for (let i = 0; i < instructions.length; i += 1) {
+    const instruction = asObject(instructions[i], `${label}.program.instructions[${i}]`);
+    names.add(asString(instruction.name, `${label}.program.instructions[${i}].name`));
+  }
+  return names;
+}
+
 function validateMetaSchema(meta, manifest) {
   const schema = asString(meta.schema, `${manifest.id}.meta.schema`);
   if (schema !== REQUIRED_META_IDL_SCHEMA) {
@@ -389,9 +400,9 @@ function validateManifest(manifest, seenIds) {
   asString(manifest.transport, `${id}.transport`);
   asStringArray(manifest.supportedCommands, `${id}.supportedCommands`);
   asString(manifest.status, `${id}.status`);
-  resolvePublicAssetPath(manifest.idlPath, `${id}.idlPath`);
-  if (manifest.codamaIdlPath !== undefined) {
-    resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
+  resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
+  if (manifest.idlPath !== undefined) {
+    resolvePublicAssetPath(manifest.idlPath, `${id}.idlPath`);
   }
   if (manifest.runtimeSpecPath !== undefined) {
     resolvePublicAssetPath(manifest.runtimeSpecPath, `${id}.runtimeSpecPath`);
@@ -458,19 +469,16 @@ async function run() {
     validateManifest(manifest, seenIds);
 
     const protocolId = manifest.id;
-    const idlPath = resolvePublicAssetPath(manifest.idlPath, `${protocolId}.idlPath`);
     const metaPath = resolvePublicAssetPath(manifest.metaPath, `${protocolId}.metaPath`);
-    const codamaPath = manifest.codamaIdlPath
-      ? resolvePublicAssetPath(manifest.codamaIdlPath, `${protocolId}.codamaIdlPath`)
+    const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${protocolId}.codamaIdlPath`);
+    const idlPath = manifest.idlPath
+      ? resolvePublicAssetPath(manifest.idlPath, `${protocolId}.idlPath`)
       : null;
 
-    const idl = asObject(await readJsonFile(idlPath, `${protocolId} IDL`), `${protocolId} IDL`);
     const meta = asObject(await readJsonFile(metaPath, `${protocolId} Meta IDL`), `${protocolId} Meta IDL`);
-    if (codamaPath) {
-      const codama = asObject(await readJsonFile(codamaPath, `${protocolId} Codama IDL`), `${protocolId} Codama IDL`);
-      if (codama.standard !== 'codama') {
-        fail(`${protocolId}: ${manifest.codamaIdlPath} is not a Codama IDL.`);
-      }
+    const codama = asObject(await readJsonFile(codamaPath, `${protocolId} Codama IDL`), `${protocolId} Codama IDL`);
+    if (codama.standard !== 'codama') {
+      fail(`${protocolId}: ${manifest.codamaIdlPath} is not a Codama IDL.`);
     }
 
     validateMetaSchema(meta, manifest);
@@ -482,18 +490,31 @@ async function run() {
       }
     }
 
-    const idlAddress = typeof idl.address === 'string' ? idl.address : null;
-    if (idlAddress) {
-      const normalizedAddress = toBase58Pubkey(idlAddress, `${protocolId}.idl.address`);
-      const normalizedProgramId = toBase58Pubkey(manifest.programId, `${protocolId}.programId`);
-      if (normalizedAddress !== normalizedProgramId) {
-        fail(
-          `${protocolId}: registry programId (${normalizedProgramId}) does not match IDL address (${normalizedAddress}).`,
-        );
-      }
+    const codamaProgram = asObject(codama.program, `${protocolId}.codama.program`);
+    const codamaProgramId = toBase58Pubkey(codamaProgram.publicKey, `${protocolId}.codama.program.publicKey`);
+    const normalizedProgramId = toBase58Pubkey(manifest.programId, `${protocolId}.programId`);
+    if (codamaProgramId !== normalizedProgramId) {
+      fail(
+        `${protocolId}: registry programId (${normalizedProgramId}) does not match Codama publicKey (${codamaProgramId}).`,
+      );
     }
 
-    const idlInstructionNames = collectIdlInstructionNames(idl, protocolId);
+    let idlInstructionNames;
+    if (idlPath) {
+      const idl = asObject(await readJsonFile(idlPath, `${protocolId} codec IDL`), `${protocolId} codec IDL`);
+      const idlAddress = typeof idl.address === 'string' ? idl.address : null;
+      if (idlAddress) {
+        const normalizedAddress = toBase58Pubkey(idlAddress, `${protocolId}.idl.address`);
+        if (normalizedAddress !== normalizedProgramId) {
+          fail(
+            `${protocolId}: codec IDL address (${normalizedAddress}) does not match registry programId (${normalizedProgramId}).`,
+          );
+        }
+      }
+      idlInstructionNames = collectIdlInstructionNames(idl, protocolId);
+    } else {
+      idlInstructionNames = collectCodamaInstructionNames(codama, protocolId);
+    }
     const operations = loadOperations(meta, protocolId);
     validateApps(meta, protocolId, operations);
     const materializedByOperation = {};

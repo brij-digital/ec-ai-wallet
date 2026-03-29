@@ -155,15 +155,21 @@ async function main() {
     const id = asString(manifest.id, `${manifest.id}.id`);
     const programId = checkPubkey(manifest.programId, `${id}.programId`);
 
-    const idlPath = resolvePublicAssetPath(manifest.idlPath, `${id}.idlPath`);
+    const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
+    const idlPath = manifest.idlPath ? resolvePublicAssetPath(manifest.idlPath, `${id}.idlPath`) : null;
     const metaPath = resolvePublicAssetPath(manifest.metaPath, `${id}.metaPath`);
 
     const protocolErrors = [];
     const protocolWarnings = [];
 
-    const idlExists = await pathExists(idlPath);
+    const codamaExists = await pathExists(codamaPath);
+    if (!codamaExists) {
+      protocolErrors.push(`Missing Codama IDL file: ${path.relative(ROOT, codamaPath)}`);
+    }
+
+    const idlExists = idlPath ? await pathExists(idlPath) : false;
     if (!idlExists) {
-      protocolErrors.push(`Missing IDL file: ${path.relative(ROOT, idlPath)}`);
+      protocolWarnings.push(idlPath ? `Missing codec IDL file: ${path.relative(ROOT, idlPath)}` : 'No codec IDL path declared.');
     }
 
     const metaExists = await pathExists(metaPath);
@@ -171,17 +177,31 @@ async function main() {
       protocolErrors.push(`Missing Meta IDL file: ${path.relative(ROOT, metaPath)}`);
     }
 
+    let codama = null;
     let idl = null;
     let meta = null;
 
-    if (idlExists) {
+    if (codamaExists) {
       try {
-        idl = asObject(await readJson(idlPath, `${id} IDL`), `${id} IDL`);
+        codama = asObject(await readJson(codamaPath, `${id} Codama IDL`), `${id} Codama IDL`);
+        const program = asObject(codama.program, `${id}.codama.program`);
+        const normalized = checkPubkey(program.publicKey, `${id}.codama.program.publicKey`);
+        if (normalized !== programId) {
+          protocolErrors.push(`Codama publicKey mismatch: codama.program.publicKey=${normalized}, registry.programId=${programId}`);
+        }
+      } catch (error) {
+        protocolErrors.push(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    if (idlExists && idlPath) {
+      try {
+        idl = asObject(await readJson(idlPath, `${id} codec IDL`), `${id} codec IDL`);
         const idlAddress = typeof idl.address === 'string' ? idl.address : null;
         if (idlAddress) {
           const normalized = checkPubkey(idlAddress, `${id}.idl.address`);
           if (normalized !== programId) {
-            protocolErrors.push(`IDL address mismatch: idl.address=${normalized}, registry.programId=${programId}`);
+            protocolErrors.push(`codec IDL address mismatch: idl.address=${normalized}, registry.programId=${programId}`);
           }
         }
       } catch (error) {
@@ -248,7 +268,10 @@ async function main() {
     console.log(`- name: ${asString(manifest.name, `${id}.name`)}`);
     console.log(`- network: ${asString(manifest.network, `${id}.network`)}`);
     console.log(`- programId: ${programId}`);
-    console.log(`- idl: ${path.relative(ROOT, idlPath)} ${idlExists ? 'OK' : 'MISSING'}`);
+    console.log(`- codama: ${path.relative(ROOT, codamaPath)} ${codamaExists ? 'OK' : 'MISSING'}`);
+    if (idlPath) {
+      console.log(`- codec idl: ${path.relative(ROOT, idlPath)} ${idlExists ? 'OK' : 'MISSING'}`);
+    }
     console.log(`- meta: ${path.relative(ROOT, metaPath)} ${metaExists ? 'OK' : 'MISSING'}`);
     if (meta && typeof meta === 'object' && meta.operations && typeof meta.operations === 'object') {
       console.log(`- operations: ${Object.keys(meta.operations).length}`);

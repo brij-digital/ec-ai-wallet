@@ -197,6 +197,7 @@ async function main() {
 
   const aidlPath = path.join(AIDL_DIR, `${slug}.aidl.json`);
   const idlPath = path.join(PUBLIC_IDL_DIR, `${slug}.json`);
+  const codamaPath = path.join(PUBLIC_IDL_DIR, `${slug}.codama.json`);
 
   if (!overwrite) {
     if (await pathExists(aidlPath)) {
@@ -204,6 +205,9 @@ async function main() {
     }
     if (await pathExists(idlPath)) {
       fail(`IDL file already exists: ${path.relative(ROOT, idlPath)} (use --overwrite to replace)`);
+    }
+    if (await pathExists(codamaPath)) {
+      fail(`Codama file already exists: ${path.relative(ROOT, codamaPath)} (use --overwrite to replace)`);
     }
   }
 
@@ -227,6 +231,7 @@ async function main() {
     network,
     programId,
     idlPath: `/idl/${slug}.json`,
+    codamaIdlPath: `/idl/${slug}.codama.json`,
     metaPath: `/idl/${slug}.meta.json`,
     transport,
     supportedCommands: commands,
@@ -260,17 +265,34 @@ async function main() {
     ].join('\n'));
   }
 
+  const codamaBootstrap = spawnSync('node', ['scripts/compile-codama.mjs'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  });
+
+  if (codamaBootstrap.status !== 0) {
+    const stderr = codamaBootstrap.stderr?.trim();
+    const stdout = codamaBootstrap.stdout?.trim();
+    fail([
+      'pack-init created files but Codama bootstrap failed.',
+      stderr || stdout || 'No codama bootstrap output.',
+    ].join('\n'));
+  }
+
   console.log('Protocol pack scaffold created:');
   console.log(`- ${path.relative(ROOT, aidlPath)}`);
   console.log(`- ${path.relative(ROOT, idlPath)}`);
+  console.log(`- ${path.relative(ROOT, codamaPath)}`);
   console.log(`- ${path.relative(ROOT, REGISTRY_PATH)} updated`);
   console.log('');
   console.log('Next steps:');
-  console.log('1. Fill public/idl/<slug>.json with real IDL instructions/accounts.');
-  console.log('2. Replace health_read in aidl/<slug>.aidl.json with real operations/templates/apps.');
-  console.log('3. Run: npm run aidl:compile');
-  console.log('4. Run: npm run pack:doctor -- --protocol <protocol-id>');
-  console.log('5. Run: npm run pack:check');
+  console.log('1. Make public/idl/<slug>.codama.json the protocol source of truth.');
+  console.log('2. Keep public/idl/<slug>.json only as codec/compatibility IDL while needed.');
+  console.log('3. Replace health_read in aidl/<slug>.aidl.json with real operations/templates/apps.');
+  console.log('4. Run: npm run aidl:compile');
+  console.log('5. Run: npm run codama:check');
+  console.log('6. Run: npm run pack:doctor -- --protocol <protocol-id>');
+  console.log('7. Run: npm run pack:check');
 }
 
 main().catch((error) => {

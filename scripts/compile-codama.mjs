@@ -50,7 +50,7 @@ async function loadRegistry() {
   return asObject(JSON.parse(raw), 'registry');
 }
 
-async function convertToCodama(sourcePath) {
+async function convertToCodama(sourcePath, programId) {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'codama-compile-'));
   const outputPath = path.join(tmpDir, 'out.json');
   try {
@@ -59,8 +59,11 @@ async function convertToCodama(sourcePath) {
       env: process.env,
       maxBuffer: 8 * 1024 * 1024,
     });
-    const output = await fs.readFile(outputPath, 'utf8');
-    return output.endsWith('\n') ? output : `${output}\n`;
+    const parsed = asObject(JSON.parse(await fs.readFile(outputPath, 'utf8')), path.relative(ROOT, outputPath));
+    const program = asObject(parsed.program, 'codama.program');
+    program.publicKey = programId;
+    const output = `${JSON.stringify(parsed, null, 2)}\n`;
+    return output;
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
@@ -95,7 +98,7 @@ async function main() {
     const targetPath = resolvePublicIdlPath(protocol.codamaIdlPath, `${protocol.id}.codamaIdlPath`);
     expectedFiles.add(path.basename(targetPath));
 
-    const converted = await convertToCodama(sourcePath);
+    const converted = await convertToCodama(sourcePath, asString(protocol.programId, `${protocol.id}.programId`));
     if (checkMode) {
       const current = await readFileOrNull(targetPath);
       if (current !== converted) {

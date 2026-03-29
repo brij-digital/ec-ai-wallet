@@ -6,7 +6,7 @@ It provides:
 - a wallet-connected UI to execute declarative protocol operations
 - an App Form Builder driven by protocol app specs
 - command mode for strict, protocol-agnostic execution
-- authoring + CI tooling for protocol packs (IDL + MetaIDL + AppSpec)
+- authoring + CI tooling for protocol packs (Codama + runtime spec + MetaIDL + AppSpec)
 
 ## Related Repos
 
@@ -45,17 +45,17 @@ Main UI tabs:
 
 Each protocol pack is now split into 4 layers:
 
-1. `Program IDL`
-- protocol-source instruction/account/event encoding
-- current Anchor-compatible source files still exist for codec compatibility
-- example: [public/idl/orca_whirlpool.json](public/idl/orca_whirlpool.json)
-
-2. `Codama IDL`
-- canonical declarative program description used by the indexing runtime
-- generated from the source IDL and versioned in `public/idl/*.codama.json`
+1. `Codama IDL`
+- canonical source of truth for protocol structure
+- declarative program description used by the indexing runtime
 - examples:
   - [public/idl/orca_whirlpool.codama.json](public/idl/orca_whirlpool.codama.json)
   - [public/idl/pump_amm.codama.json](public/idl/pump_amm.codama.json)
+
+2. `Codec IDL`
+- compatibility artifact for tooling that still expects Anchor-style account/instruction codecs
+- not the primary protocol source of truth anymore
+- example: [public/idl/orca_whirlpool.json](public/idl/orca_whirlpool.json)
 
 3. `Declarative Runtime Spec`
 - declarative indexing/runtime contract
@@ -175,7 +175,6 @@ npm run aidl:compile
 This does:
 - compile `aidl/*.aidl.json` -> `public/idl/*.meta.json`
 - split each meta pack -> `*.meta.core.json` and `*.app.json`
-- regenerate `public/idl/*.codama.json` from the protocol IDLs referenced by the registry
 
 Check generated outputs are up to date:
 
@@ -183,11 +182,16 @@ Check generated outputs are up to date:
 npm run aidl:check
 ```
 
-Codama-only regeneration:
+Codama source-of-truth validation:
 
 ```bash
-npm run codama:compile
 npm run codama:check
+```
+
+Optional bootstrap helper when introducing a new protocol from an existing codec IDL:
+
+```bash
+npm run codama:bootstrap-from-codec
 ```
 
 ## Pack Quality Gates

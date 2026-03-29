@@ -34,13 +34,13 @@ Protocol pack ownership rule:
 - do not hand-edit generated artifacts in `public/idl/`
 
 Generated protocol artifacts in this directory now include:
-- source program IDLs: `*.json`
-- generated Codama program specs: `*.codama.json`
+- canonical protocol specs: `*.codama.json`
+- codec compatibility IDLs: `*.json`
 - declarative indexing/runtime specs: `*.runtime.json`
 - MetaIDL/AppSpec outputs: `*.meta.json`, `*.meta.core.json`, `*.app.json`
 
 Current ownership model:
-- source program truth starts from the wallet-owned protocol pack source in this repo
-- `*.codama.json` are generated artifacts
+- `*.codama.json` are the protocol source of truth
+- `*.json` IDLs are compatibility artifacts while some tooling still needs Anchor-style codecs
 - `*.runtime.json` are wallet-owned declarative indexing specs
 - downstream repos must sync these files instead of editing their own copies
