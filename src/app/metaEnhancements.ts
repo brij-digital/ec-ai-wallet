@@ -214,8 +214,8 @@ export function extractAppUiEnhancements(rawMeta: unknown): Record<string, AppUi
 
 const rawMetaCache = new Map<string, Promise<unknown>>();
 
-function resolveMetaPath(metaPath: string): string {
-  return metaPath.startsWith('/') || /^https?:\/\//.test(metaPath) ? metaPath : `/${metaPath}`;
+function resolveAppPackPath(appPath: string): string {
+  return appPath.startsWith('/') || /^https?:\/\//.test(appPath) ? appPath : `/${appPath}`;
 }
 
 export async function loadRawMetaForProtocol(protocolId: string): Promise<unknown> {
@@ -229,13 +229,13 @@ export async function loadRawMetaForProtocol(protocolId: string): Promise<unknow
     const registry = await listIdlProtocols();
     const protocol = registry.protocols.find((entry) => entry.id === protocolId);
     if (!protocol) {
-      throw new Error(`Meta IDL path not found for protocol ${protocolId}.`);
+      throw new Error(`App pack path not found for protocol ${protocolId}.`);
     }
-    const metaPath = protocol.appPath ?? protocol.metaCorePath ?? protocol.metaPath;
-    if (!metaPath) {
-      throw new Error(`Meta IDL path not found for protocol ${protocolId}.`);
+    const appPath = protocol.appPath;
+    if (!appPath) {
+      throw new Error(`App pack path not found for protocol ${protocolId}.`);
     }
-    const coreResponse = await fetch(resolveMetaPath(metaPath));
+    const coreResponse = await fetch(resolveAppPackPath(appPath));
     if (!coreResponse.ok) {
       throw new Error(`Failed to load app/meta pack (${coreResponse.status}) for ${protocolId}.`);
     }

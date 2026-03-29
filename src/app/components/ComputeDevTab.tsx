@@ -248,8 +248,6 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
           computePath: computePathFromPackPath(
             typeof (protocol as unknown as Record<string, unknown>).appPath === 'string'
               ? ((protocol as unknown as Record<string, unknown>).appPath as string)
-              : typeof (protocol as unknown as Record<string, unknown>).metaPath === 'string'
-                ? ((protocol as unknown as Record<string, unknown>).metaPath as string)
               : undefined,
           ),
         }));

@@ -10,7 +10,6 @@ const FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'fixtures');
 const RPC_SIM_FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'rpc', 'simulations');
 const RPC_PARITY_FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'rpc', 'parity');
 
-const REQUIRED_META_IDL_SCHEMA = 'meta-idl.v0.6';
 const REQUIRED_APP_SCHEMA = 'meta-app.v0.1';
 
 function fail(message) {
@@ -320,21 +319,6 @@ function collectCodamaInstructionNames(codama, label) {
   return names;
 }
 
-function validateMetaSchema(meta, manifest) {
-  const schema = asString(meta.schema, `${manifest.id}.meta.schema`);
-  if (schema !== REQUIRED_META_IDL_SCHEMA) {
-    fail(`${manifest.id}: unsupported meta schema ${schema}. Required: ${REQUIRED_META_IDL_SCHEMA}.`);
-  }
-
-  const version = asString(meta.version, `${manifest.id}.meta.version`);
-  assert(version.length > 0, `${manifest.id}: meta version must not be empty.`);
-
-  const protocolId = asString(meta.protocolId, `${manifest.id}.meta.protocolId`);
-  if (protocolId !== manifest.id) {
-    fail(`${manifest.id}: meta protocolId mismatch (${protocolId}).`);
-  }
-}
-
 function validateAppSchema(app, manifest) {
   const schema = asString(app.schema, `${manifest.id}.app.schema`);
   if (schema !== REQUIRED_APP_SCHEMA) {
@@ -424,8 +408,8 @@ function validateManifest(manifest, seenIds) {
   if (manifest.runtimeSpecPath !== undefined) {
     resolvePublicAssetPath(manifest.runtimeSpecPath, `${id}.runtimeSpecPath`);
   }
-  if (manifest.metaPath !== undefined) {
-    resolvePublicAssetPath(manifest.metaPath, `${id}.metaPath`);
+  if (manifest.metaPath !== undefined || manifest.metaCorePath !== undefined) {
+    fail(`${id}: legacy metaPath/metaCorePath is no longer allowed in the active registry.`);
   }
 }
 
@@ -490,26 +474,17 @@ async function run() {
     const protocolId = manifest.id;
     const appPath = resolvePublicAssetPath(manifest.appPath, `${protocolId}.appPath`);
     const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${protocolId}.codamaIdlPath`);
-    const metaPath = manifest.metaPath
-      ? resolvePublicAssetPath(manifest.metaPath, `${protocolId}.metaPath`)
-      : null;
     const idlPath = manifest.idlPath
       ? resolvePublicAssetPath(manifest.idlPath, `${protocolId}.idlPath`)
       : null;
 
     const app = asObject(await readJsonFile(appPath, `${protocolId} App pack`), `${protocolId} App pack`);
-    const meta = metaPath
-      ? asObject(await readJsonFile(metaPath, `${protocolId} Meta IDL`), `${protocolId} Meta IDL`)
-      : null;
     const codama = asObject(await readJsonFile(codamaPath, `${protocolId} Codama IDL`), `${protocolId} Codama IDL`);
     if (codama.standard !== 'codama') {
       fail(`${protocolId}: ${manifest.codamaIdlPath} is not a Codama IDL.`);
     }
 
     validateAppSchema(app, manifest);
-    if (meta) {
-      validateMetaSchema(meta, manifest);
-    }
 
     if (typeof app.$schema === 'string' && app.$schema.startsWith('/idl/')) {
       const schemaFile = resolvePublicAssetPath(app.$schema, `${protocolId}.$schema`);

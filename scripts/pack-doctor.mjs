@@ -158,7 +158,6 @@ async function main() {
     const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
     const idlPath = manifest.idlPath ? resolvePublicAssetPath(manifest.idlPath, `${id}.idlPath`) : null;
     const appPath = resolvePublicAssetPath(manifest.appPath, `${id}.appPath`);
-    const metaPath = manifest.metaPath ? resolvePublicAssetPath(manifest.metaPath, `${id}.metaPath`) : null;
 
     const protocolErrors = [];
     const protocolWarnings = [];
@@ -177,12 +176,10 @@ async function main() {
     if (!appExists) {
       protocolErrors.push(`Missing app spec file: ${path.relative(ROOT, appPath)}`);
     }
-    const metaExists = metaPath ? await pathExists(metaPath) : false;
 
     let codama = null;
     let idl = null;
     let app = null;
-    let meta = null;
 
     if (codamaExists) {
       try {
@@ -245,26 +242,14 @@ async function main() {
       }
     }
 
-    if (metaExists && metaPath) {
-      try {
-        meta = asObject(await readJson(metaPath, `${id} legacy meta`), `${id} legacy meta`);
-      } catch (error) {
-        protocolErrors.push(error instanceof Error ? error.message : String(error));
-      }
+    if (manifest.metaPath || manifest.metaCorePath) {
+      protocolErrors.push('Legacy metaPath/metaCorePath is no longer allowed in the active registry.');
     }
 
     const matchingAidl = aidlTargets.filter((target) => target.protocolId === id);
     if (matchingAidl.length === 0) {
       protocolWarnings.push('No AIDL source found targeting this protocolId.');
     }
-    const expectedOutput = metaPath ? asString(manifest.metaPath, `${id}.metaPath`) : null;
-    const outputMatches = expectedOutput
-      ? aidlTargets.filter((target) => normalizeAidlTargetOutput(target.output) === expectedOutput)
-      : [];
-    if (expectedOutput && outputMatches.length === 0) {
-      protocolWarnings.push(`No AIDL target.output matches ${expectedOutput}.`);
-    }
-
     const status = asString(manifest.status, `${id}.status`);
     if (status === 'active' && (app?.apps === undefined || Object.keys(app.apps ?? {}).length === 0)) {
       protocolErrors.push('Protocol is active but has no apps for End User mode.');
@@ -286,9 +271,6 @@ async function main() {
       console.log(`- codec idl: ${path.relative(ROOT, idlPath)} ${idlExists ? 'OK' : 'MISSING'}`);
     }
     console.log(`- app: ${path.relative(ROOT, appPath)} ${appExists ? 'OK' : 'MISSING'}`);
-    if (metaPath) {
-      console.log(`- legacy meta: ${path.relative(ROOT, metaPath)} ${metaExists ? 'OK' : 'MISSING'}`);
-    }
     if (app && typeof app === 'object' && app.operations && typeof app.operations === 'object') {
       console.log(`- operations: ${Object.keys(app.operations).length}`);
       console.log(`- apps: ${app.apps && typeof app.apps === 'object' ? Object.keys(app.apps).length : 0}`);

@@ -25,16 +25,11 @@ async function main() {
     if (!protocol || typeof protocol !== 'object') {
       fail('Registry contains an invalid protocol entry.');
     }
-    const metaPath =
-      typeof protocol.appPath === 'string'
-        ? protocol.appPath
-        : typeof protocol.metaCorePath === 'string'
-          ? protocol.metaCorePath
-          : protocol.metaPath;
-    if (!metaPath || !metaPath.startsWith('/idl/')) {
-      fail(`Protocol ${protocol.id ?? 'unknown'} is missing a valid app/meta path.`);
+    const appPath = typeof protocol.appPath === 'string' ? protocol.appPath : null;
+    if (!appPath || !appPath.startsWith('/idl/')) {
+      fail(`Protocol ${protocol.id ?? 'unknown'} is missing a valid appPath.`);
     }
-    const filePath = path.join(IDL_DIR, metaPath.slice('/idl/'.length));
+    const filePath = path.join(IDL_DIR, appPath.slice('/idl/'.length));
     const parsed = await loadJson(filePath);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       fail(`${filePath} did not parse as a JSON object.`);
