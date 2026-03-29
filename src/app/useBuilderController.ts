@@ -296,7 +296,7 @@ function buildOperationEnhancementsByOperation(
   return output;
 }
 
-export function useBuilderController() {
+export function useBuilderController(initialViewMode: BuilderViewMode = 'forms') {
   const [builderProtocols, setBuilderProtocols] = useState<BuilderProtocol[]>([]);
   const [builderProtocolLabelsById, setBuilderProtocolLabelsById] = useState<Record<string, string>>({});
   const [builderProtocolId, setBuilderProtocolId] = useState('');
@@ -313,7 +313,7 @@ export function useBuilderController() {
   const [builderAppStepCompleted, setBuilderAppStepCompleted] = useState<Record<string, boolean>>({});
   const [builderOperations, setBuilderOperations] = useState<MetaOperationSummary[]>([]);
   const [builderOperationId, setBuilderOperationId] = useState('');
-  const [builderViewMode, setBuilderViewMode] = useState<BuilderViewMode>('forms');
+  const [builderViewMode, setBuilderViewMode] = useState<BuilderViewMode>(initialViewMode);
   const [builderInputValues, setBuilderInputValues] = useState<Record<string, string>>({});
   const [builderSimulate, setBuilderSimulate] = useState(true);
   const [builderAppSubmitMode, setBuilderAppSubmitMode] = useState<'simulate' | 'send'>('simulate');

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { BuilderTab } from './BuilderTab';
 import { useBuilderController } from '../useBuilderController';
@@ -12,13 +12,7 @@ export function RawOperationsTab({ viewApiBaseUrl }: RawOperationsTabProps) {
   const { connection } = useConnection();
   const wallet = useWallet();
   const [isWorking, setIsWorking] = useState(false);
-  const builder = useBuilderController();
-
-  useEffect(() => {
-    if (builder.builderViewMode !== 'raw') {
-      builder.handleBuilderModeRaw();
-    }
-  }, [builder]);
+  const builder = useBuilderController('raw');
 
   const { handleBuilderSubmit } = useBuilderSubmitController({
     connection,
