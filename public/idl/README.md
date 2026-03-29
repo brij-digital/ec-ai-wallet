@@ -51,3 +51,8 @@ Target architecture:
 - `Codama` = protocol truth
 - `runtime` = indexing / compute / projections
 - `app` = UX / agent flow
+
+Current migration rule for `*.meta.core.json`:
+- keep only action-facing material such as `templates`, `operations`, and optional app lookup sources
+- do not carry runtime ingest sources like `rpc_transaction_crawler` there
+- runtime indexing logic belongs in `*.runtime.json`

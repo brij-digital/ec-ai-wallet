@@ -31,6 +31,16 @@ function buildCorePack(meta, sourceFile) {
       ? meta.templates
       : {};
   const operations = asObject(meta.operations, `${sourceFile}.operations`);
+  const sourceEntries =
+    meta.sources && typeof meta.sources === 'object' && !Array.isArray(meta.sources)
+      ? Object.entries(meta.sources).filter(([, value]) => {
+          if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return false;
+          }
+          const kind = value.kind;
+          return kind === 'inline' || kind === 'http_json';
+        })
+      : [];
 
   return {
     $schema: '/idl/meta_idl.core.schema.v0.6.json',
@@ -38,9 +48,7 @@ function buildCorePack(meta, sourceFile) {
     version,
     protocolId,
     label,
-    ...(meta.sources && typeof meta.sources === 'object' && !Array.isArray(meta.sources)
-      ? { sources: meta.sources }
-      : {}),
+    ...(sourceEntries.length > 0 ? { sources: Object.fromEntries(sourceEntries) } : {}),
     templates,
     operations,
   };
