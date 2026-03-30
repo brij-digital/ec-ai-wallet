@@ -1,9 +1,54 @@
-import { useMemo, useState, type FormEvent } from 'react';
-import { VIEW_PLAYGROUND_PRESETS } from '../viewModels';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 type ViewPlaygroundTabProps = {
   viewApiBaseUrl: string;
   viewKind: 'contract' | 'index';
+};
+
+type RegistryProtocol = {
+  id: string;
+  name?: string;
+  runtimeSpecPath?: string;
+  status?: string;
+};
+
+type RegistryResponse = {
+  protocols?: RegistryProtocol[];
+};
+
+type RuntimeInputDef = {
+  default?: unknown;
+};
+
+type RuntimeViewShape = {
+  title?: string;
+  description?: string;
+};
+
+type RuntimeOperation = {
+  label?: string;
+  description?: string;
+  inputs?: Record<string, RuntimeInputDef>;
+  contract_view?: RuntimeViewShape;
+  index_view?: RuntimeViewShape;
+  read_output?: {
+    title?: string;
+  };
+};
+
+type RuntimeSpec = {
+  label?: string;
+  operations?: Record<string, RuntimeOperation>;
+};
+
+type CatalogEntry = {
+  protocolId: string;
+  protocolLabel: string;
+  operationId: string;
+  operationLabel: string;
+  description: string;
+  inputTemplate: string;
+  limit: string;
 };
 
 type HealthResponse = {
@@ -24,6 +69,23 @@ type ViewRunResponse = {
   error?: string;
 };
 
+function buildInputTemplate(inputs?: Record<string, RuntimeInputDef>): string {
+  const template: Record<string, unknown> = {};
+  for (const [key, input] of Object.entries(inputs ?? {})) {
+    if (Object.prototype.hasOwnProperty.call(input, 'default')) {
+      template[key] = input.default;
+    }
+  }
+  return JSON.stringify(template, null, 2);
+}
+
+function defaultLimitForOperation(operationId: string): string {
+  if (operationId.includes('snapshot') || operationId.includes('resolve')) {
+    return '1';
+  }
+  return '20';
+}
+
 function formatJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
@@ -39,12 +101,13 @@ function summarizeValue(value: unknown): string {
 }
 
 export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTabProps) {
-  const presets = useMemo(() => VIEW_PLAYGROUND_PRESETS.filter((preset) => preset.viewKind === viewKind), [viewKind]);
-  const initialPreset = presets[0] ?? null;
-  const [protocolId, setProtocolId] = useState(initialPreset?.protocolId ?? '');
-  const [operationId, setOperationId] = useState(initialPreset?.operationId ?? '');
-  const [inputText, setInputText] = useState(initialPreset?.input ?? '{}');
-  const [limitText, setLimitText] = useState(initialPreset?.limit ?? '20');
+  const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(true);
+  const [protocolId, setProtocolId] = useState('');
+  const [operationId, setOperationId] = useState('');
+  const [inputText, setInputText] = useState('{}');
+  const [limitText, setLimitText] = useState('20');
   const [healthText, setHealthText] = useState<string | null>(null);
   const [resultText, setResultText] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
@@ -56,14 +119,95 @@ export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTa
   const title = viewKind === 'contract' ? 'Contract Views' : 'Index Views';
   const description =
     viewKind === 'contract'
-      ? 'Run direct chain or owned-RPC-backed read contracts without touching canonical projections.'
-      : 'Run canonical indexed reads, projections, rankings, and normalized outputs.';
+      ? 'Run targeted protocol-state reads declared in runtime. No canonical projection path involved.'
+      : 'Run indexed discovery, feeds, rankings, and canonical read contracts declared in runtime.';
 
-  const applyPreset = (preset: (typeof presets)[number]) => {
-    setProtocolId(preset.protocolId);
-    setOperationId(preset.operationId);
-    setInputText(preset.input);
-    setLimitText(preset.limit);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCatalog() {
+      setIsCatalogLoading(true);
+      setCatalogError(null);
+      try {
+        const registryResponse = await fetch('/idl/registry.json');
+        if (!registryResponse.ok) {
+          throw new Error(`Failed to load registry (${registryResponse.status}).`);
+        }
+        const registry = (await registryResponse.json()) as RegistryResponse;
+        const loaded: CatalogEntry[] = [];
+
+        for (const protocol of registry.protocols ?? []) {
+          if (protocol.status === 'inactive' || !protocol.runtimeSpecPath) {
+            continue;
+          }
+          const runtimeResponse = await fetch(protocol.runtimeSpecPath);
+          if (!runtimeResponse.ok) {
+            continue;
+          }
+          const runtime = (await runtimeResponse.json()) as RuntimeSpec;
+          for (const [opId, operation] of Object.entries(runtime.operations ?? {})) {
+            const view = viewKind === 'contract' ? operation.contract_view : operation.index_view;
+            if (!view) {
+              continue;
+            }
+            loaded.push({
+              protocolId: protocol.id,
+              protocolLabel: protocol.name ?? runtime.label ?? protocol.id,
+              operationId: opId,
+              operationLabel: operation.label ?? view.title ?? opId,
+              description: view.description ?? operation.description ?? operation.read_output?.title ?? '',
+              inputTemplate: buildInputTemplate(operation.inputs),
+              limit: defaultLimitForOperation(opId),
+            });
+          }
+        }
+
+        loaded.sort((a, b) => {
+          if (a.protocolLabel !== b.protocolLabel) {
+            return a.protocolLabel.localeCompare(b.protocolLabel);
+          }
+          return a.operationLabel.localeCompare(b.operationLabel);
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setCatalog(loaded);
+        const first = loaded[0] ?? null;
+        if (first) {
+          setProtocolId(first.protocolId);
+          setOperationId(first.operationId);
+          setInputText(first.inputTemplate);
+          setLimitText(first.limit);
+        } else {
+          setProtocolId('');
+          setOperationId('');
+          setInputText('{}');
+          setLimitText('20');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCatalogError(error instanceof Error ? error.message : 'Failed to load view catalog.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsCatalogLoading(false);
+        }
+      }
+    }
+
+    void loadCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, [viewKind]);
+
+  const applyCatalogEntry = (entry: CatalogEntry) => {
+    setProtocolId(entry.protocolId);
+    setOperationId(entry.operationId);
+    setInputText(entry.inputTemplate);
+    setLimitText(entry.limit);
     setErrorText(null);
     setResultText(null);
     setResult(null);
@@ -150,9 +294,9 @@ export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTa
       </div>
 
       <div className="view-playground-presets">
-        {presets.map((preset) => (
-          <button key={preset.label} type="button" onClick={() => applyPreset(preset)}>
-            {preset.label}
+        {catalog.map((entry) => (
+          <button key={`${entry.protocolId}::${entry.operationId}`} type="button" onClick={() => applyCatalogEntry(entry)}>
+            {entry.protocolLabel} / {entry.operationLabel}
           </button>
         ))}
         <button type="button" onClick={handleHealthCheck} disabled={isHealthLoading}>
@@ -160,30 +304,32 @@ export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTa
         </button>
       </div>
 
+      {catalogError ? <p className="view-playground-error">{catalogError}</p> : null}
       {healthText ? <p className="view-playground-info">{healthText}</p> : null}
       {errorText ? <p className="view-playground-error">{errorText}</p> : null}
       {resultText ? <p className="view-playground-info">{resultText}</p> : null}
-      {!initialPreset ? <p className="view-playground-empty">No presets are defined for this view type yet.</p> : null}
+      {isCatalogLoading ? <p className="view-playground-empty">Loading runtime view catalog...</p> : null}
+      {!isCatalogLoading && catalog.length === 0 ? <p className="view-playground-empty">No runtime views are defined for this view type.</p> : null}
 
       <form className="view-playground-form" onSubmit={handleRun}>
         <label>
           Protocol ID
-          <input value={protocolId} onChange={(event) => setProtocolId(event.target.value)} disabled={isRunLoading || !initialPreset} />
+          <input value={protocolId} onChange={(event) => setProtocolId(event.target.value)} disabled={isRunLoading || catalog.length === 0} />
         </label>
         <label>
           Operation ID
-          <input value={operationId} onChange={(event) => setOperationId(event.target.value)} disabled={isRunLoading || !initialPreset} />
+          <input value={operationId} onChange={(event) => setOperationId(event.target.value)} disabled={isRunLoading || catalog.length === 0} />
         </label>
         <label>
           Limit
-          <input value={limitText} onChange={(event) => setLimitText(event.target.value)} disabled={isRunLoading || !initialPreset} />
+          <input value={limitText} onChange={(event) => setLimitText(event.target.value)} disabled={isRunLoading || catalog.length === 0} />
         </label>
         <label className="view-playground-form-full">
           Input JSON
-          <textarea value={inputText} onChange={(event) => setInputText(event.target.value)} disabled={isRunLoading || !initialPreset} rows={12} />
+          <textarea value={inputText} onChange={(event) => setInputText(event.target.value)} disabled={isRunLoading || catalog.length === 0} rows={12} />
         </label>
         <div className="view-playground-actions">
-          <button type="submit" disabled={isRunLoading || !initialPreset}>
+          <button type="submit" disabled={isRunLoading || catalog.length === 0}>
             {isRunLoading ? 'Running...' : 'Run View'}
           </button>
         </div>
