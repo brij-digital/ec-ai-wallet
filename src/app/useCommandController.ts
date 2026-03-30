@@ -20,11 +20,11 @@ import {
   simulateIdlInstruction,
 } from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
-  explainAppOperation as explainMetaOperation,
-  listAppOperations as listMetaOperations,
-  prepareAppOperation as prepareMetaOperation,
-  type AppOperationSummary as MetaOperationSummary,
-} from '@brij-digital/apppack-runtime/appSpecRuntime';
+  explainRuntimeOperation as explainMetaOperation,
+  listRuntimeOperations as listMetaOperations,
+  prepareRuntimeOperation as prepareMetaOperation,
+  type RuntimeOperationSummary as MetaOperationSummary,
+} from '@brij-digital/apppack-runtime/runtimeOperationRuntime';
 import { asPrettyJson, renderMetaExplain } from './builderHelpers';
 import { resolveToken } from '../constants/tokens';
 import {

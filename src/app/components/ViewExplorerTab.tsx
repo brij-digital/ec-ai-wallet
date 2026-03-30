@@ -10,7 +10,7 @@ type RegistryProtocol = {
   name?: string;
   network?: string;
   programId?: string;
-  appPath?: string;
+  runtimeSpecPath?: string;
   status?: string;
   supportedCommands?: string[];
 };
@@ -586,11 +586,11 @@ export function ViewExplorerTab({ viewApiBaseUrl }: ViewExplorerTabProps) {
           if (!INDEXED_PROTOCOL_IDS.has(protocol.id)) {
             continue;
           }
-          const appPath = protocol.appPath;
-          if (!appPath) {
+          const runtimeSpecPath = protocol.runtimeSpecPath;
+          if (!runtimeSpecPath) {
             continue;
           }
-          const metaResponse = await fetch(appPath);
+          const metaResponse = await fetch(runtimeSpecPath);
           if (!metaResponse.ok) {
             continue;
           }

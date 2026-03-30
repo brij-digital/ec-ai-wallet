@@ -20,27 +20,33 @@ async function main() {
     fail(`Invalid registry: ${REGISTRY_PATH}`);
   }
 
-  let loadedPackFiles = 0;
+  let loadedRuntimePacks = 0;
   for (const protocol of registry.protocols) {
     if (!protocol || typeof protocol !== 'object') {
       fail('Registry contains an invalid protocol entry.');
     }
-    const appPath = typeof protocol.appPath === 'string' ? protocol.appPath : null;
-    if (!appPath || !appPath.startsWith('/idl/')) {
-      fail(`Protocol ${protocol.id ?? 'unknown'} is missing a valid appPath.`);
+    if (protocol.appPath !== undefined) {
+      fail(`Protocol ${protocol.id ?? 'unknown'} still declares appPath.`);
     }
-    const filePath = path.join(IDL_DIR, appPath.slice('/idl/'.length));
+    const runtimeSpecPath = typeof protocol.runtimeSpecPath === 'string' ? protocol.runtimeSpecPath : null;
+    if (!runtimeSpecPath) {
+      continue;
+    }
+    if (!runtimeSpecPath.startsWith('/idl/')) {
+      fail(`Protocol ${protocol.id ?? 'unknown'} has invalid runtimeSpecPath.`);
+    }
+    const filePath = path.join(IDL_DIR, runtimeSpecPath.slice('/idl/'.length));
     const parsed = await loadJson(filePath);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       fail(`${filePath} did not parse as a JSON object.`);
     }
     if (!parsed.operations || typeof parsed.operations !== 'object' || Array.isArray(parsed.operations)) {
-      fail(`${filePath} is missing operations.`);
+      fail(`${filePath} is missing runtime operations.`);
     }
-    loadedPackFiles += 1;
+    loadedRuntimePacks += 1;
   }
 
-  console.log(`Wallet pack metadata smoke succeeded for ${loadedPackFiles} protocol pack file(s).`);
+  console.log(`Wallet runtime pack smoke succeeded for ${loadedRuntimePacks} runtime pack file(s).`);
 }
 
 main().catch((error) => {

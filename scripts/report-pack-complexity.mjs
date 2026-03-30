@@ -53,11 +53,11 @@ function toLocalPublicPath(assetPath, label) {
 
 function renderMarkdownTable(rows) {
   const header = [
-    '| Protocol | Ops | Max Derive/Op | Max Compute/Op | Apps | Steps | Max Steps/App | Actions | Max Actions/Step | Budget |',
-    '|---|---:|---:|---:|---:|---:|---:|---:|---:|---|',
+    '| Protocol | Ops | Max Derive/Op | Max Compute/Op | Budget |',
+    '|---|---:|---:|---:|---|',
   ];
   const body = rows.map((row) =>
-    `| ${row.protocolId} | ${row.ops} | ${row.maxDerivePerOp} | ${row.maxComputePerOp} | ${row.apps} | ${row.steps} | ${row.maxStepsPerApp} | ${row.actions} | ${row.maxActionsPerStep} | ${row.withinBudget ? 'OK' : 'FAIL'} |`,
+    `| ${row.protocolId} | ${row.ops} | ${row.maxDerivePerOp} | ${row.maxComputePerOp} | ${row.withinBudget ? 'OK' : 'FAIL'} |`,
   );
   return [...header, ...body].join('\n');
 }
@@ -67,17 +67,11 @@ async function appendGithubSummary(markdown, violations) {
   if (!summaryPath) {
     return;
   }
-  const lines = [
-    '## Protocol Pack Complexity',
-    '',
-    markdown,
-    '',
-  ];
+  const lines = ['## Protocol Runtime Complexity', '', markdown, ''];
   if (violations.length === 0) {
     lines.push('Status: within configured complexity budget.');
   } else {
-    lines.push('Status: budget violations detected.');
-    lines.push('');
+    lines.push('Status: budget violations detected.', '');
     for (const violation of violations) {
       lines.push(`- ${violation}`);
     }
@@ -94,8 +88,6 @@ async function main() {
   const maxOperationsPerProtocol = Number(global.max_operations_per_protocol);
   const maxDerivePerOperation = Number(global.max_derive_per_operation);
   const maxComputePerOperation = Number(global.max_compute_per_operation);
-  const maxStepsPerApp = Number(global.max_steps_per_app);
-  const maxActionsPerStep = Number(global.max_actions_per_step);
 
   const protocols = asArray(registry.protocols, 'registry.protocols');
   const rows = [];
@@ -107,22 +99,24 @@ async function main() {
       continue;
     }
     const protocolId = asNonEmptyString(protocol.id, 'registry.protocol.id');
-    const appPath = protocol.appPath;
-    if (!appPath) {
+    if (protocol.appPath !== undefined) {
+      throw new Error(`${protocolId}: appPath is no longer allowed.`);
+    }
+    if (!protocol.runtimeSpecPath) {
       continue;
     }
 
-    const appPack = asObject(
-      await readJson(toLocalPublicPath(appPath, `${protocolId}.appPath`), `${protocolId} app spec`),
-      `${protocolId}.app`,
+    const runtimePack = asObject(
+      await readJson(toLocalPublicPath(protocol.runtimeSpecPath, `${protocolId}.runtimeSpecPath`), `${protocolId} runtime spec`),
+      `${protocolId}.runtime`,
     );
-    const operations = asObject(appPack.operations ?? {}, `${protocolId}.app.operations`);
+    const operations = asObject(runtimePack.operations ?? {}, `${protocolId}.runtime.operations`);
     const opEntries = Object.entries(operations);
     const opCount = opEntries.length;
     let maxDerive = 0;
     let maxCompute = 0;
     for (const [operationId, opRaw] of opEntries) {
-      const op = asObject(opRaw, `${protocolId}.operations.${operationId}`);
+      const op = asObject(opRaw, `${protocolId}.runtime.operations.${operationId}`);
       const derive = Array.isArray(op.derive) ? op.derive.length : 0;
       const compute = Array.isArray(op.compute) ? op.compute.length : 0;
       if (derive > maxDerive) {
@@ -130,29 +124,6 @@ async function main() {
       }
       if (compute > maxCompute) {
         maxCompute = compute;
-      }
-    }
-
-    const apps = asObject(appPack.apps, `${protocolId}.app.apps`);
-    const appEntries = Object.entries(apps);
-    let stepCount = 0;
-    let actionCount = 0;
-    let maxSteps = 0;
-    let maxActions = 0;
-    for (const [appId, appRaw] of appEntries) {
-      const app = asObject(appRaw, `${protocolId}.apps.${appId}`);
-      const steps = asArray(app.steps, `${protocolId}.apps.${appId}.steps`);
-      stepCount += steps.length;
-      if (steps.length > maxSteps) {
-        maxSteps = steps.length;
-      }
-      for (let index = 0; index < steps.length; index += 1) {
-        const step = asObject(steps[index], `${protocolId}.apps.${appId}.steps[${index}]`);
-        const actions = Array.isArray(step.actions) ? step.actions.length : 0;
-        actionCount += actions;
-        if (actions > maxActions) {
-          maxActions = actions;
-        }
       }
     }
 
@@ -166,12 +137,6 @@ async function main() {
     if (maxCompute > maxComputePerOperation) {
       rowViolations.push(`max compute/op ${maxCompute} > ${maxComputePerOperation}`);
     }
-    if (maxSteps > maxStepsPerApp) {
-      rowViolations.push(`max steps/app ${maxSteps} > ${maxStepsPerApp}`);
-    }
-    if (maxActions > maxActionsPerStep) {
-      rowViolations.push(`max actions/step ${maxActions} > ${maxActionsPerStep}`);
-    }
     const withinBudget = rowViolations.length === 0;
     if (!withinBudget) {
       violations.push(`${protocolId}: ${rowViolations.join(', ')}`);
@@ -182,17 +147,12 @@ async function main() {
       ops: opCount,
       maxDerivePerOp: maxDerive,
       maxComputePerOp: maxCompute,
-      apps: appEntries.length,
-      steps: stepCount,
-      maxStepsPerApp: maxSteps,
-      actions: actionCount,
-      maxActionsPerStep: maxActions,
       withinBudget,
     });
   }
 
   const markdown = renderMarkdownTable(rows);
-  console.log('Protocol pack complexity report');
+  console.log('Protocol runtime complexity report');
   console.log(markdown);
   if (violations.length > 0) {
     console.log('\nBudget violations:');
@@ -200,7 +160,7 @@ async function main() {
       console.log(`- ${violation}`);
     }
   } else {
-    console.log('\nAll protocols are within budget.');
+    console.log('\nAll runtime-backed protocols are within budget.');
   }
 
   await appendGithubSummary(markdown, violations);

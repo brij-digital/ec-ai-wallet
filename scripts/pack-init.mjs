@@ -5,7 +5,6 @@ import { PublicKey } from '@solana/web3.js';
 
 const ROOT = process.cwd();
 const REGISTRY_PATH = path.join(ROOT, 'public', 'idl', 'registry.json');
-const AIDL_DIR = path.join(ROOT, 'aidl');
 const PUBLIC_IDL_DIR = path.join(ROOT, 'public', 'idl');
 
 function fail(message) {
@@ -91,76 +90,6 @@ function createIdlSkeleton(programId, name) {
   };
 }
 
-function createAidlSkeleton({ protocolId, slug }) {
-  const templateName = `${protocolId}.read.health.v1`;
-  return {
-    kind: 'aidl.v0.1',
-    target: {
-      output: `public/idl/${slug}.app.json`,
-      schema: 'meta-app.v0.1',
-      schemaPath: '/idl/meta_app.schema.v0.1.json',
-      version: '0.1.0',
-      protocolId,
-    },
-    templates: {
-      [templateName]: {
-        expand: {
-          inputs: {
-            note: { type: 'string', required: false, default: 'ready' },
-          },
-          discover: [],
-          derive: [],
-          compute: [],
-          args: {},
-          accounts: {},
-        },
-      },
-    },
-    operations: {
-      health_read: {
-        label: 'Health Read',
-        use: [
-          {
-            template: templateName,
-            with: {},
-          },
-        ],
-      },
-    },
-    apps: {
-      health_app: {
-        title: 'Health Check',
-        description: 'Starter read-only app. Replace with real protocol workflows.',
-        entry_step: 'health',
-        steps: [
-          {
-            id: 'health',
-            label: 'Health',
-            operation: 'health_read',
-            title: 'Health Read',
-            requires_paths: [],
-            status_text: {
-              running: 'Loading health check...',
-              success: 'Health check completed.',
-              error: 'Health check failed: {error}'
-            },
-            actions: [
-              {
-                label: 'Run Health Check',
-                do: {
-                  fn: 'run',
-                  mode: 'view'
-                }
-              }
-            ]
-          },
-        ],
-        label: 'Health Check'
-      },
-    },
-  };
-}
-
 function createRuntimeSkeleton({ protocolId, programId }) {
   return {
     schema: 'declarative-decoder-runtime.v1',
@@ -210,15 +139,11 @@ async function main() {
   const commands = normalizeCommands(args.commands ?? args.command);
   const overwrite = Boolean(args.overwrite);
 
-  const aidlPath = path.join(AIDL_DIR, `${slug}.aidl.json`);
   const idlPath = path.join(PUBLIC_IDL_DIR, `${slug}.json`);
   const codamaPath = path.join(PUBLIC_IDL_DIR, `${slug}.codama.json`);
   const runtimePath = path.join(PUBLIC_IDL_DIR, `${slug}.runtime.json`);
 
   if (!overwrite) {
-    if (await pathExists(aidlPath)) {
-      fail(`AIDL file already exists: ${path.relative(ROOT, aidlPath)} (use --overwrite to replace)`);
-    }
     if (await pathExists(idlPath)) {
       fail(`IDL file already exists: ${path.relative(ROOT, idlPath)} (use --overwrite to replace)`);
     }
@@ -230,15 +155,12 @@ async function main() {
     }
   }
 
-  await fs.mkdir(AIDL_DIR, { recursive: true });
   await fs.mkdir(PUBLIC_IDL_DIR, { recursive: true });
 
   const idlJson = createIdlSkeleton(programId, slug);
-  const aidlJson = createAidlSkeleton({ protocolId, slug });
   const runtimeJson = createRuntimeSkeleton({ protocolId, programId });
 
   await fs.writeFile(idlPath, `${JSON.stringify(idlJson, null, 2)}\n`, 'utf8');
-  await fs.writeFile(aidlPath, `${JSON.stringify(aidlJson, null, 2)}\n`, 'utf8');
   await fs.writeFile(runtimePath, `${JSON.stringify(runtimeJson, null, 2)}\n`, 'utf8');
 
   const registry = await readJson(REGISTRY_PATH, 'Registry');
@@ -254,7 +176,6 @@ async function main() {
     idlPath: `/idl/${slug}.json`,
     codamaIdlPath: `/idl/${slug}.codama.json`,
     runtimeSpecPath: `/idl/${slug}.runtime.json`,
-    appPath: `/idl/${slug}.app.json`,
     transport,
     supportedCommands: commands,
     status,
@@ -273,20 +194,6 @@ async function main() {
   registry.protocols.sort((a, b) => String(a.id).localeCompare(String(b.id)));
   await fs.writeFile(REGISTRY_PATH, `${JSON.stringify(registry, null, 2)}\n`, 'utf8');
 
-  const compile = spawnSync('node', ['scripts/compile-aidl.mjs'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  });
-
-  if (compile.status !== 0) {
-    const stderr = compile.stderr?.trim();
-    const stdout = compile.stdout?.trim();
-    fail([
-      'pack-init created files but AIDL compile failed.',
-      stderr || stdout || 'No compiler output.',
-    ].join('\n'));
-  }
-
   const codamaBootstrap = spawnSync('node', ['scripts/compile-codama.mjs'], {
     cwd: ROOT,
     encoding: 'utf8',
@@ -302,7 +209,6 @@ async function main() {
   }
 
   console.log('Protocol pack scaffold created:');
-  console.log(`- ${path.relative(ROOT, aidlPath)}`);
   console.log(`- ${path.relative(ROOT, idlPath)}`);
   console.log(`- ${path.relative(ROOT, codamaPath)}`);
   console.log(`- ${path.relative(ROOT, runtimePath)}`);
@@ -311,12 +217,10 @@ async function main() {
   console.log('Next steps:');
   console.log('1. Make public/idl/<slug>.codama.json the protocol source of truth.');
   console.log('2. Keep public/idl/<slug>.json only as codec/compatibility IDL while needed.');
-  console.log('3. Replace health_read in aidl/<slug>.aidl.json with real operations/templates/apps.');
-  console.log('4. Fill public/idl/<slug>.runtime.json with sources/matchRules/pipelines/projections.');
-  console.log('5. Run: npm run aidl:compile');
-  console.log('6. Run: npm run codama:check');
-  console.log('7. Run: npm run pack:doctor -- --protocol <protocol-id>');
-  console.log('8. Run: npm run pack:check');
+  console.log('3. Fill public/idl/<slug>.runtime.json with operations, sources, matchRules, pipelines, and projections.');
+  console.log('4. Run: npm run codama:check');
+  console.log('5. Run: npm run pack:doctor -- --protocol <protocol-id>');
+  console.log('6. Run: npm run pack:check');
 }
 
 main().catch((error) => {

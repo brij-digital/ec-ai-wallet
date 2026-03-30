@@ -4,9 +4,8 @@ This repository is the web app and pack-authoring workspace for AppPack.
 
 It provides:
 - a wallet-connected UI to execute declarative protocol operations
-- a lightweight app-flow UI driven by protocol app specs
 - command mode for strict, protocol-agnostic execution
-- authoring + CI tooling for protocol packs (Codama + runtime spec + app spec)
+- authoring + CI tooling for protocol packs (Codama + runtime spec)
 
 ## Related Repos
 
@@ -38,7 +37,6 @@ Active protocols in this repo:
 Main UI tabs:
 - `Pump`: pump-specific reference workspace
 - `Views`: backend read/view playground
-- `Apps`: end-user app flows from app specs
 - `Raw Operations`: operation-level execution from runtime specs
 - `Compute`: developer inspection of runtime compute
 - `TradingView`: chart/debug surface
@@ -49,7 +47,7 @@ Currently disabled in the default UI shell:
 
 ## Spec Model
 
-Each protocol pack is now split into 4 layers:
+Each protocol pack is now split into 3 layers:
 
 1. `Codama IDL`
 - canonical source of truth for protocol structure
@@ -70,17 +68,10 @@ Each protocol pack is now split into 4 layers:
   - [public/idl/orca_whirlpool.runtime.json](public/idl/orca_whirlpool.runtime.json)
   - [public/idl/pump_core.runtime.json](public/idl/pump_core.runtime.json)
 
-4. `App Spec`
-- declarative execution/read surface + end-user flow
-- examples:
-  - [public/idl/orca_whirlpool.app.json](public/idl/orca_whirlpool.app.json)
-  - [public/idl/pump_amm.app.json](public/idl/pump_amm.app.json)
-
 Registry:
 - [public/idl/registry.json](public/idl/registry.json)
 
 Schemas:
-- [public/idl/meta_app.schema.v0.1.json](public/idl/meta_app.schema.v0.1.json)
 - [public/idl/declarative_decoder_runtime.schema.v1.json](public/idl/declarative_decoder_runtime.schema.v1.json)
 
 ## Runtime + View Architecture

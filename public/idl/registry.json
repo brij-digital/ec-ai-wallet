@@ -18,7 +18,6 @@
       "programId": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
       "codamaIdlPath": "/idl/orca_whirlpool.codama.json",
       "runtimeSpecPath": "/idl/orca_whirlpool.runtime.json",
-      "appPath": "/idl/orca_whirlpool.app.json",
       "transport": "local-orca-whirlpool",
       "supportedCommands": ["/orca-list-pools", "/orca"],
       "status": "active"
@@ -30,7 +29,6 @@
       "programId": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
       "codamaIdlPath": "/idl/pump_amm.codama.json",
       "runtimeSpecPath": "/idl/pump_amm.runtime.json",
-      "appPath": "/idl/pump_amm.app.json",
       "transport": "local-pump-amm",
       "supportedCommands": ["/pump-amm"],
       "status": "active"
@@ -42,7 +40,6 @@
       "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
       "codamaIdlPath": "/idl/pump_core.codama.json",
       "runtimeSpecPath": "/idl/pump_core.runtime.json",
-      "appPath": "/idl/pump_core.app.json",
       "transport": "local-pump-core",
       "supportedCommands": ["/pump-curve"],
       "status": "active"
@@ -54,7 +51,6 @@
       "programId": "KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD",
       "idlPath": "/idl/kamino_klend.json",
       "codamaIdlPath": "/idl/kamino_klend.codama.json",
-      "appPath": "/idl/kamino_klend.app.json",
       "transport": "local-kamino-klend",
       "supportedCommands": ["/kamino-deposit", "/kamino-withdraw", "/kamino-view-position"],
       "status": "active"

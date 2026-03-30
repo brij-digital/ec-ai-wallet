@@ -9,24 +9,6 @@ function fail(message) {
   throw new Error(message);
 }
 
-function assert(condition, message) {
-  if (!condition) {
-    fail(message);
-  }
-}
-
-async function readJson(filePath, label) {
-  const raw = await fs.readFile(filePath, 'utf8').catch(() => null);
-  if (raw === null) {
-    fail(`${label} not found: ${path.relative(ROOT, filePath)}`);
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    fail(`${label} is not valid JSON: ${path.relative(ROOT, filePath)}`);
-  }
-}
-
 function asObject(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     fail(`${label} must be an object.`);
@@ -43,17 +25,22 @@ function asString(value, label) {
 
 function resolveIdlPath(assetPath, label) {
   const rel = asString(assetPath, label);
-  assert(rel.startsWith('/idl/'), `${label} must start with /idl/.`);
+  if (!rel.startsWith('/idl/')) {
+    fail(`${label} must start with /idl/.`);
+  }
   const resolved = path.normalize(path.join(IDL_DIR, rel.slice('/idl/'.length)));
-  assert(resolved.startsWith(IDL_DIR), `${label} resolves outside public/idl.`);
+  if (!resolved.startsWith(IDL_DIR)) {
+    fail(`${label} resolves outside public/idl.`);
+  }
   return resolved;
 }
 
-function requireSchema(value, expected, label) {
-  const schema = asString(value?.schema, `${label}.schema`);
-  if (schema !== expected) {
-    fail(`${label}.schema must be ${expected}, received ${schema}.`);
+async function readJson(filePath, label) {
+  const raw = await fs.readFile(filePath, 'utf8').catch(() => null);
+  if (raw === null) {
+    fail(`${label} not found: ${path.relative(ROOT, filePath)}`);
   }
+  return JSON.parse(raw);
 }
 
 async function main() {
@@ -63,45 +50,46 @@ async function main() {
     fail('registry.protocols must be a non-empty array.');
   }
 
-  let migratedCount = 0;
+  let runtimeBackedCount = 0;
 
   for (const manifest of protocols) {
     const protocol = asObject(manifest, 'registry.protocol');
     const protocolId = asString(protocol.id, 'registry.protocol.id');
 
-    const codamaPath = resolveIdlPath(protocol.codamaIdlPath, `${protocolId}.codamaIdlPath`);
-    const codama = asObject(await readJson(codamaPath, `${protocolId} codama`), `${protocolId} codama`);
+    if (protocol.appPath !== undefined) {
+      fail(`${protocolId}: appPath is no longer allowed.`);
+    }
+    if (protocol.metaPath !== undefined || protocol.metaCorePath !== undefined) {
+      fail(`${protocolId}: legacy metaPath/metaCorePath is not allowed.`);
+    }
+
+    const codama = asObject(
+      await readJson(resolveIdlPath(protocol.codamaIdlPath, `${protocolId}.codamaIdlPath`), `${protocolId} codama`),
+      `${protocolId} codama`,
+    );
     if (codama.standard !== 'codama') {
       fail(`${protocolId}: codamaIdlPath does not point to a Codama artifact.`);
     }
 
-    const appPath = resolveIdlPath(protocol.appPath, `${protocolId}.appPath`);
-    const app = asObject(await readJson(appPath, `${protocolId} app spec`), `${protocolId} app spec`);
-    requireSchema(app, 'meta-app.v0.1', `${protocolId}.app`);
-    const appProtocolId = asString(app.protocolId, `${protocolId}.app.protocolId`);
-    if (appProtocolId !== protocolId) {
-      fail(`${protocolId}: app.protocolId mismatch (${appProtocolId}).`);
+    if (!protocol.runtimeSpecPath) {
+      continue;
     }
 
-    const hasRuntime = Boolean(protocol.runtimeSpecPath);
-    if (hasRuntime) {
-      const runtimePath = resolveIdlPath(protocol.runtimeSpecPath, `${protocolId}.runtimeSpecPath`);
-      const runtime = asObject(await readJson(runtimePath, `${protocolId} runtime spec`), `${protocolId} runtime spec`);
-      requireSchema(runtime, 'declarative-decoder-runtime.v1', `${protocolId}.runtime`);
-      const runtimeProtocolId = asString(runtime.protocolId, `${protocolId}.runtime.protocolId`);
-      if (runtimeProtocolId !== protocolId) {
-        fail(`${protocolId}: runtime.protocolId mismatch (${runtimeProtocolId}).`);
-      }
-      migratedCount += 1;
+    const runtime = asObject(
+      await readJson(resolveIdlPath(protocol.runtimeSpecPath, `${protocolId}.runtimeSpecPath`), `${protocolId} runtime spec`),
+      `${protocolId} runtime spec`,
+    );
+    if (runtime.schema !== 'declarative-decoder-runtime.v1') {
+      fail(`${protocolId}: runtime schema must be declarative-decoder-runtime.v1.`);
     }
-
-    if (protocol.metaPath != null || protocol.metaCorePath != null) {
-      fail(`${protocolId}: legacy metaPath/metaCorePath is no longer allowed in the active registry.`);
+    if (asString(runtime.protocolId, `${protocolId}.runtime.protocolId`) !== protocolId) {
+      fail(`${protocolId}: runtime.protocolId mismatch.`);
     }
+    runtimeBackedCount += 1;
   }
 
   console.log(
-    `Pack topology OK for ${protocols.length} protocol(s); ${migratedCount} protocol(s) already use Codama + runtime + app.`,
+    `Pack topology OK for ${protocols.length} protocol(s); ${runtimeBackedCount} protocol(s) use Codama + runtime.`,
   );
 }
 

@@ -1,17 +1,8 @@
 import type {
-  AppSummary as MetaAppSummary,
-  AppOperationExplain as MetaOperationExplain,
-  AppOperationSummary as MetaOperationSummary,
-} from '@brij-digital/apppack-runtime/appSpecRuntime';
+  RuntimeOperationExplain,
+  RuntimeOperationSummary,
+} from '@brij-digital/apppack-runtime/runtimeOperationRuntime';
 import { resolveToken } from '../constants/tokens';
-
-export type BuilderAppStepContext = {
-  input: Record<string, unknown>;
-  derived: Record<string, unknown>;
-  args: Record<string, unknown>;
-  accounts: Record<string, string>;
-  instructionName: string | null;
-};
 
 export function stringifyBuilderDefault(value: unknown): string {
   if (value === undefined) {
@@ -39,155 +30,18 @@ export function readBuilderPath(value: unknown, path: string): unknown {
   return current;
 }
 
-export function writeBuilderPath(value: Record<string, unknown>, path: string, nextValue: unknown): Record<string, unknown> {
-  const cleaned = path.startsWith('$') ? path.slice(1) : path;
-  const parts = cleaned.split('.').filter(Boolean);
-  if (parts.length === 0) {
-    return value;
-  }
-
-  const nextRoot: Record<string, unknown> = { ...value };
-  let current: Record<string, unknown> = nextRoot;
-  for (let i = 0; i < parts.length - 1; i += 1) {
-    const key = parts[i];
-    const existing = current[key];
-    if (!existing || typeof existing !== 'object' || Array.isArray(existing)) {
-      current[key] = {};
-    } else {
-      current[key] = { ...(existing as Record<string, unknown>) };
-    }
-    current = current[key] as Record<string, unknown>;
-  }
-  current[parts[parts.length - 1]!] = nextValue;
-  return nextRoot;
-}
-
-export function valuesEqualForSelection(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
-export function isBuilderTruthy(value: unknown): boolean {
-  if (value === null || value === undefined) {
-    return false;
-  }
-  if (typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return Number.isFinite(value) && value !== 0;
-  }
-  if (typeof value === 'bigint') {
-    return value !== 0n;
-  }
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (trimmed.length === 0) {
-      return false;
-    }
-    if (trimmed === '0' || trimmed.toLowerCase() === 'false' || trimmed.toLowerCase() === 'null') {
-      return false;
-    }
-    return true;
-  }
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-  if (typeof value === 'object') {
-    return Object.keys(value as Record<string, unknown>).length > 0;
-  }
-  return true;
-}
-
-export function buildBuilderAppScope(contexts: Record<string, BuilderAppStepContext>): Record<string, unknown> {
-  return {
-    steps: contexts,
-  };
-}
-
-export function findBuilderAppStepIndexById(app: MetaAppSummary, stepId: string): number {
-  return app.steps.findIndex((step) => step.stepId === stepId);
-}
-
-export function isBuilderAppStepUnlocked(
-  app: MetaAppSummary,
-  targetStep: MetaAppSummary['steps'][number],
-  contexts: Record<string, BuilderAppStepContext>,
-  _completed: Record<string, boolean>,
-): boolean {
-  const scope = buildBuilderAppScope(contexts);
-  const pathsSatisfied = targetStep.requiresPaths.every((path) => isBuilderTruthy(readBuilderPath(scope, path)));
-  if (!pathsSatisfied) {
-    return false;
-  }
-
-  if (targetStep.stepId === app.entryStepId) {
-    return true;
-  }
-  return true;
-}
-
-export function formatBuilderSelectableItemLabel(
-  item: unknown,
-  index: number,
-  ui: NonNullable<MetaAppSummary['steps'][number]['ui']>,
-): string {
-  if (item && typeof item === 'object' && !Array.isArray(item)) {
-    const record = item as Record<string, unknown>;
-    if (ui.labelFields.length > 0) {
-      const values = ui.labelFields
-        .map((field) => readBuilderPath(record, field))
-        .filter((entry) => entry !== undefined && entry !== null)
-        .map((entry) => String(entry));
-      if (values.length > 0) {
-        return `${index + 1}. ${values.join(' | ')}`;
-      }
-    }
-    const selected = readBuilderPath(record, ui.valuePath);
-    if (selected !== undefined) {
-      return `${index + 1}. ${String(selected)}`;
-    }
-    return `${index + 1}. [invalid selector: ui.valuePath did not resolve]`;
-  }
-  return `${index + 1}. ${String(item)}`;
-}
-
-export function isAutoResolvedBuilderInput(spec: MetaOperationSummary['inputs'][string]): boolean {
+export function getBuilderInputMode(
+  spec: RuntimeOperationSummary['inputs'][string],
+): 'edit' | 'readonly' {
   const readFrom = spec.bind_from;
-  return (
-    spec.default !== undefined ||
-    (typeof readFrom === 'string' && readFrom.length > 0)
-  );
-}
-
-export function getBuilderInputMode(spec: MetaOperationSummary['inputs'][string]): 'edit' | 'readonly' | 'hidden' {
-  if (spec.ui_mode === 'edit' || spec.ui_mode === 'readonly' || spec.ui_mode === 'hidden') {
-    return spec.ui_mode;
-  }
-  if (isAutoResolvedBuilderInput(spec)) {
+  if (typeof readFrom === 'string' && readFrom.length > 0) {
     return 'readonly';
   }
   return 'edit';
 }
 
-export function isBuilderInputEditable(spec: MetaOperationSummary['inputs'][string]): boolean {
+export function isBuilderInputEditable(spec: RuntimeOperationSummary['inputs'][string]): boolean {
   return getBuilderInputMode(spec) === 'edit';
-}
-
-export function getBuilderInputTag(spec: MetaOperationSummary['inputs'][string]): string {
-  const mode = getBuilderInputMode(spec);
-  if (mode === 'hidden') {
-    return 'hidden';
-  }
-  if (mode === 'readonly') {
-    return 'readonly';
-  }
-  if (spec.default !== undefined) {
-    return 'default';
-  }
-  if (spec.required) {
-    return 'required';
-  }
-  return 'optional';
 }
 
 export function parseBuilderInputValue(raw: string, type: string, label: string): unknown {
@@ -243,7 +97,7 @@ export function parseBuilderInputValue(raw: string, type: string, label: string)
 }
 
 export function buildExampleInputsForOperation(
-  operation: MetaOperationSummary,
+  operation: RuntimeOperationSummary,
 ): Record<string, string> {
   const nextValues: Record<string, string> = {};
 
@@ -256,171 +110,55 @@ export function buildExampleInputsForOperation(
       nextValues[inputName] = stringifyBuilderDefault(spec.default);
       continue;
     }
-    const extra = spec as Record<string, unknown>;
-    const uiExample = extra.ui_example;
-    if (uiExample !== undefined) {
-      nextValues[inputName] = stringifyBuilderDefault(uiExample);
-      continue;
-    }
-    const example = extra.example;
-    if (example !== undefined) {
-      nextValues[inputName] = stringifyBuilderDefault(example);
-      continue;
-    }
-
-    const normalizedType = spec.type.toLowerCase();
-    if (normalizedType === 'bool' || normalizedType === 'boolean') {
-      nextValues[inputName] = 'true';
-      continue;
-    }
-    if (/^[ui]\d+$/.test(normalizedType)) {
-      nextValues[inputName] = '1';
-      continue;
-    }
-    if (normalizedType === 'f32' || normalizedType === 'f64' || normalizedType === 'number') {
-      nextValues[inputName] = '0.1';
-      continue;
-    }
-
     nextValues[inputName] = '';
   }
 
   return nextValues;
 }
 
-export function asRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${label} must be an object.`);
-  }
-  return value as Record<string, unknown>;
-}
-
-export function asString(value: unknown, label: string): string {
-  if (typeof value !== 'string') {
-    throw new Error(`${label} must be a string.`);
-  }
-  return value;
-}
-
-export function asIntegerLikeString(value: unknown, label: string): string {
-  if (typeof value === 'string' && /^-?\d+$/.test(value)) {
-    return value;
-  }
-  if (typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value)) {
-    return String(value);
-  }
-  if (typeof value === 'bigint') {
-    return value.toString();
-  }
-  throw new Error(`${label} must be an integer-like value.`);
-}
-
-export function asBoolean(value: unknown, label: string): boolean {
-  if (typeof value !== 'boolean') {
-    throw new Error(`${label} must be a boolean.`);
-  }
-  return value;
-}
-
-export function compactPubkey(value: unknown): string {
-  const text = String(value ?? 'n/a');
-  if (text.length <= 12) {
-    return text;
-  }
-  return `${text.slice(0, 4)}...${text.slice(-4)}`;
-}
-
-export function stringifyReadOutputValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return 'null';
-  }
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
-    return String(value);
-  }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
-export function formatReadOutputItem(
-  item: unknown,
-  index: number,
-  labelFields: string[],
-): string {
-  if (item && typeof item === 'object' && !Array.isArray(item)) {
-    const record = item as Record<string, unknown>;
-    if (labelFields.length > 0) {
-      const parts = labelFields
-        .map((field) => readBuilderPath(record, field))
-        .filter((entry) => entry !== undefined && entry !== null)
-        .map((entry) => String(entry));
-      if (parts.length > 0) {
-        return `${index + 1}. ${parts.join(' | ')}`;
-      }
-      return `${index + 1}. [no label field resolved]`;
-    }
-    return `${index + 1}. [configure read_output.itemLabelFields]`;
-  }
-  return `${index + 1}. ${stringifyReadOutputValue(item)}`;
-}
-
 export function buildReadOnlyHighlightsFromSpec(
-  spec: NonNullable<MetaOperationSummary['readOutput']>,
-  readValue: unknown,
+  readOutput: RuntimeOperationSummary['readOutput'] | RuntimeOperationExplain['readOutput'] | undefined,
+  value: unknown,
 ): string[] {
-  const highlights: string[] = [];
-  if (spec.title) {
-    highlights.push(spec.title);
+  if (!readOutput) {
+    return [];
   }
 
-  if (spec.type === 'scalar') {
-    if (readValue === undefined || readValue === null || readValue === '') {
-      highlights.push(spec.emptyText ?? 'No value returned.');
-      return highlights;
+  const lines = [
+    `read_output.type: ${readOutput.type}`,
+    `read_output.source: ${readOutput.source}`,
+  ];
+
+  if (readOutput.title) {
+    lines.push(`title: ${readOutput.title}`);
+  }
+
+  if (readOutput.type === 'array' && Array.isArray(value)) {
+    lines.push(`items: ${value.length}`);
+    const first = value[0];
+    if (first && typeof first === 'object' && !Array.isArray(first) && readOutput.itemLabelFields?.length) {
+      const label = readOutput.itemLabelFields
+        .map((field) => readBuilderPath(first, field))
+        .filter((entry) => entry !== undefined && entry !== null)
+        .map((entry) => String(entry))
+        .join(' | ');
+      if (label) {
+        lines.push(`first: ${label}`);
+      }
     }
-    highlights.push(`value: ${stringifyReadOutputValue(readValue)}`);
-    return highlights;
+    return lines;
   }
 
-  if (spec.type === 'object') {
-    if (!readValue || typeof readValue !== 'object' || Array.isArray(readValue)) {
-      highlights.push(spec.emptyText ?? 'No object returned.');
-      return highlights;
-    }
-    const entries = Object.entries(readValue as Record<string, unknown>);
-    if (entries.length === 0) {
-      highlights.push(spec.emptyText ?? 'No object fields returned.');
-      return highlights;
-    }
-    for (const [key, value] of entries) {
-      highlights.push(`${key}: ${stringifyReadOutputValue(value)}`);
-    }
-    return highlights;
+  if (readOutput.type === 'object' && value && typeof value === 'object' && !Array.isArray(value)) {
+    lines.push(`keys: ${Object.keys(value as Record<string, unknown>).join(', ') || '(none)'}`);
+    return lines;
   }
 
-  if (!Array.isArray(readValue)) {
-    highlights.push(spec.emptyText ?? 'No list returned.');
-    return highlights;
+  if (readOutput.type === 'scalar') {
+    lines.push(`value: ${String(value)}`);
   }
 
-  if (readValue.length === 0) {
-    highlights.push(spec.emptyText ?? 'No items found.');
-    return highlights;
-  }
-
-  const maxItems = typeof spec.maxItems === 'number' && spec.maxItems > 0 ? spec.maxItems : readValue.length;
-  const shown = readValue.slice(0, maxItems);
-  highlights.push(`items: ${readValue.length}`);
-  highlights.push(...shown.map((item, index) => formatReadOutputItem(item, index, spec.itemLabelFields ?? [])));
-  if (readValue.length > shown.length) {
-    highlights.push(`...and ${readValue.length - shown.length} more.`);
-  }
-  return highlights;
+  return lines;
 }
 
 export function asPrettyJson(value: unknown): string {
@@ -447,8 +185,6 @@ export function buildDerivedFromReadOutputSource(sourcePath: string, value: unkn
 
   const out: Record<string, unknown> = {};
   let current: Record<string, unknown> = out;
-  // Build relative to derived root so "$derived.pool_candidates" becomes
-  // { pool_candidates: value }, not { derived: { pool_candidates: value } }.
   const relative = parts.slice(1);
   for (let i = 0; i < relative.length - 1; i += 1) {
     const key = relative[i]!;
@@ -459,97 +195,50 @@ export function buildDerivedFromReadOutputSource(sourcePath: string, value: unkn
   return out;
 }
 
-export function renderMetaExplain(explanation: MetaOperationExplain): string {
+export function renderMetaExplain(explanation: RuntimeOperationExplain): string {
   const formatRequired = (spec: Record<string, unknown>): string => {
     const required = spec.required === false ? 'optional' : 'required';
     const defaultText = spec.default !== undefined ? `, default=${JSON.stringify(spec.default)}` : '';
-    const discoverFromText =
+    const bindText =
       typeof spec.bind_from === 'string' ? `, bind_from=${spec.bind_from}` : '';
-    return `${required}${defaultText}${discoverFromText}`;
+    return `${required}${defaultText}${bindText}`;
   };
+
+  const inputLines = Object.entries(explanation.inputs).map(
+    ([name, spec]) => `- ${name}: ${String(spec.type ?? 'unknown')} (${formatRequired(spec as Record<string, unknown>)})`,
+  );
 
   const discoverLines = explanation.discover.map((step, index) => {
     const record = step && typeof step === 'object' && !Array.isArray(step) ? (step as Record<string, unknown>) : {};
-    const name = String(record.name ?? `step_${index + 1}`);
-    const kind = String(record.discover ?? 'unknown');
-    return `${index + 1}. ${name} -> ${kind}`;
+    return `${index + 1}. ${String(record.name ?? `step_${index + 1}`)} -> ${String(record.discover ?? 'unknown')}`;
   });
-
   const deriveLines = explanation.derive.map((step, index) => {
     const record = step && typeof step === 'object' && !Array.isArray(step) ? (step as Record<string, unknown>) : {};
-    const name = String(record.name ?? `step_${index + 1}`);
-    const resolver = String(record.resolver ?? 'unknown');
-    return `${index + 1}. ${name} -> ${resolver}`;
+    return `${index + 1}. ${String(record.name ?? `step_${index + 1}`)} -> ${String(record.resolver ?? 'unknown')}`;
   });
-
   const computeLines = explanation.compute.map((step, index) => {
     const record = step && typeof step === 'object' && !Array.isArray(step) ? (step as Record<string, unknown>) : {};
-    const name = String(record.name ?? `step_${index + 1}`);
-    const compute = String(record.compute ?? 'unknown');
-    return `${index + 1}. ${name} -> ${compute}`;
+    return `${index + 1}. ${String(record.name ?? `step_${index + 1}`)} -> ${String(record.compute ?? 'unknown')}`;
   });
 
-  const inputLines = Object.entries(explanation.inputs).map(
-    ([name, spec]) => `- ${name}: ${String(spec.type ?? 'unknown')} (${formatRequired(spec)})`,
-  );
-
-  const view = explanation.view as Record<string, unknown> | undefined;
-  const viewBootstrap = view?.bootstrap as Record<string, unknown> | undefined;
-  const viewStream = view?.stream as Record<string, unknown> | undefined;
-
-  const viewBootstrapSteps = Array.isArray(viewBootstrap?.steps)
-    ? (viewBootstrap.steps as unknown[])
-        .map((entry) => String(entry))
-        .filter((entry) => entry.length > 0)
-    : [];
-  const viewEntityKeys = Array.isArray(view?.entity_keys)
-    ? (view.entity_keys as unknown[])
-        .map((entry) => String(entry))
-        .filter((entry) => entry.length > 0)
-    : [];
-  const viewStreamSource = viewStream
-    ? String(viewStream.source ?? 'n/a')
-    : null;
-  const viewStreamFilter = viewStream
-    ? String(viewStream.filter ?? 'n/a')
-    : null;
-
   return [
-    `Meta operation: ${explanation.protocolId}/${explanation.operationId}`,
+    `Runtime operation: ${explanation.protocolId}/${explanation.operationId}`,
     `schema: ${explanation.schema ?? 'n/a'} | version: ${explanation.version}`,
-    `instruction: ${explanation.instruction}`,
-    `templates used: ${explanation.templateUse.length > 0 ? explanation.templateUse.map((entry) => {
-      const record = entry && typeof entry === 'object' && !Array.isArray(entry) ? (entry as Record<string, unknown>) : {};
-      return String(record.template ?? record.macro ?? 'unknown');
-    }).join(', ') : 'none'}`,
+    `instruction: ${explanation.instruction || 'read-only'}`,
     '',
     'Inputs:',
     ...(inputLines.length > 0 ? inputLines : ['- none']),
     '',
-    'Discover phase:',
-    ...(discoverLines.length > 0 ? discoverLines : ['none']),
+    'Discover:',
+    ...(discoverLines.length > 0 ? discoverLines : ['- none']),
     '',
-    'Derive phase:',
-    ...(deriveLines.length > 0 ? deriveLines : ['none']),
+    'Derive:',
+    ...(deriveLines.length > 0 ? deriveLines : ['- none']),
     '',
-    'Compute phase:',
-    ...(computeLines.length > 0 ? computeLines : ['none']),
+    'Compute:',
+    ...(computeLines.length > 0 ? computeLines : ['- none']),
     '',
-    'View contract:',
-    ...(view
-      ? [
-          `bootstrap steps: ${viewBootstrapSteps.join(', ') || 'none'}`,
-          `stream source: ${viewStreamSource ?? 'none'}`,
-          `stream filter: ${viewStreamFilter ?? 'none'}`,
-          `entity keys: ${viewEntityKeys.join(', ') || 'none'}`,
-        ]
-      : ['none']),
-    '',
-    `Build args keys: ${Object.keys(explanation.args).join(', ') || 'none'}`,
-    `Build accounts keys: ${Object.keys(explanation.accounts).join(', ') || 'none'}`,
-    `Post steps: ${explanation.post.length}`,
-    '',
-    'Expanded JSON:',
+    'Raw:',
     asPrettyJson(explanation),
   ].join('\n');
 }

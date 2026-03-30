@@ -6,11 +6,6 @@ const ROOT = process.cwd();
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const IDL_DIR = path.join(PUBLIC_DIR, 'idl');
 const REGISTRY_PATH = path.join(IDL_DIR, 'registry.json');
-const FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'fixtures');
-const RPC_SIM_FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'rpc', 'simulations');
-const RPC_PARITY_FIXTURE_DIR = path.join(ROOT, 'protocol-packs', 'rpc', 'parity');
-
-const REQUIRED_APP_SCHEMA = 'meta-app.v0.1';
 
 function fail(message) {
   throw new Error(message);
@@ -31,21 +26,44 @@ function asArray(value, label) {
 }
 
 function asString(value, label) {
-  if (typeof value !== 'string' || value.length === 0) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
     fail(`${label} must be a non-empty string.`);
   }
-  return value;
+  return value.trim();
 }
 
-function asStringArray(value, label) {
-  const out = asArray(value, label);
-  for (let i = 0; i < out.length; i += 1) {
-    asString(out[i], `${label}[${i}]`);
+function asOptionalObject(value, label) {
+  if (value === undefined) {
+    return {};
   }
-  return out;
+  return asObject(value, label);
 }
 
-function toBase58Pubkey(value, label) {
+async function readJson(filePath, label) {
+  const raw = await fs.readFile(filePath, 'utf8').catch(() => null);
+  if (raw === null) {
+    fail(`${label} not found: ${path.relative(ROOT, filePath)}`);
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    fail(`${label} is invalid JSON: ${path.relative(ROOT, filePath)}`);
+  }
+}
+
+function resolvePublicAssetPath(assetPath, label) {
+  const rel = asString(assetPath, label);
+  if (!rel.startsWith('/idl/')) {
+    fail(`${label} must start with /idl/.`);
+  }
+  const resolved = path.normalize(path.join(PUBLIC_DIR, rel.slice(1)));
+  if (!resolved.startsWith(PUBLIC_DIR)) {
+    fail(`${label} resolves outside public/.`);
+  }
+  return resolved;
+}
+
+function normalizePubkey(value, label) {
   try {
     return new PublicKey(asString(value, label)).toBase58();
   } catch {
@@ -53,91 +71,53 @@ function toBase58Pubkey(value, label) {
   }
 }
 
-function assert(condition, message) {
-  if (!condition) {
-    fail(message);
-  }
+function collectInstructionNamesFromCodecIdl(idl, label) {
+  const instructions = asArray(idl.instructions ?? [], `${label}.instructions`);
+  return new Set(
+    instructions.map((entry, index) =>
+      asString(asObject(entry, `${label}.instructions[${index}]`).name, `${label}.instructions[${index}].name`),
+    ),
+  );
 }
 
-async function pathExists(filepath) {
-  try {
-    await fs.access(filepath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function cloneJsonLike(value) {
-  if (value === undefined) {
-    return value;
-  }
-  return JSON.parse(JSON.stringify(value));
-}
-
-function sortJson(value) {
-  if (Array.isArray(value)) {
-    return value.map(sortJson);
-  }
-  if (!value || typeof value !== 'object') {
-    return value;
-  }
-  const entries = Object.entries(value)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, nested]) => [key, sortJson(nested)]);
-  return Object.fromEntries(entries);
-}
-
-function stableStringify(value) {
-  return JSON.stringify(sortJson(value));
-}
-
-async function readJsonFile(filepath, label) {
-  const raw = await fs.readFile(filepath, 'utf8').catch(() => null);
-  if (raw === null) {
-    fail(`${label} not found: ${path.relative(ROOT, filepath)}`);
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    fail(`${label} is not valid JSON: ${path.relative(ROOT, filepath)}`);
-  }
-}
-
-function resolvePublicAssetPath(assetPath, label) {
-  const rel = asString(assetPath, label);
-  assert(rel.startsWith('/idl/'), `${label} must start with /idl/.`);
-  const normalized = path.normalize(path.join(PUBLIC_DIR, rel.slice(1)));
-  assert(normalized.startsWith(PUBLIC_DIR), `${label} resolves outside public/.`);
-  return normalized;
+function collectInstructionNamesFromCodama(codama, label) {
+  const program = asObject(codama.program, `${label}.program`);
+  const instructions = asArray(program.instructions ?? [], `${label}.program.instructions`);
+  return new Set(
+    instructions.map((entry, index) =>
+      asString(
+        asObject(entry, `${label}.program.instructions[${index}]`).name,
+        `${label}.program.instructions[${index}].name`,
+      ),
+    ),
+  );
 }
 
 async function resolveCodecIdlPath(manifest, protocolId) {
   if (manifest.runtimeSpecPath !== undefined && manifest.idlPath !== undefined) {
-    fail(`${protocolId}: registry idlPath is no longer allowed alongside runtimeSpecPath.`);
-  }
-  if (manifest.idlPath !== undefined) {
-    return resolvePublicAssetPath(manifest.idlPath, `${protocolId}.idlPath`);
+    fail(`${protocolId}: registry idlPath is not allowed alongside runtimeSpecPath.`);
   }
   if (manifest.runtimeSpecPath === undefined) {
-    return null;
+    return manifest.idlPath !== undefined
+      ? resolvePublicAssetPath(manifest.idlPath, `${protocolId}.idlPath`)
+      : null;
   }
 
   const runtimePath = resolvePublicAssetPath(manifest.runtimeSpecPath, `${protocolId}.runtimeSpecPath`);
-  const runtime = asObject(await readJsonFile(runtimePath, `${protocolId} runtime spec`), `${protocolId} runtime spec`);
+  const runtime = asObject(await readJson(runtimePath, `${protocolId} runtime spec`), `${protocolId} runtime spec`);
   const decoderArtifacts = asObject(runtime.decoderArtifacts, `${protocolId}.runtime.decoderArtifacts`);
   const candidates = new Set();
   for (const [artifactName, artifactRaw] of Object.entries(decoderArtifacts)) {
     const artifact = asObject(artifactRaw, `${protocolId}.runtime.decoderArtifacts.${artifactName}`);
-    if (typeof artifact.codecIdlPath !== 'string' || artifact.codecIdlPath.length === 0) {
-      fail(`${protocolId}: runtime decoder artifact ${artifactName} must declare codecIdlPath.`);
-    }
-    candidates.add(resolvePublicAssetPath(artifact.codecIdlPath, `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`));
     if (artifact.idlPath !== undefined) {
       fail(`${protocolId}: runtime decoder artifact ${artifactName} must not declare legacy idlPath.`);
     }
+    const codecIdlPath = asString(
+      artifact.codecIdlPath,
+      `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`,
+    );
+    candidates.add(resolvePublicAssetPath(codecIdlPath, `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`));
   }
-
   if (candidates.size === 0) {
     return null;
   }
@@ -147,642 +127,142 @@ async function resolveCodecIdlPath(manifest, protocolId) {
   return Array.from(candidates)[0] ?? null;
 }
 
-function readPathFromValue(value, dottedPath) {
-  const cleaned = dottedPath.startsWith('$') ? dottedPath.slice(1) : dottedPath;
-  const parts = cleaned.split('.').filter(Boolean);
-  let current = value;
-  for (const part of parts) {
-    if (!current || typeof current !== 'object') {
-      return undefined;
-    }
-    current = current[part];
-  }
-  return current;
-}
-
-function resolvePath(scope, dottedPath) {
-  const resolved = readPathFromValue(scope, dottedPath);
-  if (resolved === undefined) {
-    fail(`Cannot resolve template path ${dottedPath}.`);
-  }
-  return resolved;
-}
-
-function resolveTemplateExpansionValue(value, paramScope) {
-  if (typeof value === 'string' && value.startsWith('$param.')) {
-    return resolvePath(paramScope, value);
-  }
-  if (Array.isArray(value)) {
-    return value.map((entry) => resolveTemplateExpansionValue(entry, paramScope));
-  }
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nested]) => [key, resolveTemplateExpansionValue(nested, paramScope)]),
-    );
-  }
-  return value;
-}
-
-function resolveTemplateParams(templateName, template, useSpec) {
-  const provided = useSpec.with ?? {};
-  if (template.params && typeof template.params !== 'object') {
-    fail(`Template ${templateName} params must be an object.`);
-  }
-
-  const resolved = {};
-  if (template.params) {
-    for (const [name, rawSpec] of Object.entries(template.params)) {
-      const spec = typeof rawSpec === 'string' ? { type: rawSpec } : rawSpec;
-      if (provided[name] !== undefined) {
-        resolved[name] = provided[name];
-        continue;
-      }
-      if (spec.default !== undefined) {
-        resolved[name] = spec.default;
-        continue;
-      }
-      if (spec.required !== false) {
-        fail(`Template ${templateName} missing required param ${name}.`);
-      }
-    }
-
-    for (const key of Object.keys(provided)) {
-      if (!(key in template.params)) {
-        fail(`Template ${templateName} received unknown param ${key}.`);
-      }
-    }
-  } else {
-    Object.assign(resolved, provided);
-  }
-
-  return resolved;
-}
-
-function mergeActionFragment(target, fragment, label) {
-  if (fragment.instruction) {
-    if (target.instruction && target.instruction !== fragment.instruction) {
-      fail(
-        `Conflicting instruction while materializing (${label}): ${target.instruction} vs ${fragment.instruction}.`,
-      );
-    }
-    target.instruction = fragment.instruction;
-  }
-
-  if (fragment.inputs) {
-    target.inputs = {
-      ...target.inputs,
-      ...cloneJsonLike(fragment.inputs),
-    };
-  }
-
-  if (fragment.discover) {
-    target.discover.push(...cloneJsonLike(fragment.discover));
-  }
-
-  if (fragment.derive) {
-    target.derive.push(...cloneJsonLike(fragment.derive));
-  }
-
-  if (fragment.compute) {
-    target.compute.push(...cloneJsonLike(fragment.compute));
-  }
-
-  if (fragment.args) {
-    target.args = {
-      ...target.args,
-      ...cloneJsonLike(fragment.args),
-    };
-  }
-
-  if (fragment.accounts) {
-    target.accounts = {
-      ...target.accounts,
-      ...cloneJsonLike(fragment.accounts),
-    };
-  }
-
-  if (fragment.remaining_accounts !== undefined) {
-    const cloned = cloneJsonLike(fragment.remaining_accounts);
-    if (Array.isArray(cloned) && Array.isArray(target.remainingAccounts)) {
-      target.remainingAccounts.push(...cloned);
-    } else {
-      target.remainingAccounts = cloned;
+function validateRuntimeOperation(protocolId, operationId, operation, instructionNames) {
+  const op = asObject(operation, `${protocolId}.runtime.operations.${operationId}`);
+  if (op.instruction !== undefined) {
+    const instruction = asString(op.instruction, `${protocolId}.runtime.operations.${operationId}.instruction`);
+    if (!instructionNames.has(instruction)) {
+      fail(`${protocolId}: runtime operation ${operationId} references missing instruction ${instruction}.`);
     }
   }
 
-  if (fragment.post && fragment.post.length > 0) {
-    target.post = [...(target.post ?? []), ...cloneJsonLike(fragment.post)];
-  }
-}
-
-function materializeOperation(operationId, operation, meta) {
-  const materialized = {
-    instruction: '',
-    inputs: {},
-    discover: [],
-    derive: [],
-    compute: [],
-    args: {},
-    accounts: {},
-    remainingAccounts: [],
-    post: [],
-  };
-
-  for (const useSpec of operation.use ?? []) {
-    const templateName = useSpec.template;
-    if (!templateName) {
-      fail(`Operation ${operationId} contains use item without template name.`);
+  const inputs = asOptionalObject(op.inputs, `${protocolId}.runtime.operations.${operationId}.inputs`);
+  for (const [inputName, inputRaw] of Object.entries(inputs)) {
+    const input = asObject(inputRaw, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}`);
+    asString(input.type, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.type`);
+    if (input.bind_from !== undefined) {
+      asString(input.bind_from, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.bind_from`);
     }
-    const template = meta.templates?.[templateName];
-    if (!template) {
-      fail(`Operation ${operationId} references unknown template ${templateName}.`);
-    }
-    const params = resolveTemplateParams(templateName, template, useSpec);
-    const expanded = resolveTemplateExpansionValue(cloneJsonLike(template.expand), { param: params });
-    mergeActionFragment(materialized, expanded, `template ${templateName}`);
-  }
-
-  mergeActionFragment(
-    materialized,
-    cloneJsonLike({
-      instruction: operation.instruction,
-      inputs: operation.inputs,
-      discover: operation.discover,
-      derive: operation.derive,
-      compute: operation.compute,
-      args: operation.args,
-      accounts: operation.accounts,
-      remaining_accounts: operation.remaining_accounts,
-      post: operation.post,
-    }),
-    `operation ${operationId}`,
-  );
-
-  return materialized;
-}
-
-function ensureUniqueStepNames(steps, label) {
-  const seen = new Set();
-  for (let index = 0; index < steps.length; index += 1) {
-    const step = asObject(steps[index], `${label}[${index}]`);
-    const name = asString(step.name, `${label}[${index}].name`);
-    if (seen.has(name)) {
-      fail(`${label} contains duplicate step name: ${name}`);
-    }
-    seen.add(name);
-  }
-}
-
-function collectIdlInstructionNames(idl, label) {
-  const instructions = asArray(idl.instructions, `${label}.instructions`);
-  const names = new Set();
-  for (let i = 0; i < instructions.length; i += 1) {
-    const instruction = asObject(instructions[i], `${label}.instructions[${i}]`);
-    names.add(asString(instruction.name, `${label}.instructions[${i}].name`));
-  }
-  return names;
-}
-
-function collectCodamaInstructionNames(codama, label) {
-  const program = asObject(codama.program, `${label}.program`);
-  const instructions = asArray(program.instructions, `${label}.program.instructions`);
-  const names = new Set();
-  for (let i = 0; i < instructions.length; i += 1) {
-    const instruction = asObject(instructions[i], `${label}.program.instructions[${i}]`);
-    names.add(asString(instruction.name, `${label}.program.instructions[${i}].name`));
-  }
-  return names;
-}
-
-function validateAppSchema(app, manifest) {
-  const schema = asString(app.schema, `${manifest.id}.app.schema`);
-  if (schema !== REQUIRED_APP_SCHEMA) {
-    fail(`${manifest.id}: unsupported app schema ${schema}. Required: ${REQUIRED_APP_SCHEMA}.`);
-  }
-
-  const version = asString(app.version, `${manifest.id}.app.version`);
-  assert(version.length > 0, `${manifest.id}: app version must not be empty.`);
-
-  const protocolId = asString(app.protocolId, `${manifest.id}.app.protocolId`);
-  if (protocolId !== manifest.id) {
-    fail(`${manifest.id}: app protocolId mismatch (${protocolId}).`);
-  }
-}
-
-function validateApps(meta, protocolId, operations) {
-  const apps = asObject(meta.apps, `${protocolId}.apps`);
-  const appEntries = Object.entries(apps);
-  if (appEntries.length === 0) {
-    fail(`${protocolId}: apps must not be empty for app-first schema.`);
-  }
-
-  for (const [appId, appRaw] of appEntries) {
-    const app = asObject(appRaw, `${protocolId}.apps.${appId}`);
-    asString(app.title, `${protocolId}.apps.${appId}.title`);
-    const entryStep = asString(app.entry_step, `${protocolId}.apps.${appId}.entry_step`);
-    const steps = asArray(app.steps, `${protocolId}.apps.${appId}.steps`);
-    if (steps.length === 0) {
-      fail(`${protocolId}.apps.${appId}.steps must not be empty.`);
-    }
-
-    const stepIds = new Set();
-    for (let i = 0; i < steps.length; i += 1) {
-      const step = asObject(steps[i], `${protocolId}.apps.${appId}.steps[${i}]`);
-      const stepId = asString(step.id, `${protocolId}.apps.${appId}.steps[${i}].id`);
-      if (stepIds.has(stepId)) {
-        fail(`${protocolId}.apps.${appId} has duplicate step id ${stepId}.`);
-      }
-      stepIds.add(stepId);
-      const operationId = asString(step.operation, `${protocolId}.apps.${appId}.steps[${i}].operation`);
-      if (!operations[operationId]) {
-        fail(`${protocolId}.apps.${appId}.steps.${stepId} references unknown operation ${operationId}.`);
-      }
-      asString(step.title, `${protocolId}.apps.${appId}.steps[${i}].title`);
-      if (step.requires_paths !== undefined) {
-        asStringArray(step.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.requires_paths`);
-      }
-    }
-
-    if (!stepIds.has(entryStep)) {
-      fail(`${protocolId}.apps.${appId}.entry_step references unknown step ${entryStep}.`);
-    }
-    for (let i = 0; i < steps.length; i += 1) {
-      const step = asObject(steps[i], `${protocolId}.apps.${appId}.steps[${i}]`);
-      const stepId = asString(step.id, `${protocolId}.apps.${appId}.steps[${i}].id`);
-      if (step.next_on_success !== undefined) {
-        const next = asString(step.next_on_success, `${protocolId}.apps.${appId}.steps.${stepId}.next_on_success`);
-        if (!stepIds.has(next)) {
-          fail(`${protocolId}.apps.${appId}.steps.${stepId}.next_on_success unknown step: ${next}`);
-        }
-      }
-      if (step.requires_paths !== undefined) {
-        asStringArray(step.requires_paths, `${protocolId}.apps.${appId}.steps.${stepId}.requires_paths`);
-      }
+    if (input.read_from !== undefined) {
+      asString(input.read_from, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.read_from`);
     }
   }
-}
 
-function validateManifest(manifest, seenIds) {
-  const id = asString(manifest.id, 'registry.protocol.id');
-  if (seenIds.has(id)) {
-    fail(`Duplicate protocol id in registry: ${id}`);
-  }
-  seenIds.add(id);
-
-  asString(manifest.name, `${id}.name`);
-  asString(manifest.network, `${id}.network`);
-  toBase58Pubkey(manifest.programId, `${id}.programId`);
-  asString(manifest.transport, `${id}.transport`);
-  asStringArray(manifest.supportedCommands, `${id}.supportedCommands`);
-  asString(manifest.status, `${id}.status`);
-  resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
-  resolvePublicAssetPath(manifest.appPath, `${id}.appPath`);
-  if (manifest.runtimeSpecPath !== undefined && manifest.idlPath !== undefined) {
-    fail(`${id}: registry idlPath is no longer allowed alongside runtimeSpecPath.`);
-  }
-  if (manifest.idlPath !== undefined) {
-    resolvePublicAssetPath(manifest.idlPath, `${id}.idlPath`);
-  }
-  if (manifest.runtimeSpecPath !== undefined) {
-    resolvePublicAssetPath(manifest.runtimeSpecPath, `${id}.runtimeSpecPath`);
-  }
-  if (manifest.metaPath !== undefined || manifest.metaCorePath !== undefined) {
-    fail(`${id}: legacy metaPath/metaCorePath is no longer allowed in the active registry.`);
+  if (op.read_output !== undefined) {
+    const readOutput = asObject(op.read_output, `${protocolId}.runtime.operations.${operationId}.read_output`);
+    asString(readOutput.source, `${protocolId}.runtime.operations.${operationId}.read_output.source`);
   }
 }
 
-function loadOperations(pack, protocolId, label = 'app') {
-  const operations = pack.operations;
-  if (!operations || typeof operations !== 'object' || Array.isArray(operations)) {
-    fail(`${protocolId}: ${label} operations are missing.`);
+async function main() {
+  const registry = asObject(await readJson(REGISTRY_PATH, 'registry'), 'registry');
+  asString(registry.version, 'registry.version');
+  const protocols = asArray(registry.protocols, 'registry.protocols');
+  if (protocols.length === 0) {
+    fail('registry.protocols must not be empty.');
   }
-  return operations;
-}
 
-function listStepNames(steps) {
-  const names = [];
-  for (const entry of steps) {
-    if (entry && typeof entry === 'object' && typeof entry.name === 'string') {
-      names.push(entry.name);
-    }
-  }
-  return names;
-}
-
-function validateFixtureShape(fixture, filename) {
-  asObject(fixture, `${filename}`);
-  const name = asString(fixture.name, `${filename}.name`);
-  const protocolId = asString(fixture.protocolId, `${filename}.protocolId`);
-  const operationId = asString(fixture.operationId, `${filename}.operationId`);
-  const expect = asObject(fixture.expect, `${filename}.expect`);
-  return { name, protocolId, operationId, expect };
-}
-
-function asOptionalStringArray(value, label) {
-  if (value === undefined) {
-    return [];
-  }
-  return asStringArray(value, label);
-}
-
-function checkRequiredKeys(container, keys, label) {
-  for (const key of keys) {
-    if (!(key in container)) {
-      fail(`${label} is missing required key ${key}.`);
-    }
-  }
-}
-
-async function run() {
-  const registry = await readJsonFile(REGISTRY_PATH, 'IDL registry');
-  const registryObj = asObject(registry, 'registry');
-  asString(registryObj.version, 'registry.version');
-
-  const protocols = asArray(registryObj.protocols, 'registry.protocols');
-  assert(protocols.length > 0, 'registry.protocols must not be empty.');
-
+  let runtimeBackedCount = 0;
+  let operationCount = 0;
   const seenIds = new Set();
-  const results = new Map();
-  let totalOperations = 0;
 
-  for (let i = 0; i < protocols.length; i += 1) {
-    const manifest = asObject(protocols[i], `registry.protocols[${i}]`);
-    validateManifest(manifest, seenIds);
+  for (let index = 0; index < protocols.length; index += 1) {
+    const manifest = asObject(protocols[index], `registry.protocols[${index}]`);
+    const protocolId = asString(manifest.id, `registry.protocols[${index}].id`);
+    if (seenIds.has(protocolId)) {
+      fail(`Duplicate protocol id in registry: ${protocolId}`);
+    }
+    seenIds.add(protocolId);
 
-    const protocolId = manifest.id;
-    const appPath = resolvePublicAssetPath(manifest.appPath, `${protocolId}.appPath`);
+    asString(manifest.name, `${protocolId}.name`);
+    asString(manifest.network, `${protocolId}.network`);
+    asString(manifest.transport, `${protocolId}.transport`);
+    asArray(manifest.supportedCommands ?? [], `${protocolId}.supportedCommands`);
+    asString(manifest.status, `${protocolId}.status`);
+    const programId = normalizePubkey(manifest.programId, `${protocolId}.programId`);
+
+    if (manifest.appPath !== undefined) {
+      fail(`${protocolId}: appPath is no longer allowed.`);
+    }
+    if (manifest.metaPath !== undefined || manifest.metaCorePath !== undefined) {
+      fail(`${protocolId}: legacy metaPath/metaCorePath is not allowed.`);
+    }
+
     const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${protocolId}.codamaIdlPath`);
-    const runtimePath =
-      manifest.runtimeSpecPath !== undefined
-        ? resolvePublicAssetPath(manifest.runtimeSpecPath, `${protocolId}.runtimeSpecPath`)
-        : null;
-    const idlPath = await resolveCodecIdlPath(manifest, protocolId);
-
-    const app = asObject(await readJsonFile(appPath, `${protocolId} App pack`), `${protocolId} App pack`);
-    const runtime =
-      runtimePath !== null
-        ? asObject(await readJsonFile(runtimePath, `${protocolId} Runtime pack`), `${protocolId} Runtime pack`)
-        : null;
-    const codama = asObject(await readJsonFile(codamaPath, `${protocolId} Codama IDL`), `${protocolId} Codama IDL`);
+    const codama = asObject(await readJson(codamaPath, `${protocolId} codama`), `${protocolId} codama`);
     if (codama.standard !== 'codama') {
-      fail(`${protocolId}: ${manifest.codamaIdlPath} is not a Codama IDL.`);
+      fail(`${protocolId}: codamaIdlPath must point to a Codama artifact.`);
     }
-
-    validateAppSchema(app, manifest);
-
-    if (typeof app.$schema === 'string' && app.$schema.startsWith('/idl/')) {
-      const schemaFile = resolvePublicAssetPath(app.$schema, `${protocolId}.$schema`);
-      if (!(await pathExists(schemaFile))) {
-        fail(`${protocolId}: declared $schema file not found: ${app.$schema}`);
-      }
-    }
-
     const codamaProgram = asObject(codama.program, `${protocolId}.codama.program`);
-    const codamaProgramId = toBase58Pubkey(codamaProgram.publicKey, `${protocolId}.codama.program.publicKey`);
-    const normalizedProgramId = toBase58Pubkey(manifest.programId, `${protocolId}.programId`);
-    if (codamaProgramId !== normalizedProgramId) {
-      fail(
-        `${protocolId}: registry programId (${normalizedProgramId}) does not match Codama publicKey (${codamaProgramId}).`,
-      );
+    const codamaProgramId = normalizePubkey(codamaProgram.publicKey, `${protocolId}.codama.program.publicKey`);
+    if (codamaProgramId !== programId) {
+      fail(`${protocolId}: registry programId does not match codama.program.publicKey.`);
     }
 
-    let idlInstructionNames;
-    if (idlPath) {
-      const idl = asObject(await readJsonFile(idlPath, `${protocolId} codec IDL`), `${protocolId} codec IDL`);
-      const idlAddress = typeof idl.address === 'string' ? idl.address : null;
-      if (idlAddress) {
-        const normalizedAddress = toBase58Pubkey(idlAddress, `${protocolId}.idl.address`);
-        if (normalizedAddress !== normalizedProgramId) {
-          fail(
-            `${protocolId}: codec IDL address (${normalizedAddress}) does not match registry programId (${normalizedProgramId}).`,
-          );
+    const codecIdlPath = await resolveCodecIdlPath(manifest, protocolId);
+    const instructionNames = codecIdlPath
+      ? collectInstructionNamesFromCodecIdl(
+          asObject(await readJson(codecIdlPath, `${protocolId} codec IDL`), `${protocolId} codec IDL`),
+          `${protocolId}.codecIdl`,
+        )
+      : collectInstructionNamesFromCodama(codama, `${protocolId}.codama`);
+
+    if (manifest.runtimeSpecPath === undefined) {
+      continue;
+    }
+
+    runtimeBackedCount += 1;
+    const runtimePath = resolvePublicAssetPath(manifest.runtimeSpecPath, `${protocolId}.runtimeSpecPath`);
+    const runtime = asObject(await readJson(runtimePath, `${protocolId} runtime spec`), `${protocolId} runtime spec`);
+    if (runtime.schema !== 'declarative-decoder-runtime.v1') {
+      fail(`${protocolId}: runtimeSpecPath must point to declarative-decoder-runtime.v1.`);
+    }
+    if (asString(runtime.protocolId, `${protocolId}.runtime.protocolId`) !== protocolId) {
+      fail(`${protocolId}: runtime.protocolId mismatch.`);
+    }
+
+    const decoderArtifacts = asObject(runtime.decoderArtifacts, `${protocolId}.runtime.decoderArtifacts`);
+    if (Object.keys(decoderArtifacts).length === 0) {
+      fail(`${protocolId}: runtime.decoderArtifacts must not be empty.`);
+    }
+    for (const [artifactName, artifactRaw] of Object.entries(decoderArtifacts)) {
+      const artifact = asObject(artifactRaw, `${protocolId}.runtime.decoderArtifacts.${artifactName}`);
+      const codecPath = resolvePublicAssetPath(
+        artifact.codecIdlPath,
+        `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`,
+      );
+      await readJson(codecPath, `${protocolId} runtime codec IDL ${artifactName}`);
+      if (artifact.idlPath !== undefined) {
+        fail(`${protocolId}: runtime decoder artifact ${artifactName} must not declare legacy idlPath.`);
+      }
+      if (artifact.family === 'codama') {
+        const artifactCodamaPath = resolvePublicAssetPath(
+          artifact.codamaPath,
+          `${protocolId}.runtime.decoderArtifacts.${artifactName}.codamaPath`,
+        );
+        const artifactCodama = asObject(
+          await readJson(artifactCodamaPath, `${protocolId} runtime codama ${artifactName}`),
+          `${protocolId} runtime codama ${artifactName}`,
+        );
+        if (artifactCodama.standard !== 'codama') {
+          fail(`${protocolId}: runtime decoder artifact ${artifactName} codamaPath is not Codama.`);
         }
       }
-      idlInstructionNames = collectIdlInstructionNames(idl, protocolId);
-    } else {
-      idlInstructionNames = collectCodamaInstructionNames(codama, protocolId);
     }
-    const operations = runtime ? loadOperations(runtime, protocolId, 'runtime') : loadOperations(app, protocolId, 'app');
-    validateApps(app, protocolId, operations);
-    const materializedByOperation = {};
 
+    const operations = asObject(runtime.operations, `${protocolId}.runtime.operations`);
     for (const [operationId, operationRaw] of Object.entries(operations)) {
-      const operation = asObject(operationRaw, `${protocolId}.operations.${operationId}`);
-      const first = materializeOperation(operationId, operation, app);
-      const second = materializeOperation(operationId, operation, app);
-
-      if (stableStringify(first) !== stableStringify(second)) {
-        fail(`${protocolId}.${operationId}: non-deterministic materialization.`);
-      }
-
-      ensureUniqueStepNames(first.discover, `${protocolId}.${operationId}.discover`);
-      ensureUniqueStepNames(first.derive, `${protocolId}.${operationId}.derive`);
-      ensureUniqueStepNames(first.compute, `${protocolId}.${operationId}.compute`);
-
-      if (first.instruction) {
-        if (!idlInstructionNames.has(first.instruction)) {
-          fail(`${protocolId}.${operationId}: instruction ${first.instruction} not found in IDL.`);
-        }
-        asObject(first.args, `${protocolId}.${operationId}.args`);
-        asObject(first.accounts, `${protocolId}.${operationId}.accounts`);
-      }
-
-      materializedByOperation[operationId] = {
-        instruction: first.instruction,
-        argsKeys: Object.keys(first.args),
-        accountKeys: Object.keys(first.accounts),
-        discoverStepNames: listStepNames(first.discover),
-        deriveStepNames: listStepNames(first.derive),
-        computeStepNames: listStepNames(first.compute),
-      };
-      totalOperations += 1;
+      validateRuntimeOperation(protocolId, operationId, operationRaw, instructionNames);
+      operationCount += 1;
     }
-
-    results.set(protocolId, {
-      manifest,
-      materializedByOperation,
-    });
-  }
-
-  let fixtureChecks = 0;
-  if (await pathExists(FIXTURE_DIR)) {
-    const files = (await fs.readdir(FIXTURE_DIR))
-      .filter((entry) => entry.endsWith('.json'))
-      .sort();
-
-    for (const filename of files) {
-      const fixturePath = path.join(FIXTURE_DIR, filename);
-      const fixtureRaw = await readJsonFile(fixturePath, `fixture ${filename}`);
-      const fixture = validateFixtureShape(fixtureRaw, filename);
-
-      const protocolResult = results.get(fixture.protocolId);
-      if (!protocolResult) {
-        fail(`${filename}: unknown protocolId ${fixture.protocolId}.`);
-      }
-
-      const operationResult = protocolResult.materializedByOperation[fixture.operationId];
-      if (!operationResult) {
-        fail(`${filename}: unknown operationId ${fixture.operationId} for protocol ${fixture.protocolId}.`);
-      }
-
-      if (fixture.expect.instruction !== undefined) {
-        const expectedInstruction = asString(fixture.expect.instruction, `${filename}.expect.instruction`);
-        if (operationResult.instruction !== expectedInstruction) {
-          fail(
-            `${filename}: instruction mismatch for ${fixture.protocolId}.${fixture.operationId}. expected ${expectedInstruction}, got ${operationResult.instruction || '(none)'}.`,
-          );
-        }
-      }
-
-      if (fixture.expect.requiredArgs !== undefined) {
-        const requiredArgs = asStringArray(fixture.expect.requiredArgs, `${filename}.expect.requiredArgs`);
-        checkRequiredKeys(
-          Object.fromEntries(operationResult.argsKeys.map((key) => [key, true])),
-          requiredArgs,
-          `${filename}: args for ${fixture.protocolId}.${fixture.operationId}`,
-        );
-      }
-
-      if (fixture.expect.requiredAccounts !== undefined) {
-        const requiredAccounts = asStringArray(
-          fixture.expect.requiredAccounts,
-          `${filename}.expect.requiredAccounts`,
-        );
-        checkRequiredKeys(
-          Object.fromEntries(operationResult.accountKeys.map((key) => [key, true])),
-          requiredAccounts,
-          `${filename}: accounts for ${fixture.protocolId}.${fixture.operationId}`,
-        );
-      }
-
-      if (fixture.expect.requiredDiscoverSteps !== undefined) {
-        const required = asStringArray(
-          fixture.expect.requiredDiscoverSteps,
-          `${filename}.expect.requiredDiscoverSteps`,
-        );
-        checkRequiredKeys(
-          Object.fromEntries(operationResult.discoverStepNames.map((key) => [key, true])),
-          required,
-          `${filename}: discover steps for ${fixture.protocolId}.${fixture.operationId}`,
-        );
-      }
-
-      if (fixture.expect.requiredDeriveSteps !== undefined) {
-        const required = asStringArray(
-          fixture.expect.requiredDeriveSteps,
-          `${filename}.expect.requiredDeriveSteps`,
-        );
-        checkRequiredKeys(
-          Object.fromEntries(operationResult.deriveStepNames.map((key) => [key, true])),
-          required,
-          `${filename}: derive steps for ${fixture.protocolId}.${fixture.operationId}`,
-        );
-      }
-
-      if (fixture.expect.requiredComputeSteps !== undefined) {
-        const required = asStringArray(
-          fixture.expect.requiredComputeSteps,
-          `${filename}.expect.requiredComputeSteps`,
-        );
-        checkRequiredKeys(
-          Object.fromEntries(operationResult.computeStepNames.map((key) => [key, true])),
-          required,
-          `${filename}: compute steps for ${fixture.protocolId}.${fixture.operationId}`,
-        );
-      }
-
-      fixtureChecks += 1;
-    }
-  }
-
-  const coverageByProtocol = new Map();
-  for (const [protocolId] of results) {
-    coverageByProtocol.set(protocolId, {
-      parityPositive: 0,
-      parityNegative: 0,
-      simulationPositive: 0,
-      simulationNegative: 0,
-    });
-  }
-
-  const rpcParityFiles = (await pathExists(RPC_PARITY_FIXTURE_DIR))
-    ? (await fs.readdir(RPC_PARITY_FIXTURE_DIR)).filter((entry) => entry.endsWith('.json')).sort()
-    : [];
-  for (const filename of rpcParityFiles) {
-    const fixturePath = path.join(RPC_PARITY_FIXTURE_DIR, filename);
-    const fixture = asObject(await readJsonFile(fixturePath, `RPC parity fixture ${filename}`), filename);
-    const protocolId = asString(fixture.protocolId, `${filename}.protocolId`);
-    const expect = asObject(fixture.expect ?? {}, `${filename}.expect`);
-    const bucket = coverageByProtocol.get(protocolId);
-    if (!bucket) {
-      fail(`${filename}: unknown protocolId ${protocolId}.`);
-    }
-    const isNegative =
-      filename.includes('.negative.') ||
-      filename.endsWith('.negative.json') ||
-      asOptionalStringArray(expect.errorIncludes, `${filename}.expect.errorIncludes`).length > 0;
-    if (isNegative) {
-      bucket.parityNegative += 1;
-    } else {
-      bucket.parityPositive += 1;
-    }
-  }
-
-  const rpcSimulationFiles = (await pathExists(RPC_SIM_FIXTURE_DIR))
-    ? (await fs.readdir(RPC_SIM_FIXTURE_DIR)).filter((entry) => entry.endsWith('.json')).sort()
-    : [];
-  for (const filename of rpcSimulationFiles) {
-    const fixturePath = path.join(RPC_SIM_FIXTURE_DIR, filename);
-    const fixture = asObject(await readJsonFile(fixturePath, `RPC simulation fixture ${filename}`), filename);
-    const protocolId = asString(fixture.protocolId, `${filename}.protocolId`);
-    const expect = asObject(fixture.expect ?? {}, `${filename}.expect`);
-    const bucket = coverageByProtocol.get(protocolId);
-    if (!bucket) {
-      fail(`${filename}: unknown protocolId ${protocolId}.`);
-    }
-    const isNegative =
-      filename.includes('.negative.') ||
-      filename.endsWith('.negative.json') ||
-      expect.ok === false ||
-      asOptionalStringArray(expect.errorIncludes, `${filename}.expect.errorIncludes`).length > 0;
-    if (isNegative) {
-      bucket.simulationNegative += 1;
-    } else {
-      bucket.simulationPositive += 1;
-    }
-  }
-
-  const missingCoverageErrors = [];
-  for (const [protocolId, bucket] of coverageByProtocol) {
-    const missing = [];
-    if (bucket.parityPositive < 1) {
-      missing.push('parityPositive');
-    }
-    if (bucket.parityNegative < 1) {
-      missing.push('parityNegative');
-    }
-    if (bucket.simulationPositive < 1) {
-      missing.push('simulationPositive');
-    }
-    if (bucket.simulationNegative < 1) {
-      missing.push('simulationNegative');
-    }
-    if (missing.length > 0) {
-      missingCoverageErrors.push(
-        `${protocolId} missing RPC coverage: ${missing.join(', ')} (found parity+ ${bucket.parityPositive}, parity- ${bucket.parityNegative}, sim+ ${bucket.simulationPositive}, sim- ${bucket.simulationNegative})`,
-      );
-    }
-  }
-  if (missingCoverageErrors.length > 0) {
-    fail(`RPC fixture coverage gate failed:\n${missingCoverageErrors.join('\n')}`);
   }
 
   console.log(
-    `Protocol pack checks passed: protocols=${results.size}, operations=${totalOperations}, fixtures=${fixtureChecks}, rpcParityFixtures=${rpcParityFiles.length}, rpcSimulationFixtures=${rpcSimulationFiles.length}.`,
+    `Protocol pack validation passed for ${protocols.length} protocol(s); ${runtimeBackedCount} runtime-backed protocol(s), ${operationCount} runtime operation(s).`,
   );
 }
 
-run().catch((error) => {
+main().catch((error) => {
   console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
+  process.exit(1);
 });

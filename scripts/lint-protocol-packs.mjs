@@ -54,54 +54,6 @@ function toLocalPublicPath(assetPath, label) {
   return resolved;
 }
 
-function validateAction(stepLabel, action, index) {
-  const actionObj = asObject(action, `${stepLabel}.actions[${index}]`);
-  asNonEmptyString(actionObj.label, `${stepLabel}.actions[${index}].label`);
-  const doObj = asObject(actionObj.do, `${stepLabel}.actions[${index}].do`);
-  const fn = asNonEmptyString(doObj.fn, `${stepLabel}.actions[${index}].do.fn`);
-  if (!['run', 'back', 'reset'].includes(fn)) {
-    fail(`${stepLabel}.actions[${index}].do.fn must be run|back|reset.`);
-  }
-  const mode = doObj.mode;
-  if (fn === 'run') {
-    const runMode = asNonEmptyString(mode, `${stepLabel}.actions[${index}].do.mode`);
-    if (!['view', 'simulate', 'send'].includes(runMode)) {
-      fail(`${stepLabel}.actions[${index}].do.mode must be view|simulate|send for run actions.`);
-    }
-  } else if (mode !== undefined) {
-    fail(`${stepLabel}.actions[${index}].do.mode must be omitted for ${fn} actions.`);
-  }
-}
-
-function validateStatusText(stepLabel, statusTextRaw) {
-  const statusText = asObject(statusTextRaw, `${stepLabel}.status_text`);
-  asNonEmptyString(statusText.running, `${stepLabel}.status_text.running`);
-  asNonEmptyString(statusText.success, `${stepLabel}.status_text.success`);
-  asNonEmptyString(statusText.error, `${stepLabel}.status_text.error`);
-  if (statusText.idle !== undefined && String(statusText.idle).trim().length === 0) {
-    fail(`${stepLabel}.status_text.idle must be non-empty if provided.`);
-  }
-}
-
-function validateNextOnRules(stepLabel, step, knownStepIds) {
-  if (step.transitions !== undefined) {
-    fail(`${stepLabel}.transitions is deprecated. Use next_on_success only.`);
-  }
-  if (step.blocking !== undefined) {
-    fail(`${stepLabel}.blocking wrapper is deprecated. Use requires_paths on the step.`);
-  }
-  if (step.next_on_success !== undefined) {
-    const next = asNonEmptyString(step.next_on_success, `${stepLabel}.next_on_success`);
-    if (!knownStepIds.has(next)) {
-      fail(`${stepLabel}.next_on_success references unknown step ${next}.`);
-    }
-  }
-
-  if (step.next_on_error !== undefined) {
-    fail(`${stepLabel}.next_on_error is not supported.`);
-  }
-}
-
 async function main() {
   const registry = asObject(await readJson(REGISTRY_PATH, 'IDL registry'), 'registry');
   const protocols = asArray(registry.protocols, 'registry.protocols');
@@ -110,85 +62,61 @@ async function main() {
   for (const protocolRaw of protocols) {
     const protocol = asObject(protocolRaw, 'registry.protocol');
     const protocolId = asNonEmptyString(protocol.id, 'registry.protocol.id');
-    const appPath = protocol.appPath;
-    if (!appPath) {
+    if (protocol.appPath !== undefined) {
+      fail(`${protocolId}: appPath is no longer allowed.`);
+    }
+    if (!protocol.runtimeSpecPath) {
       continue;
     }
 
-    const appPack = asObject(
-      await readJson(toLocalPublicPath(appPath, `${protocolId}.appPath`), `${protocolId} app spec`),
-      `${protocolId}.app`,
+    const runtimePack = asObject(
+      await readJson(toLocalPublicPath(protocol.runtimeSpecPath, `${protocolId}.runtimeSpecPath`), `${protocolId} runtime spec`),
+      `${protocolId}.runtime`,
     );
-    if (appPack.schema !== 'meta-app.v0.1') {
-      fail(`${protocolId}.app.schema must be meta-app.v0.1.`);
+    if (runtimePack.schema !== 'declarative-decoder-runtime.v1') {
+      fail(`${protocolId}.runtime.schema must be declarative-decoder-runtime.v1.`);
     }
 
-    const operations = asObject(appPack.operations ?? {}, `${protocolId}.app.operations`);
+    const operations = asObject(runtimePack.operations ?? {}, `${protocolId}.runtime.operations`);
+    let lintedOperations = 0;
     for (const [operationId, operationRaw] of Object.entries(operations)) {
-      const operation = asObject(operationRaw, `${protocolId}.app.operations.${operationId}`);
-      const inputs = asObject(
-        operation.inputs ?? {},
-        `${protocolId}.app.operations.${operationId}.inputs`,
-      );
+      const operation = asObject(operationRaw, `${protocolId}.runtime.operations.${operationId}`);
+      const inputs = asObject(operation.inputs ?? {}, `${protocolId}.runtime.operations.${operationId}.inputs`);
       for (const [inputName, inputRaw] of Object.entries(inputs)) {
-        const input = asObject(
-          inputRaw,
-          `${protocolId}.app.operations.${operationId}.inputs.${inputName}`,
-        );
+        const input = asObject(inputRaw, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}`);
+        asNonEmptyString(input.type, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.type`);
+        if (input.bind_from !== undefined) {
+          asNonEmptyString(
+            input.bind_from,
+            `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.bind_from`,
+          );
+        }
         if (input.read_from !== undefined) {
           asNonEmptyString(
             input.read_from,
-            `${protocolId}.app.operations.${operationId}.inputs.${inputName}.read_from`,
+            `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.read_from`,
           );
         }
       }
+      if (operation.read_output !== undefined) {
+        const readOutput = asObject(
+          operation.read_output,
+          `${protocolId}.runtime.operations.${operationId}.read_output`,
+        );
+        asNonEmptyString(
+          readOutput.source,
+          `${protocolId}.runtime.operations.${operationId}.read_output.source`,
+        );
+      }
+      lintedOperations += 1;
     }
-    const apps = asObject(appPack.apps, `${protocolId}.app.apps`);
-
-    let validatedSteps = 0;
-    for (const [appId, appRaw] of Object.entries(apps)) {
-      const app = asObject(appRaw, `${protocolId}.apps.${appId}`);
-      asNonEmptyString(app.title, `${protocolId}.apps.${appId}.title`);
-      asNonEmptyString(app.label, `${protocolId}.apps.${appId}.label`);
-      const steps = asArray(app.steps, `${protocolId}.apps.${appId}.steps`);
-      if (steps.length === 0) {
-        fail(`${protocolId}.apps.${appId}.steps must not be empty.`);
-      }
-      const entryStep = asNonEmptyString(app.entry_step, `${protocolId}.apps.${appId}.entry_step`);
-      const stepIds = new Set(
-        steps.map((raw, index) => asNonEmptyString(asObject(raw, `${protocolId}.apps.${appId}.steps[${index}]`).id, `${protocolId}.apps.${appId}.steps[${index}].id`)),
-      );
-      if (!stepIds.has(entryStep)) {
-        fail(`${protocolId}.apps.${appId}.entry_step references unknown step ${entryStep}.`);
-      }
-
-      for (let index = 0; index < steps.length; index += 1) {
-        const step = asObject(steps[index], `${protocolId}.apps.${appId}.steps[${index}]`);
-        const stepId = asNonEmptyString(step.id, `${protocolId}.apps.${appId}.steps[${index}].id`);
-        const stepLabel = `${protocolId}.apps.${appId}.steps.${stepId}`;
-        const operationId = asNonEmptyString(step.operation, `${stepLabel}.operation`);
-        if (!(operationId in operations)) {
-          fail(`${stepLabel}.operation references unknown operation ${operationId}.`);
-        }
-        asNonEmptyString(step.title, `${stepLabel}.title`);
-        asNonEmptyString(step.label, `${stepLabel}.label`);
-        validateStatusText(stepLabel, step.status_text);
-        const actions = asArray(step.actions, `${stepLabel}.actions`);
-        if (actions.length === 0) {
-          fail(`${stepLabel}.actions must not be empty.`);
-        }
-        actions.forEach((action, actionIndex) => validateAction(stepLabel, action, actionIndex));
-        validateNextOnRules(stepLabel, step, stepIds);
-        validatedSteps += 1;
-      }
-    }
-    reports.push({ protocolId, validatedSteps });
+    reports.push({ protocolId, lintedOperations });
   }
 
   for (const report of reports) {
-    console.log(`${report.protocolId}: app lint OK (${report.validatedSteps} step(s)).`);
+    console.log(`${report.protocolId}: runtime lint OK (${report.lintedOperations} operation(s)).`);
   }
-  console.log(`pack:lint passed for ${reports.length} protocol(s).`);
+  console.log(`pack:lint passed for ${reports.length} runtime-backed protocol(s).`);
 }
 
 main().catch((error) => {
