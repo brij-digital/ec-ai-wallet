@@ -683,7 +683,7 @@
           "liquidity"
         ]
       },
-      "contract_view": {
+      "index_view": {
         "kind": "search",
         "source_kind": "account_changes",
         "freshness": {
