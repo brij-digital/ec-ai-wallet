@@ -8,11 +8,9 @@ const RUNTIME_DIR = process.env.APPPACK_RUNTIME_DIR?.trim()
   : path.resolve(ROOT, '../apppack-runtime');
 const SOURCE_DIR = path.join(RUNTIME_DIR, 'schemas');
 const FILES = [
-  'meta_view.schema.v0.2.json',
-  'meta_view.schema.v0.3.json',
   'declarative_decoder_runtime.schema.v1.json',
 ];
-const MANAGED_SCHEMA_PATTERN = /^(meta_.*\.schema\.v.*\.json|declarative_decoder_runtime\.schema\.v1\.json)$/;
+const MANAGED_SCHEMA_PATTERN = /^declarative_decoder_runtime\.schema\.v1\.json$/;
 
 function fail(message) {
   throw new Error(message);

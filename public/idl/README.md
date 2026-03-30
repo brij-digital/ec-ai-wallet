@@ -5,8 +5,6 @@ Treat this README as the explicit ownership header for the directory.
 Shared schema files in this directory are synced from [`apppack-runtime/schemas`](/home/ubuntu/src/apppack-runtime/schemas).
 
 Do not hand-edit:
-- `meta_view.schema.v0.2.json`
-- `meta_view.schema.v0.3.json`
 - `declarative_decoder_runtime.schema.v1.json`
 
 Use:
