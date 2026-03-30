@@ -4,9 +4,9 @@ This repository is the web app and pack-authoring workspace for AppPack.
 
 It provides:
 - a wallet-connected UI to execute declarative protocol operations
-- an App Form Builder driven by protocol app specs
+- a lightweight app-flow UI driven by protocol app specs
 - command mode for strict, protocol-agnostic execution
-- authoring + CI tooling for protocol packs (Codama + runtime spec + MetaIDL + AppSpec)
+- authoring + CI tooling for protocol packs (Codama + runtime spec + app spec)
 
 ## Related Repos
 
@@ -36,10 +36,16 @@ Active protocols in this repo:
 - `kamino-klend-mainnet`
 
 Main UI tabs:
+- `Pump`: pump-specific reference workspace
+- `Views`: backend read/view playground
 - `Apps`: end-user app flows from app specs
-- `Raw Operations`: operation-level execution from MetaIDL
-- `Command`: strict command parser (`/meta-run`, `/view-run`, raw IDL)
-- `Compute`: developer inspection of declarative compute libraries
+- `Raw Operations`: operation-level execution from runtime specs
+- `Compute`: developer inspection of runtime compute
+- `TradingView`: chart/debug surface
+
+Currently disabled in the default UI shell:
+- `Command`
+- `Explorer`
 
 ## Spec Model
 
@@ -74,14 +80,13 @@ Registry:
 - [public/idl/registry.json](public/idl/registry.json)
 
 Schemas:
-- [public/idl/meta_idl.schema.v0.6.json](public/idl/meta_idl.schema.v0.6.json)
-- [public/idl/meta_idl.core.schema.v0.6.json](public/idl/meta_idl.core.schema.v0.6.json)
 - [public/idl/meta_app.schema.v0.1.json](public/idl/meta_app.schema.v0.1.json)
+- [public/idl/declarative_decoder_runtime.schema.v1.json](public/idl/declarative_decoder_runtime.schema.v1.json)
 
 ## Runtime + View Architecture
 
 This web app depends on:
-- `@brij-digital/apppack-runtime` (external package): deterministic IDL/App execution runtime
+- `@brij-digital/apppack-runtime` (external package): deterministic protocol/runtime/app execution runtime
 - `apppack-view-service` (separate repo/service): read/view execution and indexed data endpoint (`/view-run`)
 
 Important behavior:
@@ -120,8 +125,8 @@ Optional frontend env vars:
 - `VITE_VIEW_API_BASE_URL` (view service base URL)
 
 Defaults:
-- wallet RPC defaults to Solana public mainnet endpoint
-- view API defaults to `https://apppack-view-service.onrender.com`
+- wallet RPC defaults to `https://api.brijmail.com/rpc`
+- view API defaults to `https://api.brijmail.com`
 
 For local iteration against a local view/indexer loop:
 
@@ -172,8 +177,9 @@ npm run aidl:compile
 ```
 
 This does:
-- compile `aidl/*.aidl.json` -> `public/idl/*.meta.json`
-- split each meta pack -> `*.meta.core.json` and `*.app.json`
+- compile `aidl/*.aidl.json` -> `public/idl/*.app.json`
+- keep runtime logic in `public/idl/*.runtime.json`
+- sync shared schemas before writing outputs
 
 Check generated outputs are up to date:
 
@@ -217,7 +223,6 @@ npm run ci:protocol-packs:rpc
 - [MAINTAINER_GUIDE.md](MAINTAINER_GUIDE.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [docs/aidl-authoring.md](docs/aidl-authoring.md)
-- [docs/meta-idl-tutorial.md](docs/meta-idl-tutorial.md)
 - [docs/pack-builder.md](docs/pack-builder.md)
 - [docs/protocol-pack-ci.md](docs/protocol-pack-ci.md)
 - [docs/view-spec-v0.2.md](docs/view-spec-v0.2.md)

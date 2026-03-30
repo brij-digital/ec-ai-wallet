@@ -29,11 +29,11 @@ npm run ci:protocol-packs:rpc
 
 ### `aidl:check`
 - verifies compiled AIDL outputs are up to date
-- verifies split outputs (`*.meta.core.json`, `*.app.json`) are up to date
+- verifies generated app outputs (`*.app.json`) are up to date
 
 ### `pack:check`
 - registry integrity (`public/idl/registry.json`)
-- IDL/meta file existence and basic consistency
+- Codama/runtime/app file existence and basic consistency
 - deterministic operation materialization
 - operation-level integrity (instruction existence, step name uniqueness)
 - fixture checks in `protocol-packs/fixtures`

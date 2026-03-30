@@ -397,7 +397,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         if (isReadOnlyOperation) {
           if (!options.selectedBuilderOperation.readOutput) {
             throw new Error(
-              `Read-only operation ${options.builderProtocolId}/${options.selectedBuilderOperation.operationId} is missing read_output in Meta IDL.`,
+              `Read-only operation ${options.builderProtocolId}/${options.selectedBuilderOperation.operationId} is missing read_output in the runtime spec.`,
             );
           }
 
@@ -478,7 +478,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         if (!prepared.instructionName) {
           if (!options.selectedBuilderOperation.readOutput) {
             throw new Error(
-              `Read-only operation ${options.builderProtocolId}/${options.selectedBuilderOperation.operationId} is missing read_output in Meta IDL.`,
+              `Read-only operation ${options.builderProtocolId}/${options.selectedBuilderOperation.operationId} is missing read_output in the runtime spec.`,
             );
           }
           const readScope = {

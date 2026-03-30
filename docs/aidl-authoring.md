@@ -1,10 +1,10 @@
 # AIDL Authoring Guide (Current)
 
-AIDL is the authoring format for app packs in this repo.
+AIDL is the authoring format for app specs in this repo.
 
 Goal:
 - keep authoring concise for humans
-- compile to strict runtime JSON consumed by `@brij-digital/apppack-runtime`
+- compile to strict app JSON consumed by `@brij-digital/apppack-runtime`
 
 ## Source Files
 
@@ -93,11 +93,11 @@ Important rules:
 
 ## Current Status in This Repo
 
-AIDL-first packs today:
+AIDL-first app packs today:
 - `orca_whirlpool`
 - `pump_amm`
 
-Unmigrated packs can still be maintained directly in `public/idl/*.meta.json` and are split by `split-meta-packs`.
+Runtime logic no longer lives in AIDL output. Keep indexing / compute / projections in `public/idl/*.runtime.json`.
 
 ## Recommended Workflow
 

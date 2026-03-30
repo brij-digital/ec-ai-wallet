@@ -55,8 +55,8 @@ npm run aidl:compile
 ```
 
 Inspect:
-- `public/idl/*.meta.json`
-- `public/idl/*.meta.core.json`
+- `public/idl/*.codama.json`
+- `public/idl/*.runtime.json`
 - `public/idl/*.app.json`
 - `public/compute/*.compute.json`
 

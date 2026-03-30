@@ -13,9 +13,9 @@ Optimize for explicit behavior, small diffs, and strong regression protection.
 
 1. Reproduce the issue.
 2. Decide which layer owns the fix:
-   - protocol truth -> IDL
-   - execution wiring -> MetaIDL
-   - end-user flow/copy -> AppSpec
+   - protocol truth -> Codama / codec IDL
+   - execution wiring -> runtime spec
+   - end-user flow/copy -> app spec
    - reusable primitive -> runtime
    - indexed reads -> view-service
 3. Prefer the narrowest correct layer.

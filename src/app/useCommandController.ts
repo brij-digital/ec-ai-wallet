@@ -237,7 +237,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
         '/help',
         '',
         'Notes:',
-        'Use /meta-run for protocol-agnostic operation execution from MetaIDL.',
+        'Use /meta-run for protocol-agnostic operation execution from runtime specs.',
         `Pool discovery runs through View API (${defaultViewApiBaseUrl}) with no local fallback.`,
         '/meta-run requires explicit mode: --simulate or --send.',
         'Use --simulate first, then --send with same input for deterministic execution.',
@@ -322,7 +322,7 @@ export function useCommandController(options: UseCommandControllerOptions) {
 
   async function executeMetaRun(value: MetaRunCommand): Promise<void> {
     if (!wallet.publicKey) {
-      throw new Error('Connect wallet first to execute MetaIDL operations.');
+      throw new Error('Connect wallet first to execute runtime operations.');
     }
 
     const operationsView = await listMetaOperations({

@@ -5,10 +5,10 @@ This doc covers the practical workflow to add or evolve protocol packs in this r
 ## Pack Layout
 
 A protocol pack is represented by files under `public/idl`:
-- `<slug>.json` (IDL)
-- `<slug>.meta.json` (full meta pack)
-- `<slug>.meta.core.json` (operations/templates only)
-- `<slug>.app.json` (apps only)
+- `<slug>.codama.json` (protocol source of truth)
+- `<slug>.json` (codec compatibility IDL)
+- `<slug>.runtime.json` (runtime/indexing/read contract)
+- `<slug>.app.json` (app/UI/flow contract)
 
 Registry entry:
 - `public/idl/registry.json`
@@ -39,7 +39,7 @@ What scaffold creates:
 ## 2) Author Operations + App Flow
 
 In AIDL source:
-- define templates/operations (MetaIDL)
+- define app-facing operations/flows
 - define `apps` with step actions and transitions
 
 Rules to keep in mind:

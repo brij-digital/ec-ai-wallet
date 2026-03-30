@@ -34,7 +34,7 @@ Role:
 - generic runtime
 
 Owns:
-- IDL/MetaIDL/AppSpec parsing
+- Codama/runtime/app parsing
 - generic derive / compute / execution behavior
 - schema handling
 - declarative runtime primitives
@@ -65,11 +65,11 @@ Must not own:
 
 ## Architecture Boundaries
 
-### IDL
-Raw protocol truth.
-Defines instructions, accounts, types, and errors.
+### Codama
+Protocol truth.
+Defines instructions, events, accounts, types, and structure.
 
-### MetaIDL
+### Runtime
 Execution logic.
 Defines operation expansion such as:
 - discover
@@ -77,8 +77,9 @@ Defines operation expansion such as:
 - compute
 - pre/post instructions
 - args/accounts binding
+- projections
 
-### AppSpec
+### App
 End-user flow.
 Defines:
 - steps
@@ -120,8 +121,14 @@ Active protocols:
 Active surfaces:
 - Apps
 - Raw Operations
-- Command
 - Compute
+- Views
+- Pump
+- TradingView
+
+Currently disabled in the default shell:
+- Command
+- Explorer
 
 ## Safe AI Ownership Areas
 

@@ -56,28 +56,6 @@ function requireSchema(value, expected, label) {
   }
 }
 
-function validateLegacyMetaCore(protocolId, metaCore) {
-  if (!metaCore || typeof metaCore !== 'object' || Array.isArray(metaCore)) {
-    return;
-  }
-  const sources = metaCore.sources;
-  if (sources === undefined) {
-    return;
-  }
-  if (!sources || typeof sources !== 'object' || Array.isArray(sources)) {
-    fail(`${protocolId}: meta.core.sources must be an object when present.`);
-  }
-  for (const [sourceName, sourceRaw] of Object.entries(sources)) {
-    const source = asObject(sourceRaw, `${protocolId}.metaCore.sources.${sourceName}`);
-    const kind = asString(source.kind, `${protocolId}.metaCore.sources.${sourceName}.kind`);
-    if (kind !== 'inline' && kind !== 'http_json') {
-      fail(
-        `${protocolId}: meta.core.sources.${sourceName} uses legacy runtime kind ${kind}; runtime logic must live in *.runtime.json.`,
-      );
-    }
-  }
-}
-
 async function main() {
   const registry = asObject(await readJson(REGISTRY_PATH, 'registry'), 'registry');
   const protocols = registry.protocols;

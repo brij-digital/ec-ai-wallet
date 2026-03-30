@@ -8,8 +8,6 @@ const RUNTIME_DIR = process.env.APPPACK_RUNTIME_DIR?.trim()
   : path.resolve(ROOT, '../apppack-runtime');
 const SOURCE_DIR = path.join(RUNTIME_DIR, 'schemas');
 const FILES = [
-  'meta_idl.schema.v0.6.json',
-  'meta_idl.core.schema.v0.6.json',
   'meta_view.schema.v0.2.json',
   'meta_view.schema.v0.3.json',
   'meta_app.schema.v0.1.json',
