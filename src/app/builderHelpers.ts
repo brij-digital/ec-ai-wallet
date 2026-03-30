@@ -152,7 +152,7 @@ export function formatBuilderSelectableItemLabel(
 }
 
 export function isAutoResolvedBuilderInput(spec: MetaOperationSummary['inputs'][string]): boolean {
-  const readFrom = spec.read_from;
+  const readFrom = spec.bind_from;
   return (
     spec.default !== undefined ||
     (typeof readFrom === 'string' && readFrom.length > 0)
@@ -248,7 +248,7 @@ export function buildExampleInputsForOperation(
   const nextValues: Record<string, string> = {};
 
   for (const [inputName, spec] of Object.entries(operation.inputs)) {
-    if (typeof spec.read_from === 'string' && spec.read_from.trim().length > 0) {
+    if (typeof spec.bind_from === 'string' && spec.bind_from.trim().length > 0) {
       nextValues[inputName] = '';
       continue;
     }
@@ -464,25 +464,28 @@ export function renderMetaExplain(explanation: MetaOperationExplain): string {
     const required = spec.required === false ? 'optional' : 'required';
     const defaultText = spec.default !== undefined ? `, default=${JSON.stringify(spec.default)}` : '';
     const discoverFromText =
-      typeof spec.read_from === 'string' ? `, read_from=${spec.read_from}` : '';
+      typeof spec.bind_from === 'string' ? `, bind_from=${spec.bind_from}` : '';
     return `${required}${defaultText}${discoverFromText}`;
   };
 
   const discoverLines = explanation.discover.map((step, index) => {
-    const name = String(step.name ?? `step_${index + 1}`);
-    const kind = String(step.discover ?? 'unknown');
+    const record = step && typeof step === 'object' && !Array.isArray(step) ? (step as Record<string, unknown>) : {};
+    const name = String(record.name ?? `step_${index + 1}`);
+    const kind = String(record.discover ?? 'unknown');
     return `${index + 1}. ${name} -> ${kind}`;
   });
 
   const deriveLines = explanation.derive.map((step, index) => {
-    const name = String(step.name ?? `step_${index + 1}`);
-    const resolver = String(step.resolver ?? 'unknown');
+    const record = step && typeof step === 'object' && !Array.isArray(step) ? (step as Record<string, unknown>) : {};
+    const name = String(record.name ?? `step_${index + 1}`);
+    const resolver = String(record.resolver ?? 'unknown');
     return `${index + 1}. ${name} -> ${resolver}`;
   });
 
   const computeLines = explanation.compute.map((step, index) => {
-    const name = String(step.name ?? `step_${index + 1}`);
-    const compute = String(step.compute ?? 'unknown');
+    const record = step && typeof step === 'object' && !Array.isArray(step) ? (step as Record<string, unknown>) : {};
+    const name = String(record.name ?? `step_${index + 1}`);
+    const compute = String(record.compute ?? 'unknown');
     return `${index + 1}. ${name} -> ${compute}`;
   });
 
@@ -515,7 +518,10 @@ export function renderMetaExplain(explanation: MetaOperationExplain): string {
     `Meta operation: ${explanation.protocolId}/${explanation.operationId}`,
     `schema: ${explanation.schema ?? 'n/a'} | version: ${explanation.version}`,
     `instruction: ${explanation.instruction}`,
-    `templates used: ${explanation.templateUse.length > 0 ? explanation.templateUse.map((entry) => String(entry.template ?? entry.macro ?? 'unknown')).join(', ') : 'none'}`,
+    `templates used: ${explanation.templateUse.length > 0 ? explanation.templateUse.map((entry) => {
+      const record = entry && typeof entry === 'object' && !Array.isArray(entry) ? (entry as Record<string, unknown>) : {};
+      return String(record.template ?? record.macro ?? 'unknown');
+    }).join(', ') : 'none'}`,
     '',
     'Inputs:',
     ...(inputLines.length > 0 ? inputLines : ['- none']),

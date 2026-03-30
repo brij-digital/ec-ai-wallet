@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listIdlProtocols } from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
-  listApps as listMetaApps,
+  listAppOperations,
+  listApps,
   type AppSummary as MetaAppSummary,
   type AppOperationSummary as MetaOperationSummary,
 } from '@brij-digital/apppack-runtime/appSpecRuntime';
@@ -452,7 +453,7 @@ export function useBuilderController(initialViewMode: BuilderViewMode = 'forms')
     });
 
     const filtered = withOverrides.filter(([, spec]) => {
-      const hasReadFrom = typeof spec.read_from === 'string' && spec.read_from.length > 0;
+      const hasReadFrom = typeof spec.bind_from === 'string' && spec.bind_from.length > 0;
       const mode =
         spec.ui_mode === 'edit' || spec.ui_mode === 'readonly' || spec.ui_mode === 'hidden'
           ? spec.ui_mode
@@ -566,10 +567,10 @@ export function useBuilderController(initialViewMode: BuilderViewMode = 'forms')
       }
 
       const [operationsView, appsView] = await Promise.all([
-        listRuntimeOperations({
+        listAppOperations({
           protocolId: builderProtocolId,
         }),
-        listMetaApps({
+        listApps({
           protocolId: builderProtocolId,
         }),
       ]);

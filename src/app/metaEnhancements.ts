@@ -324,7 +324,7 @@ export function validateOperationInput(options: {
     const requiredByRule = rules.required === true;
     const required = spec.required || requiredByRule;
     const hasDefault = spec.default !== undefined;
-    const hasReadFrom = typeof spec.read_from === 'string' && spec.read_from.length > 0;
+    const hasReadFrom = typeof spec.bind_from === 'string' && spec.bind_from.length > 0;
     if (required && isMissing && !hasDefault && !hasReadFrom) {
       errors.push(ruleMessage ?? `Missing required input ${inputName}.`);
       continue;

@@ -529,8 +529,8 @@ export function BuilderTab(props: BuilderTabProps) {
                           if (spec.default !== undefined) {
                             return `default: ${stringifyBuilderDefault(spec.default)}`;
                           }
-                          if (typeof spec.read_from === 'string') {
-                            return `read_from: ${spec.read_from}`;
+                          if (typeof spec.bind_from === 'string') {
+                            return `bind_from: ${spec.bind_from}`;
                           }
                           return '';
                         })();

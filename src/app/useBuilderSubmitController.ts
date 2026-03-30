@@ -15,7 +15,9 @@ import {
 import {
   type AppOperationSummary as MetaOperationSummary,
 } from '@brij-digital/apppack-runtime/appSpecRuntime';
-import { prepareRuntimeOperation } from '@brij-digital/apppack-runtime/runtimeOperationRuntime';
+import {
+  prepareRuntimeOperation,
+} from '@brij-digital/apppack-runtime/runtimeOperationRuntime';
 import {
   buildDerivedFromReadOutputSource,
   buildReadOnlyHighlightsFromSpec,
@@ -231,7 +233,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
 
     const previewBindings = Object.entries(operation.inputs)
       .map(([inputName, spec]) => {
-        const readFrom = spec.read_from;
+        const readFrom = spec.bind_from;
         if (typeof readFrom !== 'string' || readFrom.trim().length === 0) {
           return null;
         }
@@ -247,7 +249,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
     }
 
     const missingRequired = Object.entries(operation.inputs).some(([inputName, spec]) => {
-      const readFrom = spec.read_from;
+      const readFrom = spec.bind_from;
       if (typeof readFrom === 'string' && readFrom.trim().length > 0) {
         return false;
       }
@@ -256,7 +258,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         return false;
       }
       const hasDefault = spec.default !== undefined;
-      const hasReadFrom = typeof spec.read_from === 'string' && spec.read_from.length > 0;
+      const hasReadFrom = typeof spec.bind_from === 'string' && spec.bind_from.length > 0;
       return spec.required && !hasDefault && !hasReadFrom;
     });
     if (missingRequired) {
@@ -274,8 +276,8 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
               continue;
             }
             if (
-              typeof spec.read_from === 'string' &&
-              spec.read_from.trim().length > 0 &&
+              typeof spec.bind_from === 'string' &&
+              spec.bind_from.trim().length > 0 &&
               (spec.ui_mode === 'readonly' || spec.ui_mode === 'hidden')
             ) {
               // Read-only preview fields are derived from prepareMetaOperation.
@@ -373,7 +375,7 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
           if (!rawValue.trim()) {
             const hasDefault = spec.default !== undefined;
             const hasReadFrom =
-              typeof spec.read_from === 'string' && spec.read_from.length > 0;
+              typeof spec.bind_from === 'string' && spec.bind_from.length > 0;
             if (spec.required && !hasDefault && !hasReadFrom) {
               throw new Error(`Missing required input ${inputName}.`);
             }

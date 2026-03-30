@@ -58,12 +58,12 @@ describe('buildExampleInputsForOperation', () => {
     expect(values.token_mint).toBe('');
   });
 
-  it('does not prefill computed readonly fields from read_from', () => {
+  it('does not prefill computed readonly fields from bind_from', () => {
     const operation = opWithInputs({
       min_tokens_out: {
         type: 'u64',
         required: false,
-        read_from: '$derived.min_tokens_out_auto',
+        bind_from: '$derived.min_tokens_out_auto',
         ui_mode: 'readonly',
       } as MetaOperationSummary['inputs'][string],
       slippage_bps: {

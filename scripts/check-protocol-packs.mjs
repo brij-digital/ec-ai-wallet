@@ -512,9 +512,17 @@ async function run() {
     const protocolId = manifest.id;
     const appPath = resolvePublicAssetPath(manifest.appPath, `${protocolId}.appPath`);
     const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${protocolId}.codamaIdlPath`);
+    const runtimePath =
+      manifest.runtimeSpecPath !== undefined
+        ? resolvePublicAssetPath(manifest.runtimeSpecPath, `${protocolId}.runtimeSpecPath`)
+        : null;
     const idlPath = await resolveCodecIdlPath(manifest, protocolId);
 
     const app = asObject(await readJsonFile(appPath, `${protocolId} App pack`), `${protocolId} App pack`);
+    const runtime =
+      runtimePath !== null
+        ? asObject(await readJsonFile(runtimePath, `${protocolId} Runtime pack`), `${protocolId} Runtime pack`)
+        : null;
     const codama = asObject(await readJsonFile(codamaPath, `${protocolId} Codama IDL`), `${protocolId} Codama IDL`);
     if (codama.standard !== 'codama') {
       fail(`${protocolId}: ${manifest.codamaIdlPath} is not a Codama IDL.`);
@@ -554,7 +562,7 @@ async function run() {
     } else {
       idlInstructionNames = collectCodamaInstructionNames(codama, protocolId);
     }
-    const operations = loadOperations(app, protocolId, 'app');
+    const operations = runtime ? loadOperations(runtime, protocolId, 'runtime') : loadOperations(app, protocolId, 'app');
     validateApps(app, protocolId, operations);
     const materializedByOperation = {};
 

@@ -477,14 +477,12 @@
         "quote_mint": {
           "type": "pubkey",
           "required": false,
-          "default": "So11111111111111111111111111111111111111112",
-          "label": "Quote Mint"
+          "default": "So11111111111111111111111111111111111111112"
         },
         "min_last_seen_slot": {
           "type": "u64",
           "required": false,
-          "default": "0",
-          "label": "Min Last Seen Slot"
+          "default": "0"
         }
       },
       "view": {
@@ -590,7 +588,6 @@
         "maxItems": 20,
         "emptyText": "No Pump AMM token found for this quote mint."
       },
-      "label": "List Tokens",
       "use": [
         {
           "template": "pump.list_tokens.v1",
@@ -605,17 +602,13 @@
         "base_mint": {
           "type": "pubkey",
           "required": true,
-          "read_from": "$input.base_mint",
-          "ui_mode": "readonly",
-          "label": "Base Mint"
+          "bind_from": "$input.base_mint"
         },
         "quote_mint": {
           "type": "pubkey",
           "required": false,
           "default": "So11111111111111111111111111111111111111112",
-          "read_from": "$input.quote_mint",
-          "ui_mode": "readonly",
-          "label": "Quote Mint"
+          "bind_from": "$input.quote_mint"
         }
       },
       "view": {
@@ -724,7 +717,6 @@
         "maxItems": 1,
         "emptyText": "Pool not found."
       },
-      "label": "View Pool",
       "use": [
         {
           "template": "pump.view_pool.v1",
@@ -739,14 +731,12 @@
       "inputs": {
         "mint": {
           "type": "pubkey",
-          "required": true,
-          "label": "Mint"
+          "required": true
         },
         "quote_mint": {
           "type": "pubkey",
           "required": false,
-          "default": "So11111111111111111111111111111111111111112",
-          "label": "Quote Mint"
+          "default": "So11111111111111111111111111111111111111112"
         }
       },
       "view": {
@@ -865,15 +855,13 @@
           }
         }
       },
-      "label": "Resolve Pool",
       "use": []
     },
     "pool_snapshot": {
       "inputs": {
         "pool": {
           "type": "pubkey",
-          "required": true,
-          "label": "Pool"
+          "required": true
         }
       },
       "view": {
@@ -920,21 +908,18 @@
           "isCashbackCoin": "$decoded.is_cashback_coin"
         }
       },
-      "label": "Pool Snapshot",
       "use": []
     },
     "trade_feed": {
       "inputs": {
         "pool": {
           "type": "pubkey",
-          "required": true,
-          "label": "Pool"
+          "required": true
         },
         "limit": {
           "type": "u16",
           "required": false,
-          "default": 50,
-          "label": "Limit"
+          "default": 50
         }
       },
       "view": {
@@ -977,43 +962,36 @@
         "title": "Trade feed",
         "description": "Recent Pump AMM trades ordered by event time."
       },
-      "label": "Trade Feed",
       "use": []
     },
     "market_cap_series": {
       "inputs": {
         "pool": {
           "type": "pubkey",
-          "required": true,
-          "label": "Pool"
+          "required": true
         },
         "limit": {
           "type": "u16",
           "required": false,
-          "default": 240,
-          "label": "Limit"
+          "default": 240
         },
         "from": {
           "type": "string",
-          "required": false,
-          "label": "From ISO"
+          "required": false
         },
         "to": {
           "type": "string",
-          "required": false,
-          "label": "To ISO"
+          "required": false
         },
         "interval": {
           "type": "string",
           "required": false,
-          "default": "1m",
-          "label": "Interval"
+          "default": "1m"
         },
         "mode": {
           "type": "string",
           "required": false,
-          "default": "sparse",
-          "label": "Mode"
+          "default": "sparse"
         }
       },
       "view": {
@@ -1099,7 +1077,6 @@
         "title": "Market cap series",
         "description": "Materialized Pump market-cap and price series with 1m base candles, interval rollups, and optional dense fill."
       },
-      "label": "Market Cap Series",
       "use": []
     },
     "ranked_active_tokens": {
@@ -1107,32 +1084,27 @@
         "quote_mint": {
           "type": "pubkey",
           "required": false,
-          "default": "So11111111111111111111111111111111111111112",
-          "label": "Quote Mint"
+          "default": "So11111111111111111111111111111111111111112"
         },
         "window_hours": {
           "type": "u32",
           "required": false,
-          "default": 24,
-          "label": "Window Hours"
+          "default": 24
         },
         "max_activity_age_minutes": {
           "type": "u32",
           "required": false,
-          "default": 30,
-          "label": "Max Activity Age Minutes"
+          "default": 30
         },
         "min_liquidity": {
           "type": "u64",
           "required": false,
-          "default": 0,
-          "label": "Min Liquidity"
+          "default": 0
         },
         "min_volume": {
           "type": "u64",
           "required": false,
-          "default": 0,
-          "label": "Min Volume"
+          "default": 0
         }
       },
       "view": {
@@ -1207,7 +1179,6 @@
           }
         }
       },
-      "label": "Ranked Active Tokens",
       "use": []
     },
     "buy": {
@@ -1215,43 +1186,33 @@
         "base_mint": {
           "type": "pubkey",
           "required": true,
-          "read_from": "$input.base_mint",
-          "ui_mode": "readonly",
-          "label": "Base Mint"
+          "bind_from": "$input.base_mint"
         },
         "quote_mint": {
           "type": "pubkey",
           "required": false,
           "default": "So11111111111111111111111111111111111111112",
-          "read_from": "$input.quote_mint",
-          "ui_mode": "readonly",
-          "label": "Quote Mint"
+          "bind_from": "$input.quote_mint"
         },
         "quote_amount_in": {
           "type": "u64",
-          "required": true,
-          "label": "Quote Amount In"
+          "required": true
         },
         "track_volume": {
           "type": "bool",
           "required": false,
-          "default": true,
-          "label": "Track Volume"
+          "default": true
         },
         "pool": {
           "type": "pubkey",
           "required": false,
-          "read_from": "$input.pool",
-          "ui_mode": "readonly",
-          "label": "Pool"
+          "bind_from": "$input.pool"
         },
         "slippage_bps": {
           "type": "u16",
-          "required": true,
-          "label": "Slippage Bps"
+          "required": true
         }
       },
-      "label": "Buy",
       "use": [
         {
           "template": "pump.buy.v1",
@@ -1270,38 +1231,29 @@
         "base_mint": {
           "type": "pubkey",
           "required": true,
-          "read_from": "$input.base_mint",
-          "ui_mode": "readonly",
-          "label": "Base Mint"
+          "bind_from": "$input.base_mint"
         },
         "quote_mint": {
           "type": "pubkey",
           "required": false,
           "default": "So11111111111111111111111111111111111111112",
-          "read_from": "$input.quote_mint",
-          "ui_mode": "readonly",
-          "label": "Quote Mint"
+          "bind_from": "$input.quote_mint"
         },
         "pool": {
           "type": "pubkey",
           "required": false,
-          "read_from": "$input.pool",
-          "ui_mode": "readonly",
-          "label": "Pool"
+          "bind_from": "$input.pool"
         },
         "base_amount_in": {
           "type": "u64",
-          "required": true,
-          "label": "Base Amount In"
+          "required": true
         },
         "min_quote_amount_out": {
           "type": "u64",
           "required": false,
-          "default": "1",
-          "label": "Min Quote Amount Out"
+          "default": "1"
         }
       },
-      "label": "Sell",
       "use": [
         {
           "template": "pump.sell.v1",

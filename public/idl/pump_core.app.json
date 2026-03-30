@@ -7,11 +7,9 @@
   "templates": {},
   "operations": {
     "buy_exact_sol_in": {
-      "instruction": "buy_exact_sol_in",
+      "label": "Buy Exact Sol In",
       "inputs": {
         "base_mint": {
-          "type": "pubkey",
-          "required": true,
           "label": "Token",
           "placeholder": "Token mint address",
           "help": "Enter the token you want to buy.",
@@ -19,8 +17,6 @@
           "display_order": 1
         },
         "spendable_sol_in": {
-          "type": "u64",
-          "required": true,
           "label": "Amount in SOL",
           "placeholder": "0.01",
           "help": "How much SOL to spend.",
@@ -28,8 +24,6 @@
           "display_order": 2
         },
         "slippage_bps": {
-          "type": "u16",
-          "required": true,
           "label": "Slippage",
           "placeholder": "1.00",
           "help": "Max price movement you accept, in percent.",
@@ -37,275 +31,17 @@
           "display_order": 3
         },
         "min_tokens_out": {
-          "type": "u64",
-          "required": false,
-          "read_from": "$args.min_tokens_out",
-          "ui_mode": "readonly",
           "label": "Minimum tokens received",
           "help": "Calculated automatically.",
           "group": "trade",
-          "display_order": 4
+          "display_order": 4,
+          "ui_mode": "readonly"
         },
         "track_volume": {
-          "type": "bool",
-          "required": false,
-          "default": false,
-          "ui_mode": "hidden",
-          "label": "Track Volume"
+          "label": "Track Volume",
+          "ui_mode": "hidden"
         }
-      },
-      "derive": [
-        {
-          "name": "wallet",
-          "resolver": "wallet_pubkey"
-        },
-        {
-          "name": "token_program",
-          "resolver": "account_owner",
-          "address": "$input.base_mint"
-        },
-        {
-          "name": "global",
-          "resolver": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:global"
-          ]
-        },
-        {
-          "name": "global_data",
-          "resolver": "decode_account",
-          "address": "$global",
-          "account_type": "Global"
-        },
-        {
-          "name": "bonding_curve",
-          "resolver": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:bonding-curve",
-            "$input.base_mint"
-          ]
-        },
-        {
-          "name": "bonding_curve_v2",
-          "resolver": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:bonding-curve-v2",
-            "$input.base_mint"
-          ]
-        },
-        {
-          "name": "bonding_curve_data",
-          "resolver": "decode_account",
-          "address": "$bonding_curve",
-          "account_type": "BondingCurve"
-        },
-        {
-          "name": "associated_bonding_curve",
-          "resolver": "ata",
-          "owner": "$bonding_curve",
-          "mint": "$input.base_mint",
-          "token_program": "$token_program",
-          "allow_owner_off_curve": true
-        },
-        {
-          "name": "associated_user",
-          "resolver": "ata",
-          "owner": "$wallet",
-          "mint": "$input.base_mint",
-          "token_program": "$token_program"
-        },
-        {
-          "name": "creator_vault",
-          "resolver": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:creator-vault",
-            "$bonding_curve_data.creator"
-          ]
-        },
-        {
-          "name": "event_authority",
-          "resolver": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:__event_authority"
-          ]
-        },
-        {
-          "name": "global_volume_accumulator",
-          "resolver": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:global_volume_accumulator"
-          ]
-        },
-        {
-          "name": "user_volume_accumulator",
-          "resolver": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:user_volume_accumulator",
-            "$wallet"
-          ]
-        },
-        {
-          "name": "fee_config",
-          "resolver": "pda",
-          "program_id": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
-          "seeds": [
-            "utf8:fee_config",
-            "$protocol.programId"
-          ]
-        }
-      ],
-      "compute": [
-        {
-          "name": "creator_is_default",
-          "compute": "compare.equals",
-          "left": "$bonding_curve_data.creator",
-          "right": "11111111111111111111111111111111"
-        },
-        {
-          "name": "creator_fee_bps_effective",
-          "compute": "logic.if",
-          "condition": "$creator_is_default",
-          "then": "0",
-          "else": "$global_data.creator_fee_basis_points"
-        },
-        {
-          "name": "total_fee_bps",
-          "compute": "math.add",
-          "values": [
-            "$global_data.fee_basis_points",
-            "$creator_fee_bps_effective"
-          ]
-        },
-        {
-          "name": "net_sol_numerator",
-          "compute": "math.mul",
-          "values": [
-            "$input.spendable_sol_in",
-            "10000"
-          ]
-        },
-        {
-          "name": "net_sol_denominator",
-          "compute": "math.add",
-          "values": [
-            "10000",
-            "$total_fee_bps"
-          ]
-        },
-        {
-          "name": "net_sol_raw",
-          "compute": "math.floor_div",
-          "dividend": "$net_sol_numerator",
-          "divisor": "$net_sol_denominator"
-        },
-        {
-          "name": "net_sol_minus_one_candidate",
-          "compute": "math.sub",
-          "values": [
-            "$net_sol_raw",
-            "1"
-          ]
-        },
-        {
-          "name": "net_sol_gt_one",
-          "compute": "compare.gt",
-          "left": "$net_sol_raw",
-          "right": "1"
-        },
-        {
-          "name": "net_sol_minus_one",
-          "compute": "logic.if",
-          "condition": "$net_sol_gt_one",
-          "then": "$net_sol_minus_one_candidate",
-          "else": "0"
-        },
-        {
-          "name": "estimated_out_numerator",
-          "compute": "math.mul",
-          "values": [
-            "$net_sol_minus_one",
-            "$bonding_curve_data.virtual_token_reserves"
-          ]
-        },
-        {
-          "name": "estimated_out_denominator",
-          "compute": "math.add",
-          "values": [
-            "$bonding_curve_data.virtual_sol_reserves",
-            "$net_sol_minus_one"
-          ]
-        },
-        {
-          "name": "estimated_out_auto",
-          "compute": "math.floor_div",
-          "dividend": "$estimated_out_numerator",
-          "divisor": "$estimated_out_denominator"
-        },
-        {
-          "name": "slippage_keep_bps",
-          "compute": "math.sub",
-          "values": [
-            "10000",
-            "$input.slippage_bps"
-          ]
-        },
-        {
-          "name": "min_tokens_out_auto_numerator",
-          "compute": "math.mul",
-          "values": [
-            "$estimated_out_auto",
-            "$slippage_keep_bps"
-          ]
-        },
-        {
-          "name": "min_tokens_out_auto",
-          "compute": "math.floor_div",
-          "dividend": "$min_tokens_out_auto_numerator",
-          "divisor": "10000"
-        }
-      ],
-      "args": {
-        "spendable_sol_in": "$input.spendable_sol_in",
-        "min_tokens_out": "$min_tokens_out_auto",
-        "track_volume": "$input.track_volume"
-      },
-      "pre": [
-        {
-          "kind": "spl_ata_create_idempotent",
-          "payer": "$wallet",
-          "ata": "$associated_user",
-          "owner": "$wallet",
-          "mint": "$input.base_mint",
-          "token_program": "$token_program"
-        }
-      ],
-      "accounts": {
-        "global": "$global",
-        "fee_recipient": "$global_data.fee_recipient",
-        "mint": "$input.base_mint",
-        "bonding_curve": "$bonding_curve",
-        "bonding_curve_v2": "$bonding_curve_v2",
-        "associated_bonding_curve": "$associated_bonding_curve",
-        "associated_user": "$associated_user",
-        "user": "$wallet",
-        "system_program": "11111111111111111111111111111111",
-        "token_program": "$token_program",
-        "creator_vault": "$creator_vault",
-        "event_authority": "$event_authority",
-        "program": "$protocol.programId",
-        "global_volume_accumulator": "$global_volume_accumulator",
-        "user_volume_accumulator": "$user_volume_accumulator",
-        "fee_config": "$fee_config",
-        "fee_program": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"
-      },
-      "label": "Buy Exact Sol In"
+      }
     }
   },
   "apps": {

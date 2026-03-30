@@ -1163,846 +1163,150 @@
   },
   "operations": {
     "list_tokens": {
+      "label": "List Tokens",
       "inputs": {
         "quote_mint": {
-          "type": "pubkey",
-          "required": false,
-          "default": "So11111111111111111111111111111111111111112",
           "label": "Quote Mint"
         },
         "min_last_seen_slot": {
-          "type": "u64",
-          "required": false,
-          "default": "0",
           "label": "Min Last Seen Slot"
         }
-      },
-      "view": {
-        "kind": "search",
-        "entity_type": "pump_pool",
-        "title": "List tokens",
-        "description": "List Pump AMM pools for a quote mint.",
-        "bootstrap": {
-          "kind": "scan_accounts",
-          "source": "rpc.getProgramAccounts",
-          "program_id": "$protocol.programId",
-          "account_type": "Pool",
-          "lookback_seconds": 300,
-          "max_pages": 5,
-          "retention_seconds": 3600,
-          "filters": []
-        },
-        "refresh": {
-          "mode": "stream",
-          "source": "program_account_updates"
-        },
-        "query": {
-          "indexed_filters": {
-            "all": [
-              {
-                "field": "memcmp.75",
-                "op": "=",
-                "value": "$input.quote_mint"
-              }
-            ]
-          },
-          "filters": {
-            "all": [
-              {
-                "field": "decoded.quote_mint",
-                "op": "=",
-                "value": "$input.quote_mint"
-              },
-              {
-                "field": "account.lastSeenSlot",
-                "op": ">=",
-                "value": "$input.min_last_seen_slot"
-              },
-              {
-                "field": "decoded.lp_supply",
-                "op": ">",
-                "value": "0"
-              }
-            ]
-          },
-          "hydrate": {
-            "mode": "accounts",
-            "candidate_limit": 30,
-            "fields": [
-              "pubkey",
-              "data_bytes",
-              "slot"
-            ]
-          },
-          "decode": {
-            "account_type": "Pool"
-          },
-          "sort": [
-            {
-              "field": "account.lastSeenSlot",
-              "dir": "desc",
-              "mode": "indexed"
-            },
-            {
-              "field": "decoded.index",
-              "dir": "desc",
-              "mode": "indexed"
-            },
-            {
-              "field": "decoded.lp_supply",
-              "dir": "desc",
-              "mode": "indexed_then_live_refine",
-              "candidate_limit": 30
-            }
-          ],
-          "limit": 30,
-          "select": {
-            "pool": "$account.pubkey",
-            "baseMint": "$decoded.base_mint",
-            "quoteMint": "$decoded.quote_mint",
-            "index": "$decoded.index",
-            "lpSupply": "$decoded.lp_supply",
-            "coinCreator": "$decoded.coin_creator",
-            "isCashbackCoin": "$decoded.is_cashback_coin"
-          }
-        }
-      },
-      "read_output": {
-        "source": "$derived.pool_candidates",
-        "type": "list",
-        "title": "Recent Pump AMM tokens",
-        "itemLabelFields": [
-          "baseMint",
-          "pool",
-          "index",
-          "lpSupply"
-        ],
-        "maxItems": 20,
-        "emptyText": "No Pump AMM token found for this quote mint."
-      },
-      "label": "List Tokens",
-      "use": [
-        {
-          "template": "pump.list_tokens.v1",
-          "with": {
-            "quote_mint": "$input.quote_mint"
-          }
-        }
-      ]
+      }
     },
     "view_pool": {
+      "label": "View Pool",
       "inputs": {
         "base_mint": {
-          "type": "pubkey",
-          "required": true,
-          "read_from": "$input.base_mint",
-          "ui_mode": "readonly",
-          "label": "Base Mint"
+          "label": "Base Mint",
+          "ui_mode": "readonly"
         },
         "quote_mint": {
-          "type": "pubkey",
-          "required": false,
-          "default": "So11111111111111111111111111111111111111112",
-          "read_from": "$input.quote_mint",
-          "ui_mode": "readonly",
-          "label": "Quote Mint"
+          "label": "Quote Mint",
+          "ui_mode": "readonly"
         }
-      },
-      "view": {
-        "kind": "search",
-        "entity_type": "pump_pool",
-        "title": "View pool",
-        "description": "Find a Pump AMM pool for a base/quote pair.",
-        "bootstrap": {
-          "kind": "scan_accounts",
-          "source": "rpc.getProgramAccounts",
-          "program_id": "$protocol.programId",
-          "account_type": "Pool",
-          "lookback_seconds": 300,
-          "max_pages": 5,
-          "retention_seconds": 3600,
-          "filters": []
-        },
-        "refresh": {
-          "mode": "stream",
-          "source": "program_account_updates"
-        },
-        "query": {
-          "indexed_filters": {
-            "all": [
-              {
-                "field": "memcmp.43",
-                "op": "=",
-                "value": "$input.base_mint"
-              },
-              {
-                "field": "memcmp.75",
-                "op": "=",
-                "value": "$input.quote_mint"
-              }
-            ]
-          },
-          "filters": {
-            "all": [
-              {
-                "field": "decoded.base_mint",
-                "op": "=",
-                "value": "$input.base_mint"
-              },
-              {
-                "field": "decoded.quote_mint",
-                "op": "=",
-                "value": "$input.quote_mint"
-              },
-              {
-                "field": "decoded.lp_supply",
-                "op": ">",
-                "value": "0"
-              }
-            ]
-          },
-          "hydrate": {
-            "mode": "accounts",
-            "candidate_limit": 5,
-            "fields": [
-              "pubkey",
-              "data_bytes",
-              "slot"
-            ]
-          },
-          "decode": {
-            "account_type": "Pool"
-          },
-          "sort": [
-            {
-              "field": "decoded.index",
-              "dir": "desc",
-              "mode": "indexed"
-            },
-            {
-              "field": "decoded.lp_supply",
-              "dir": "desc",
-              "mode": "indexed_then_live_refine",
-              "candidate_limit": 5
-            }
-          ],
-          "limit": 1,
-          "select": {
-            "pool": "$account.pubkey",
-            "baseMint": "$decoded.base_mint",
-            "quoteMint": "$decoded.quote_mint",
-            "index": "$decoded.index",
-            "lpSupply": "$decoded.lp_supply",
-            "poolBaseTokenAccount": "$decoded.pool_base_token_account",
-            "poolQuoteTokenAccount": "$decoded.pool_quote_token_account",
-            "coinCreator": "$decoded.coin_creator",
-            "isCashbackCoin": "$decoded.is_cashback_coin"
-          }
-        }
-      },
-      "read_output": {
-        "source": "$derived.pool_detail",
-        "type": "list",
-        "title": "Pool snapshot (live RPC)",
-        "itemLabelFields": [
-          "baseMint",
-          "pool",
-          "lpSupply",
-          "poolBaseTokenAccount",
-          "poolQuoteTokenAccount"
-        ],
-        "maxItems": 1,
-        "emptyText": "Pool not found."
-      },
-      "label": "View Pool",
-      "use": [
-        {
-          "template": "pump.view_pool.v1",
-          "with": {
-            "base_mint": "$input.base_mint",
-            "quote_mint": "$input.quote_mint"
-          }
-        }
-      ]
+      }
     },
     "resolve_pool": {
+      "label": "Resolve Pool",
       "inputs": {
         "mint": {
-          "type": "pubkey",
-          "required": true,
           "label": "Mint"
         },
         "quote_mint": {
-          "type": "pubkey",
-          "required": false,
-          "default": "So11111111111111111111111111111111111111112",
           "label": "Quote Mint"
         }
-      },
-      "view": {
-        "kind": "search",
-        "source_kind": "account_changes",
-        "sync_disabled": true,
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 5000,
-          "max_staleness_ms": 20000
-        },
-        "canonical": {
-          "source": "indexed_idl_state",
-          "protocol_id": "pump-amm-mainnet",
-          "record_kind": "account",
-          "record_name": [
-            "Pool",
-            "BondingCurve"
-          ],
-          "subject_input": "mint",
-          "subject_field": "subject_id",
-          "resource_field": "resource_id",
-          "notes": "Resolve a mint to its current projected state derived from IDL-native records."
-        },
-        "projection": {
-          "projection_kind": "snapshot",
-          "group_by": [
-            "subject_id"
-          ]
-        },
-        "entity_type": "pump_pool",
-        "title": "Resolve pool",
-        "description": "Resolve the Pump AMM pool for a token mint against a quote mint.",
-        "bootstrap": {
-          "kind": "scan_accounts",
-          "source": "rpc.getProgramAccounts",
-          "program_id": "$protocol.programId",
-          "account_type": "Pool",
-          "retention_seconds": 3600,
-          "filters": []
-        },
-        "refresh": {
-          "mode": "stream",
-          "source": "program_account_updates"
-        },
-        "query": {
-          "indexed_filters": {
-            "all": [
-              {
-                "field": "memcmp.43",
-                "op": "=",
-                "value": "$input.mint"
-              },
-              {
-                "field": "memcmp.75",
-                "op": "=",
-                "value": "$input.quote_mint"
-              }
-            ]
-          },
-          "filters": {
-            "all": [
-              {
-                "field": "decoded.base_mint",
-                "op": "=",
-                "value": "$input.mint"
-              },
-              {
-                "field": "decoded.quote_mint",
-                "op": "=",
-                "value": "$input.quote_mint"
-              },
-              {
-                "field": "decoded.lp_supply",
-                "op": ">",
-                "value": "0"
-              }
-            ]
-          },
-          "hydrate": {
-            "mode": "accounts",
-            "candidate_limit": 5,
-            "fields": [
-              "pubkey",
-              "data_bytes",
-              "slot"
-            ]
-          },
-          "decode": {
-            "account_type": "Pool"
-          },
-          "sort": [
-            {
-              "field": "decoded.index",
-              "dir": "desc",
-              "mode": "indexed"
-            },
-            {
-              "field": "decoded.lp_supply",
-              "dir": "desc",
-              "mode": "indexed_then_live_refine",
-              "candidate_limit": 5
-            }
-          ],
-          "limit": 1,
-          "select": {
-            "pool": "$account.pubkey",
-            "baseMint": "$decoded.base_mint",
-            "quoteMint": "$decoded.quote_mint",
-            "index": "$decoded.index",
-            "lpSupply": "$decoded.lp_supply",
-            "poolBaseTokenAccount": "$decoded.pool_base_token_account",
-            "poolQuoteTokenAccount": "$decoded.pool_quote_token_account",
-            "coinCreator": "$decoded.coin_creator",
-            "isCashbackCoin": "$decoded.is_cashback_coin"
-          }
-        }
-      },
-      "label": "Resolve Pool",
-      "use": []
+      }
     },
     "pool_snapshot": {
+      "label": "Pool Snapshot",
       "inputs": {
         "pool": {
-          "type": "pubkey",
-          "required": true,
           "label": "Pool"
         }
-      },
-      "view": {
-        "kind": "account",
-        "source_kind": "account_changes",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 2000,
-          "max_staleness_ms": 10000
-        },
-        "canonical": {
-          "source": "indexed_idl_state",
-          "protocol_id": "pump-amm-mainnet",
-          "record_kind": "account",
-          "record_name": [
-            "Pool",
-            "BondingCurve"
-          ],
-          "resource_input": "pool",
-          "resource_field": "resource_id",
-          "notes": "Read the latest projected state row by pool/resource id."
-        },
-        "projection": {
-          "projection_kind": "snapshot",
-          "group_by": [
-            "resource_id"
-          ]
-        },
-        "entity_type": "pump_pool",
-        "title": "Pool snapshot",
-        "description": "Read the current Pump AMM pool snapshot for a known pool address.",
-        "target": {
-          "address": "$input.pool",
-          "account_type": "Pool"
-        },
-        "select": {
-          "pool": "$account.pubkey",
-          "baseMint": "$decoded.base_mint",
-          "quoteMint": "$decoded.quote_mint",
-          "lpSupply": "$decoded.lp_supply",
-          "poolBaseTokenAccount": "$decoded.pool_base_token_account",
-          "poolQuoteTokenAccount": "$decoded.pool_quote_token_account",
-          "coinCreator": "$decoded.coin_creator",
-          "isCashbackCoin": "$decoded.is_cashback_coin"
-        }
-      },
-      "label": "Pool Snapshot",
-      "use": []
+      }
     },
     "trade_feed": {
+      "label": "Trade Feed",
       "inputs": {
         "pool": {
-          "type": "pubkey",
-          "required": true,
           "label": "Pool"
         },
         "limit": {
-          "type": "u16",
-          "required": false,
-          "default": 50,
           "label": "Limit"
         }
-      },
-      "view": {
-        "kind": "feed",
-        "source_kind": "materialized_feed",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 1000,
-          "max_staleness_ms": 5000
-        },
-        "canonical": {
-          "source": "indexed_idl_records",
-          "protocol_id": "pump-amm-mainnet",
-          "record_kind": "event",
-          "record_name": [
-            "BuyEvent",
-            "SellEvent",
-            "TradeEvent"
-          ],
-          "subject_input": "mint",
-          "subject_field": "subject_id",
-          "resource_input": "pool",
-          "resource_field": "resource_id",
-          "time_field": "event_time",
-          "notes": "Recent trade records from the canonical append-only IDL record log."
-        },
-        "projection": {
-          "projection_kind": "feed",
-          "group_by": [
-            "subject_id"
-          ],
-          "sort_by": [
-            {
-              "field": "event_time",
-              "dir": "desc"
-            }
-          ]
-        },
-        "entity_type": "pump_trade",
-        "title": "Trade feed",
-        "description": "Recent Pump AMM trades ordered by event time."
-      },
-      "label": "Trade Feed",
-      "use": []
+      }
     },
     "market_cap_series": {
+      "label": "Market Cap Series",
       "inputs": {
         "pool": {
-          "type": "pubkey",
-          "required": true,
           "label": "Pool"
         },
         "limit": {
-          "type": "u16",
-          "required": false,
-          "default": 240,
           "label": "Limit"
         },
         "from": {
-          "type": "string",
-          "required": false,
           "label": "From ISO"
         },
         "to": {
-          "type": "string",
-          "required": false,
           "label": "To ISO"
         },
         "interval": {
-          "type": "string",
-          "required": false,
-          "default": "1m",
           "label": "Interval"
         },
         "mode": {
-          "type": "string",
-          "required": false,
-          "default": "sparse",
           "label": "Mode"
         }
-      },
-      "view": {
-        "kind": "series",
-        "source_kind": "materialized_series",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 5000,
-          "max_staleness_ms": 30000
-        },
-        "canonical": {
-          "source": "indexed_series_1m",
-          "protocol_id": "pump-amm-mainnet",
-          "series_id": "pump.market.1m",
-          "subject_input": "mint",
-          "subject_field": "subject_id",
-          "resource_input": "pool",
-          "time_field": "bucket_start",
-          "notes": "Canonical 1m market series projected from IDL-native trade records with rollups and optional dense fill in the runner."
-        },
-        "projection": {
-          "projection_kind": "series",
-          "source_operation": "trade_feed",
-          "group_by": [
-            "subject_id"
-          ],
-          "bucket": "1m",
-          "fill_mode": "sparse",
-          "aggregations": [
-            {
-              "name": "open",
-              "field": "priceQuote",
-              "fn": "first"
-            },
-            {
-              "name": "high",
-              "field": "priceQuote",
-              "fn": "max"
-            },
-            {
-              "name": "low",
-              "field": "priceQuote",
-              "fn": "min"
-            },
-            {
-              "name": "close",
-              "field": "priceQuote",
-              "fn": "last"
-            },
-            {
-              "name": "openMarketCap",
-              "field": "marketCapQuote",
-              "fn": "first"
-            },
-            {
-              "name": "highMarketCap",
-              "field": "marketCapQuote",
-              "fn": "max"
-            },
-            {
-              "name": "lowMarketCap",
-              "field": "marketCapQuote",
-              "fn": "min"
-            },
-            {
-              "name": "closeMarketCap",
-              "field": "marketCapQuote",
-              "fn": "last"
-            },
-            {
-              "name": "volumeQuote",
-              "field": "quoteAmountUi",
-              "fn": "sum"
-            },
-            {
-              "name": "tradeCount",
-              "field": "*",
-              "fn": "count"
-            }
-          ]
-        },
-        "entity_type": "pump_market_cap_series",
-        "title": "Market cap series",
-        "description": "Materialized Pump market-cap and price series with 1m base candles, interval rollups, and optional dense fill."
-      },
-      "label": "Market Cap Series",
-      "use": []
+      }
     },
     "ranked_active_tokens": {
+      "label": "Ranked Active Tokens",
       "inputs": {
         "quote_mint": {
-          "type": "pubkey",
-          "required": false,
-          "default": "So11111111111111111111111111111111111111112",
           "label": "Quote Mint"
         },
         "window_hours": {
-          "type": "u32",
-          "required": false,
-          "default": 24,
           "label": "Window Hours"
         },
         "max_activity_age_minutes": {
-          "type": "u32",
-          "required": false,
-          "default": 30,
           "label": "Max Activity Age Minutes"
         },
         "min_liquidity": {
-          "type": "u64",
-          "required": false,
-          "default": 0,
           "label": "Min Liquidity"
         },
         "min_volume": {
-          "type": "u64",
-          "required": false,
-          "default": 0,
           "label": "Min Volume"
         }
-      },
-      "view": {
-        "kind": "search",
-        "source_kind": "derived_sql",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 10000,
-          "max_staleness_ms": 60000
-        },
-        "canonical": {
-          "source": "indexed_idl_records",
-          "protocol_id": "pump-amm-mainnet",
-          "record_kind": "event",
-          "record_name": [
-            "BuyEvent",
-            "SellEvent",
-            "TradeEvent"
-          ],
-          "time_field": "event_time",
-          "notes": "Ranking is computed from IDL-native trade records joined with projected current state."
-        },
-        "projection": {
-          "projection_kind": "ranking",
-          "group_by": [
-            "subject_id"
-          ],
-          "ranking": {
-            "state_operation": "resolve_pool",
-            "window_hours_input": "window_hours",
-            "max_activity_age_minutes_input": "max_activity_age_minutes",
-            "min_liquidity_input": "min_liquidity",
-            "min_volume_input": "min_volume",
-            "default_window_hours": 24,
-            "default_max_activity_age_minutes": 30,
-            "quote_mint_input": "quote_mint",
-            "default_quote_mint": "So11111111111111111111111111111111111111112",
-            "event_fields": {
-              "market_type": "marketType",
-              "participant": "participant",
-              "side": "side",
-              "volume": "quoteAmountUi"
-            },
-            "state_fields": {
-              "market_type": "marketType",
-              "quote_mint": "quoteMint",
-              "liquidity": "liquidityQuote",
-              "price": "priceQuote",
-              "market_cap": "marketCapQuote",
-              "pool": "pool"
-            }
-          }
-        },
-        "entity_type": "pump_ranked_token",
-        "title": "Ranked active tokens",
-        "description": "Rank Pump tokens by recent activity while penalizing thin, stale, or suspicious flow.",
-        "bootstrap": {
-          "kind": "scan_accounts",
-          "source": "rpc.getProgramAccounts",
-          "program_id": "$protocol.programId",
-          "account_type": "Pool",
-          "retention_seconds": 3600,
-          "filters": []
-        },
-        "refresh": {
-          "mode": "stream",
-          "source": "program_account_updates"
-        },
-        "query": {
-          "decode": {
-            "account_type": "Pool"
-          }
-        }
-      },
-      "label": "Ranked Active Tokens",
-      "use": []
+      }
     },
     "buy": {
+      "label": "Buy",
       "inputs": {
         "base_mint": {
-          "type": "pubkey",
-          "required": true,
-          "read_from": "$input.base_mint",
-          "ui_mode": "readonly",
-          "label": "Base Mint"
+          "label": "Base Mint",
+          "ui_mode": "readonly"
         },
         "quote_mint": {
-          "type": "pubkey",
-          "required": false,
-          "default": "So11111111111111111111111111111111111111112",
-          "read_from": "$input.quote_mint",
-          "ui_mode": "readonly",
-          "label": "Quote Mint"
+          "label": "Quote Mint",
+          "ui_mode": "readonly"
         },
         "quote_amount_in": {
-          "type": "u64",
-          "required": true,
           "label": "Quote Amount In"
         },
         "track_volume": {
-          "type": "bool",
-          "required": false,
-          "default": true,
           "label": "Track Volume"
         },
         "pool": {
-          "type": "pubkey",
-          "required": false,
-          "read_from": "$input.pool",
-          "ui_mode": "readonly",
-          "label": "Pool"
+          "label": "Pool",
+          "ui_mode": "readonly"
         },
         "slippage_bps": {
-          "type": "u16",
-          "required": true,
           "label": "Slippage Bps"
         }
-      },
-      "label": "Buy",
-      "use": [
-        {
-          "template": "pump.buy.v1",
-          "with": {
-            "base_mint": "$input.base_mint",
-            "quote_mint": "$input.quote_mint",
-            "quote_amount_in": "$input.quote_amount_in",
-            "slippage_bps": "$input.slippage_bps",
-            "track_volume": "$input.track_volume"
-          }
-        }
-      ]
+      }
     },
     "sell": {
+      "label": "Sell",
       "inputs": {
         "base_mint": {
-          "type": "pubkey",
-          "required": true,
-          "read_from": "$input.base_mint",
-          "ui_mode": "readonly",
-          "label": "Base Mint"
+          "label": "Base Mint",
+          "ui_mode": "readonly"
         },
         "quote_mint": {
-          "type": "pubkey",
-          "required": false,
-          "default": "So11111111111111111111111111111111111111112",
-          "read_from": "$input.quote_mint",
-          "ui_mode": "readonly",
-          "label": "Quote Mint"
+          "label": "Quote Mint",
+          "ui_mode": "readonly"
         },
         "pool": {
-          "type": "pubkey",
-          "required": false,
-          "read_from": "$input.pool",
-          "ui_mode": "readonly",
-          "label": "Pool"
+          "label": "Pool",
+          "ui_mode": "readonly"
         },
         "base_amount_in": {
-          "type": "u64",
-          "required": true,
           "label": "Base Amount In"
         },
         "min_quote_amount_out": {
-          "type": "u64",
-          "required": false,
-          "default": "1",
           "label": "Min Quote Amount Out"
         }
-      },
-      "label": "Sell",
-      "use": [
-        {
-          "template": "pump.sell.v1",
-          "with": {
-            "base_mint": "$input.base_mint",
-            "quote_mint": "$input.quote_mint",
-            "base_amount_in": "$input.base_amount_in",
-            "min_quote_amount_out": "$input.min_quote_amount_out"
-          }
-        }
-      ]
+      }
     }
   },
   "apps": {

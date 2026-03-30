@@ -406,47 +406,25 @@
       "inputs": {
         "base_mint": {
           "type": "pubkey",
-          "required": true,
-          "label": "Token",
-          "placeholder": "Token mint address",
-          "help": "Enter the token you want to buy.",
-          "group": "market",
-          "display_order": 1
+          "required": true
         },
         "spendable_sol_in": {
           "type": "u64",
-          "required": true,
-          "label": "Amount in SOL",
-          "placeholder": "0.01",
-          "help": "How much SOL to spend.",
-          "group": "trade",
-          "display_order": 2
+          "required": true
         },
         "slippage_bps": {
           "type": "u16",
-          "required": true,
-          "label": "Slippage",
-          "placeholder": "1.00",
-          "help": "Max price movement you accept, in percent.",
-          "group": "trade",
-          "display_order": 3
+          "required": true
         },
         "min_tokens_out": {
           "type": "u64",
           "required": false,
-          "read_from": "$args.min_tokens_out",
-          "ui_mode": "readonly",
-          "label": "Minimum tokens received",
-          "help": "Calculated automatically.",
-          "group": "trade",
-          "display_order": 4
+          "bind_from": "$args.min_tokens_out"
         },
         "track_volume": {
           "type": "bool",
           "required": false,
-          "default": false,
-          "ui_mode": "hidden",
-          "label": "Track Volume"
+          "default": false
         }
       },
       "derive": [
@@ -699,8 +677,7 @@
         "user_volume_accumulator": "$user_volume_accumulator",
         "fee_config": "$fee_config",
         "fee_program": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"
-      },
-      "label": "Buy Exact Sol In"
+      }
     }
   }
 }

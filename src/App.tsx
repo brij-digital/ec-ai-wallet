@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import './App.css';
+import { AppsTab } from './app/components/AppsTab';
 import { PumpWorkspaceTab } from './app/components/PumpWorkspaceTab';
 import { ComputeDevTab } from './app/components/ComputeDevTab';
 import { RawOperationsTab } from './app/components/RawOperationsTab';
@@ -12,8 +13,8 @@ const VIEW_API_BASE_URL = String(import.meta.env.VITE_VIEW_API_BASE_URL ?? DEFAU
   .trim()
   .replace(/\/+$/, '');
 
-type AppTab = 'views' | 'pump' | 'raw' | 'compute' | 'tv';
-const DISABLED_TABS = ['Apps', 'Command', 'Explorer'] as const;
+type AppTab = 'views' | 'pump' | 'apps' | 'raw' | 'compute' | 'tv';
+const DISABLED_TABS = ['Command', 'Explorer'] as const;
 
 function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('pump');
@@ -47,6 +48,15 @@ function App() {
             onClick={() => setActiveTab('views')}
           >
             Views
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'apps'}
+            className={activeTab === 'apps' ? 'active' : ''}
+            onClick={() => setActiveTab('apps')}
+          >
+            Apps
           </button>
           <button
             type="button"
@@ -90,12 +100,12 @@ function App() {
             </button>
           ))}
         </div>
-        <p className="tab-status-note">
-          App-driven tabs are intentionally disabled for now. Active path is `Codama + runtime`.
-        </p>
+        <p className="tab-status-note">Raw Ops run on `runtime` only. Apps use the lightweight `app` spec for UX and flow.</p>
 
         {activeTab === 'pump' ? (
           <PumpWorkspaceTab viewApiBaseUrl={VIEW_API_BASE_URL} />
+        ) : activeTab === 'apps' ? (
+          <AppsTab viewApiBaseUrl={VIEW_API_BASE_URL} />
         ) : activeTab === 'raw' ? (
           <RawOperationsTab viewApiBaseUrl={VIEW_API_BASE_URL} />
         ) : activeTab === 'compute' ? (
