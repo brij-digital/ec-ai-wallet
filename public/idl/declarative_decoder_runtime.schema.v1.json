@@ -604,30 +604,63 @@
       },
       "additionalProperties": true
     },
+    "contractViewSpec": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["search", "account"]
+        },
+        "source_kind": { "type": "string" },
+        "freshness": { "type": "object", "additionalProperties": true },
+        "entity_type": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "bootstrap": { "type": "object", "additionalProperties": true },
+        "refresh": { "type": "object", "additionalProperties": true },
+        "query": { "type": "object", "additionalProperties": true },
+        "target": { "type": "object", "additionalProperties": true },
+        "select": { "type": "object", "additionalProperties": true }
+      },
+      "additionalProperties": false
+    },
+    "indexViewSpec": {
+      "type": "object",
+      "required": ["kind", "canonical", "projection"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["search", "account", "feed", "series", "ranking", "context"]
+        },
+        "source_kind": { "type": "string" },
+        "freshness": { "type": "object", "additionalProperties": true },
+        "entity_type": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "canonical": {
+          "$ref": "#/$defs/canonicalViewSpec"
+        },
+        "projection": {
+          "$ref": "#/$defs/viewProjectionSpec"
+        }
+      },
+      "additionalProperties": false
+    },
     "operationSpec": {
       "type": "object",
       "properties": {
-        "view": {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": ["search", "account", "feed", "series", "ranking", "context"]
-            },
-            "source_kind": {
-              "type": "string"
-            },
-            "canonical": {
-              "$ref": "#/$defs/canonicalViewSpec"
-            },
-            "projection": {
-              "$ref": "#/$defs/viewProjectionSpec"
-            }
-          },
-          "additionalProperties": true
+        "contract_view": {
+          "$ref": "#/$defs/contractViewSpec"
+        },
+        "index_view": {
+          "$ref": "#/$defs/indexViewSpec"
         }
       },
-      "additionalProperties": true
+      "additionalProperties": true,
+      "not": {
+        "required": ["view"]
+      }
     }
   },
   "additionalProperties": false

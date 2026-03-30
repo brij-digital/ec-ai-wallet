@@ -22,7 +22,14 @@ type RegistryResponse = {
 type MetaOperation = {
   label?: string;
   description?: string;
-  view?: {
+  contract_view?: {
+    kind?: string;
+    source?: string;
+    entity_type?: string;
+    title?: string;
+    description?: string;
+  };
+  index_view?: {
     kind?: string;
     source?: string;
     entity_type?: string;
@@ -596,17 +603,18 @@ export function ViewExplorerTab({ viewApiBaseUrl }: ViewExplorerTabProps) {
           }
           const meta = (await metaResponse.json()) as MetaResponse;
           for (const [opId, operation] of Object.entries(meta.operations ?? {})) {
-            if (!operation.view) {
+            const view = operation.contract_view ?? operation.index_view;
+            if (!view) {
               continue;
             }
             loaded.push({
               protocolId: protocol.id,
               protocolLabel: protocol.name ?? meta.label ?? protocol.id,
               operationId: opId,
-              operationLabel: operation.label ?? operation.view.title ?? opId,
-              description: operation.view.description ?? operation.description ?? operation.read_output?.title ?? '',
-              kind: operation.view.kind ?? 'view',
-              entityType: operation.view.entity_type ?? null,
+              operationLabel: operation.label ?? view.title ?? opId,
+              description: view.description ?? operation.description ?? operation.read_output?.title ?? '',
+              kind: view.kind ?? 'view',
+              entityType: view.entity_type ?? null,
               supportedCommands: protocol.supportedCommands ?? [],
             });
           }

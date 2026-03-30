@@ -3,6 +3,7 @@ import { VIEW_PLAYGROUND_PRESETS } from '../viewModels';
 
 type ViewPlaygroundTabProps = {
   viewApiBaseUrl: string;
+  viewKind: 'contract' | 'index';
 };
 
 type HealthResponse = {
@@ -37,11 +38,13 @@ function summarizeValue(value: unknown): string {
   return formatJson(value);
 }
 
-export function ViewPlaygroundTab({ viewApiBaseUrl }: ViewPlaygroundTabProps) {
-  const [protocolId, setProtocolId] = useState(VIEW_PLAYGROUND_PRESETS[0].protocolId);
-  const [operationId, setOperationId] = useState(VIEW_PLAYGROUND_PRESETS[0].operationId);
-  const [inputText, setInputText] = useState(VIEW_PLAYGROUND_PRESETS[0].input);
-  const [limitText, setLimitText] = useState(VIEW_PLAYGROUND_PRESETS[0].limit);
+export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTabProps) {
+  const presets = useMemo(() => VIEW_PLAYGROUND_PRESETS.filter((preset) => preset.viewKind === viewKind), [viewKind]);
+  const initialPreset = presets[0] ?? null;
+  const [protocolId, setProtocolId] = useState(initialPreset?.protocolId ?? '');
+  const [operationId, setOperationId] = useState(initialPreset?.operationId ?? '');
+  const [inputText, setInputText] = useState(initialPreset?.input ?? '{}');
+  const [limitText, setLimitText] = useState(initialPreset?.limit ?? '20');
   const [healthText, setHealthText] = useState<string | null>(null);
   const [resultText, setResultText] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
@@ -50,8 +53,13 @@ export function ViewPlaygroundTab({ viewApiBaseUrl }: ViewPlaygroundTabProps) {
   const [isRunLoading, setIsRunLoading] = useState(false);
 
   const trimmedBaseUrl = useMemo(() => viewApiBaseUrl.trim().replace(/\/+$/, ''), [viewApiBaseUrl]);
+  const title = viewKind === 'contract' ? 'Contract Views' : 'Index Views';
+  const description =
+    viewKind === 'contract'
+      ? 'Run direct chain or owned-RPC-backed read contracts without touching canonical projections.'
+      : 'Run canonical indexed reads, projections, rankings, and normalized outputs.';
 
-  const applyPreset = (preset: (typeof VIEW_PLAYGROUND_PRESETS)[number]) => {
+  const applyPreset = (preset: (typeof presets)[number]) => {
     setProtocolId(preset.protocolId);
     setOperationId(preset.operationId);
     setInputText(preset.input);
@@ -132,8 +140,8 @@ export function ViewPlaygroundTab({ viewApiBaseUrl }: ViewPlaygroundTabProps) {
     <section className="view-playground-shell">
       <div className="view-playground-header">
         <div>
-          <h2>Views Playground</h2>
-          <p>Run the local or remote view service, inspect result shapes, and sanity-check whether a view is already usable in UI.</p>
+          <h2>{title}</h2>
+          <p>{description}</p>
         </div>
         <div className="view-playground-target">
           <span>Target</span>
@@ -142,7 +150,7 @@ export function ViewPlaygroundTab({ viewApiBaseUrl }: ViewPlaygroundTabProps) {
       </div>
 
       <div className="view-playground-presets">
-        {VIEW_PLAYGROUND_PRESETS.map((preset) => (
+        {presets.map((preset) => (
           <button key={preset.label} type="button" onClick={() => applyPreset(preset)}>
             {preset.label}
           </button>
@@ -155,26 +163,27 @@ export function ViewPlaygroundTab({ viewApiBaseUrl }: ViewPlaygroundTabProps) {
       {healthText ? <p className="view-playground-info">{healthText}</p> : null}
       {errorText ? <p className="view-playground-error">{errorText}</p> : null}
       {resultText ? <p className="view-playground-info">{resultText}</p> : null}
+      {!initialPreset ? <p className="view-playground-empty">No presets are defined for this view type yet.</p> : null}
 
       <form className="view-playground-form" onSubmit={handleRun}>
         <label>
           Protocol ID
-          <input value={protocolId} onChange={(event) => setProtocolId(event.target.value)} disabled={isRunLoading} />
+          <input value={protocolId} onChange={(event) => setProtocolId(event.target.value)} disabled={isRunLoading || !initialPreset} />
         </label>
         <label>
           Operation ID
-          <input value={operationId} onChange={(event) => setOperationId(event.target.value)} disabled={isRunLoading} />
+          <input value={operationId} onChange={(event) => setOperationId(event.target.value)} disabled={isRunLoading || !initialPreset} />
         </label>
         <label>
           Limit
-          <input value={limitText} onChange={(event) => setLimitText(event.target.value)} disabled={isRunLoading} />
+          <input value={limitText} onChange={(event) => setLimitText(event.target.value)} disabled={isRunLoading || !initialPreset} />
         </label>
         <label className="view-playground-form-full">
           Input JSON
-          <textarea value={inputText} onChange={(event) => setInputText(event.target.value)} disabled={isRunLoading} rows={12} />
+          <textarea value={inputText} onChange={(event) => setInputText(event.target.value)} disabled={isRunLoading || !initialPreset} rows={12} />
         </label>
         <div className="view-playground-actions">
-          <button type="submit" disabled={isRunLoading}>
+          <button type="submit" disabled={isRunLoading || !initialPreset}>
             {isRunLoading ? 'Running...' : 'Run View'}
           </button>
         </div>

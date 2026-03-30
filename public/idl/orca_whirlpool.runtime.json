@@ -433,15 +433,18 @@
           "required": true
         }
       },
-      "view": {
+      "use": [],
+      "index_view": {
         "kind": "search",
         "source_kind": "account_changes",
-        "sync_disabled": true,
         "freshness": {
           "class": "near_realtime",
           "target_ms": 5000,
           "max_staleness_ms": 20000
         },
+        "entity_type": "orca_whirlpool",
+        "title": "Resolve pool",
+        "description": "Resolve a known Orca Whirlpool address into the latest projected state.",
         "canonical": {
           "source": "indexed_idl_state",
           "protocol_id": "orca-whirlpool-mainnet",
@@ -456,28 +459,8 @@
           "group_by": [
             "resource_id"
           ]
-        },
-        "entity_type": "orca_whirlpool",
-        "title": "Resolve pool",
-        "description": "Resolve a known Orca Whirlpool address into the latest projected state.",
-        "bootstrap": {
-          "kind": "scan_accounts",
-          "source": "rpc.getProgramAccounts",
-          "program_id": "$protocol.programId",
-          "account_type": "Whirlpool",
-          "filters": []
-        },
-        "refresh": {
-          "mode": "stream",
-          "source": "program_account_updates"
-        },
-        "query": {
-          "decode": {
-            "account_type": "Whirlpool"
-          }
         }
-      },
-      "use": []
+      }
     },
     "pool_snapshot": {
       "inputs": {
@@ -486,7 +469,8 @@
           "required": true
         }
       },
-      "view": {
+      "use": [],
+      "index_view": {
         "kind": "account",
         "source_kind": "account_changes",
         "freshness": {
@@ -494,6 +478,9 @@
           "target_ms": 5000,
           "max_staleness_ms": 20000
         },
+        "entity_type": "orca_whirlpool",
+        "title": "Pool snapshot",
+        "description": "Read the current Orca Whirlpool snapshot for a known pool address.",
         "canonical": {
           "source": "indexed_idl_state",
           "protocol_id": "orca-whirlpool-mainnet",
@@ -508,19 +495,8 @@
           "group_by": [
             "resource_id"
           ]
-        },
-        "entity_type": "orca_whirlpool",
-        "title": "Pool snapshot",
-        "description": "Read the current Orca Whirlpool snapshot for a known pool address.",
-        "target": {
-          "address": "$input.pool",
-          "account_type": "Whirlpool"
-        },
-        "select": {
-          "whirlpool": "$account.pubkey"
         }
-      },
-      "use": []
+      }
     },
     "trade_feed": {
       "inputs": {
@@ -534,7 +510,8 @@
           "default": 50
         }
       },
-      "view": {
+      "use": [],
+      "index_view": {
         "kind": "feed",
         "source_kind": "materialized_feed",
         "freshness": {
@@ -542,6 +519,9 @@
           "target_ms": 1000,
           "max_staleness_ms": 5000
         },
+        "entity_type": "orca_swap",
+        "title": "Trade feed",
+        "description": "Recent Orca Whirlpool swaps.",
         "canonical": {
           "source": "indexed_idl_records",
           "protocol_id": "orca-whirlpool-mainnet",
@@ -564,12 +544,8 @@
               "dir": "desc"
             }
           ]
-        },
-        "entity_type": "orca_swap",
-        "title": "Trade feed",
-        "description": "Recent Orca Whirlpool swaps."
-      },
-      "use": []
+        }
+      }
     },
     "market_cap_series": {
       "inputs": {
@@ -601,7 +577,8 @@
           "default": "sparse"
         }
       },
-      "view": {
+      "use": [],
+      "index_view": {
         "kind": "series",
         "source_kind": "materialized_series",
         "freshness": {
@@ -609,6 +586,9 @@
           "target_ms": 5000,
           "max_staleness_ms": 30000
         },
+        "entity_type": "orca_market_series",
+        "title": "Market series",
+        "description": "Materialized Orca Whirlpool price series with 1m base buckets, interval rollups, and optional dense fill.",
         "canonical": {
           "source": "indexed_series_1m",
           "protocol_id": "orca-whirlpool-mainnet",
@@ -658,12 +638,8 @@
               "fn": "count"
             }
           ]
-        },
-        "entity_type": "orca_market_series",
-        "title": "Market series",
-        "description": "Materialized Orca Whirlpool price series with 1m base buckets, interval rollups, and optional dense fill."
-      },
-      "use": []
+        }
+      }
     },
     "list_pools": {
       "inputs": {
@@ -695,61 +671,25 @@
           }
         }
       ],
-      "view": {
+      "read_output": {
+        "type": "array",
+        "source": "$derived.pool_candidates",
+        "title": "Pools found",
+        "empty_text": "No Whirlpool pool found for this pair.",
+        "max_items": 20,
+        "item_label_fields": [
+          "whirlpool",
+          "tickSpacing",
+          "liquidity"
+        ]
+      },
+      "contract_view": {
         "kind": "search",
         "source_kind": "account_changes",
         "freshness": {
           "class": "near_realtime",
           "target_ms": 10000,
           "max_staleness_ms": 60000
-        },
-        "canonical": {
-          "source": "indexed_idl_state",
-          "protocol_id": "orca-whirlpool-mainnet",
-          "record_kind": "account",
-          "record_name": "Whirlpool",
-          "notes": "Search canonical Whirlpool state rows for a token pair."
-        },
-        "projection": {
-          "projection_kind": "search",
-          "filters": {
-            "any": [
-              {
-                "all": [
-                  {
-                    "field": "tokenMintA",
-                    "op": "=",
-                    "value": "$input.token_in_mint"
-                  },
-                  {
-                    "field": "tokenMintB",
-                    "op": "=",
-                    "value": "$input.token_out_mint"
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "field": "tokenMintA",
-                    "op": "=",
-                    "value": "$input.token_out_mint"
-                  },
-                  {
-                    "field": "tokenMintB",
-                    "op": "=",
-                    "value": "$input.token_in_mint"
-                  }
-                ]
-              }
-            ]
-          },
-          "sort_by": [
-            {
-              "field": "liquidity",
-              "dir": "desc"
-            }
-          ]
         },
         "entity_type": "whirlpool_pool",
         "title": "List pools",
@@ -859,18 +799,6 @@
             "liquidity": "$decoded.liquidity"
           }
         }
-      },
-      "read_output": {
-        "type": "array",
-        "source": "$derived.pool_candidates",
-        "title": "Pools found",
-        "empty_text": "No Whirlpool pool found for this pair.",
-        "max_items": 20,
-        "item_label_fields": [
-          "whirlpool",
-          "tickSpacing",
-          "liquidity"
-        ]
       }
     }
   },

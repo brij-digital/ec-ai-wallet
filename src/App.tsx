@@ -12,7 +12,7 @@ const VIEW_API_BASE_URL = String(import.meta.env.VITE_VIEW_API_BASE_URL ?? DEFAU
   .trim()
   .replace(/\/+$/, '');
 
-type AppTab = 'views' | 'pump' | 'raw' | 'compute' | 'tv';
+type AppTab = 'contractViews' | 'indexViews' | 'pump' | 'raw' | 'compute' | 'tv';
 const DISABLED_TABS = ['Apps', 'Command', 'Explorer'] as const;
 
 function App() {
@@ -42,11 +42,20 @@ function App() {
           <button
             type="button"
             role="tab"
-            aria-selected={activeTab === 'views'}
-            className={activeTab === 'views' ? 'active' : ''}
-            onClick={() => setActiveTab('views')}
+            aria-selected={activeTab === 'contractViews'}
+            className={activeTab === 'contractViews' ? 'active' : ''}
+            onClick={() => setActiveTab('contractViews')}
           >
-            Views
+            Contract Views
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'indexViews'}
+            className={activeTab === 'indexViews' ? 'active' : ''}
+            onClick={() => setActiveTab('indexViews')}
+          >
+            Index Views
           </button>
           <button
             type="button"
@@ -100,8 +109,10 @@ function App() {
           <ComputeDevTab isWorking={false} />
         ) : activeTab === 'tv' ? (
           <TradingViewTestTab viewApiBaseUrl={VIEW_API_BASE_URL} />
-        ) : activeTab === 'views' ? (
-          <ViewPlaygroundTab viewApiBaseUrl={VIEW_API_BASE_URL} />
+        ) : activeTab === 'contractViews' ? (
+          <ViewPlaygroundTab viewApiBaseUrl={VIEW_API_BASE_URL} viewKind="contract" />
+        ) : activeTab === 'indexViews' ? (
+          <ViewPlaygroundTab viewApiBaseUrl={VIEW_API_BASE_URL} viewKind="index" />
         ) : null}
       </section>
     </main>

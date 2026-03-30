@@ -1,5 +1,6 @@
 export type ViewExample = {
   label: string;
+  viewKind: 'contract' | 'index';
   protocolId: string;
   operationId: string;
   input: string;
@@ -94,6 +95,7 @@ const DEFAULT_QUOTE_MINT = 'So11111111111111111111111111111111111111112';
 export const VIEW_PLAYGROUND_PRESETS: ViewExample[] = [
   {
     label: 'Recent token search',
+    viewKind: 'contract',
     protocolId: 'pump-amm-mainnet',
     operationId: 'list_tokens',
     input: JSON.stringify(
@@ -108,6 +110,7 @@ export const VIEW_PLAYGROUND_PRESETS: ViewExample[] = [
   },
   {
     label: 'Resolve pool by mint',
+    viewKind: 'index',
     protocolId: 'pump-amm-mainnet',
     operationId: 'resolve_pool',
     input: JSON.stringify(
@@ -122,6 +125,7 @@ export const VIEW_PLAYGROUND_PRESETS: ViewExample[] = [
   },
   {
     label: 'Series for a pool',
+    viewKind: 'index',
     protocolId: 'pump-amm-mainnet',
     operationId: 'market_cap_series',
     input: JSON.stringify(
@@ -135,6 +139,7 @@ export const VIEW_PLAYGROUND_PRESETS: ViewExample[] = [
   },
   {
     label: 'Ranked active Pump tokens',
+    viewKind: 'index',
     protocolId: 'pump-amm-mainnet',
     operationId: 'ranked_active_tokens',
     input: JSON.stringify(
@@ -152,6 +157,7 @@ export const VIEW_PLAYGROUND_PRESETS: ViewExample[] = [
   },
   {
     label: 'Orca pool search',
+    viewKind: 'contract',
     protocolId: 'orca-whirlpool-mainnet',
     operationId: 'list_pools',
     input: JSON.stringify(
