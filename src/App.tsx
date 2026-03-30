@@ -6,13 +6,14 @@ import { ComputeDevTab } from './app/components/ComputeDevTab';
 import { RawOperationsTab } from './app/components/RawOperationsTab';
 import { TradingViewTestTab } from './app/components/TradingViewTestTab';
 import { ViewPlaygroundTab } from './app/components/ViewPlaygroundTab';
+import { AgentTab } from './app/components/AgentTab';
 
 const DEFAULT_VIEW_API_BASE_URL = 'https://apppack-view-service.onrender.com';
 const VIEW_API_BASE_URL = String(import.meta.env.VITE_VIEW_API_BASE_URL ?? DEFAULT_VIEW_API_BASE_URL)
   .trim()
   .replace(/\/+$/, '');
 
-type AppTab = 'contractViews' | 'indexViews' | 'pump' | 'raw' | 'compute' | 'tv';
+type AppTab = 'contractViews' | 'indexViews' | 'pump' | 'raw' | 'compute' | 'tv' | 'agent';
 const DISABLED_TABS = ['Apps', 'Command', 'Explorer'] as const;
 
 function App() {
@@ -78,6 +79,15 @@ function App() {
           <button
             type="button"
             role="tab"
+            aria-selected={activeTab === 'agent'}
+            className={activeTab === 'agent' ? 'active' : ''}
+            onClick={() => setActiveTab('agent')}
+          >
+            Agent
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={activeTab === 'tv'}
             className={activeTab === 'tv' ? 'active' : ''}
             onClick={() => setActiveTab('tv')}
@@ -107,6 +117,8 @@ function App() {
           <RawOperationsTab viewApiBaseUrl={VIEW_API_BASE_URL} />
         ) : activeTab === 'compute' ? (
           <ComputeDevTab isWorking={false} />
+        ) : activeTab === 'agent' ? (
+          <AgentTab viewApiBaseUrl={VIEW_API_BASE_URL} />
         ) : activeTab === 'tv' ? (
           <TradingViewTestTab viewApiBaseUrl={VIEW_API_BASE_URL} />
         ) : activeTab === 'contractViews' ? (
