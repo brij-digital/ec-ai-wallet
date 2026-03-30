@@ -93,18 +93,56 @@ function createCodamaSkeleton(programId, name) {
   };
 }
 
-function createRuntimeSkeleton({ protocolId, programId }) {
+function createIndexingSkeleton({ protocolId, programId, codamaAssetPath }) {
   return {
     schema: 'declarative-decoder-runtime.v1',
     protocolId,
     version: '0.1.0',
-    decoderArtifacts: [],
-    sources: [],
+    label: `${protocolId} Indexing Spec`,
+    programId,
+    decoderArtifacts: {
+      default: {
+        kind: 'generated_idl_decoder',
+        family: 'codama',
+        artifact: toSlug(protocolId),
+        codamaPath: codamaAssetPath,
+      },
+    },
+    sources: {},
+    matchRules: [],
+    pipelines: {},
     projectionSpecs: {},
     notes: [
-      `Starter runtime spec for ${protocolId}.`,
-      `Add sources/matchRules/pipelines/compute/emit for program ${programId}.`,
+      `Starter indexing spec for ${protocolId}.`,
+      `Add sources/matchRules/pipelines/projections for program ${programId}.`,
     ],
+  };
+}
+
+function createAgentRuntimeSkeleton({ protocolId, programId, codamaAssetPath }) {
+  return {
+    $schema: '/idl/solana_agent_runtime.schema.v1.json',
+    schema: 'solana-agent-runtime.v1',
+    version: '0.1.0',
+    protocol: {
+      protocolId,
+      label: `${protocolId} Agent Runtime`,
+      programId,
+      codamaPath: codamaAssetPath,
+    },
+    navigation: {
+      entities: {},
+      entrypoints: {},
+      relations: [],
+      recipes: {},
+    },
+    reads: {
+      contract: {},
+      index: {},
+    },
+    computes: {},
+    executions: {},
+    templates: {},
   };
 }
 
@@ -143,24 +181,31 @@ async function main() {
   const overwrite = Boolean(args.overwrite);
 
   const codamaPath = path.join(PUBLIC_IDL_DIR, `${slug}.codama.json`);
-  const runtimePath = path.join(PUBLIC_IDL_DIR, `${slug}.runtime.json`);
+  const agentRuntimePath = path.join(PUBLIC_IDL_DIR, `${slug}.runtime.json`);
+  const indexingSpecPath = path.join(PUBLIC_IDL_DIR, `${slug}.indexing.json`);
 
   if (!overwrite) {
     if (await pathExists(codamaPath)) {
       fail(`Codama file already exists: ${path.relative(ROOT, codamaPath)} (use --overwrite to replace)`);
     }
-    if (await pathExists(runtimePath)) {
-      fail(`Runtime spec already exists: ${path.relative(ROOT, runtimePath)} (use --overwrite to replace)`);
+    if (await pathExists(agentRuntimePath)) {
+      fail(`Agent runtime already exists: ${path.relative(ROOT, agentRuntimePath)} (use --overwrite to replace)`);
+    }
+    if (await pathExists(indexingSpecPath)) {
+      fail(`Indexing spec already exists: ${path.relative(ROOT, indexingSpecPath)} (use --overwrite to replace)`);
     }
   }
 
   await fs.mkdir(PUBLIC_IDL_DIR, { recursive: true });
 
   const codamaJson = createCodamaSkeleton(programId, slug);
-  const runtimeJson = createRuntimeSkeleton({ protocolId, programId });
+  const codamaAssetPath = `/idl/${slug}.codama.json`;
+  const runtimeJson = createAgentRuntimeSkeleton({ protocolId, programId, codamaAssetPath });
+  const indexingJson = createIndexingSkeleton({ protocolId, programId, codamaAssetPath });
 
   await fs.writeFile(codamaPath, `${JSON.stringify(codamaJson, null, 2)}\n`, 'utf8');
-  await fs.writeFile(runtimePath, `${JSON.stringify(runtimeJson, null, 2)}\n`, 'utf8');
+  await fs.writeFile(agentRuntimePath, `${JSON.stringify(runtimeJson, null, 2)}\n`, 'utf8');
+  await fs.writeFile(indexingSpecPath, `${JSON.stringify(indexingJson, null, 2)}\n`, 'utf8');
 
   const registry = await readJson(REGISTRY_PATH, 'Registry');
   if (!registry || typeof registry !== 'object' || !Array.isArray(registry.protocols)) {
@@ -173,7 +218,8 @@ async function main() {
     network,
     programId,
     codamaIdlPath: `/idl/${slug}.codama.json`,
-    runtimeSpecPath: `/idl/${slug}.runtime.json`,
+    agentRuntimePath: `/idl/${slug}.runtime.json`,
+    indexingSpecPath: `/idl/${slug}.indexing.json`,
     transport,
     supportedCommands: commands,
     status,
@@ -194,15 +240,17 @@ async function main() {
 
   console.log('Protocol pack scaffold created:');
   console.log(`- ${path.relative(ROOT, codamaPath)}`);
-  console.log(`- ${path.relative(ROOT, runtimePath)}`);
+  console.log(`- ${path.relative(ROOT, agentRuntimePath)}`);
+  console.log(`- ${path.relative(ROOT, indexingSpecPath)}`);
   console.log(`- ${path.relative(ROOT, REGISTRY_PATH)} updated`);
   console.log('');
   console.log('Next steps:');
   console.log('1. Make public/idl/<slug>.codama.json the protocol source of truth.');
-  console.log('2. Fill public/idl/<slug>.runtime.json with operations, sources, matchRules, pipelines, and projections.');
-  console.log('3. Run: npm run codama:check');
-  console.log('4. Run: npm run pack:doctor -- --protocol <protocol-id>');
-  console.log('5. Run: npm run pack:check');
+  console.log('2. Fill public/idl/<slug>.indexing.json with sources, matchRules, pipelines, and projections.');
+  console.log('3. Fill public/idl/<slug>.runtime.json with agent reads, computes, executions, and navigation.');
+  console.log('4. Run: npm run codama:check');
+  console.log('5. Run: npm run pack:doctor -- --protocol <protocol-id>');
+  console.log('6. Run: npm run pack:check');
 }
 
 main().catch((error) => {

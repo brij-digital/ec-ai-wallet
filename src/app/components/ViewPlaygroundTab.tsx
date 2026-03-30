@@ -8,7 +8,7 @@ type ViewPlaygroundTabProps = {
 type RegistryProtocol = {
   id: string;
   name?: string;
-  runtimeSpecPath?: string;
+  agentRuntimePath?: string;
   status?: string;
 };
 
@@ -29,16 +29,20 @@ type RuntimeOperation = {
   label?: string;
   description?: string;
   inputs?: Record<string, RuntimeInputDef>;
-  contract_view?: RuntimeViewShape;
-  index_view?: RuntimeViewShape;
+  read?: RuntimeViewShape;
   read_output?: {
     title?: string;
   };
 };
 
 type RuntimeSpec = {
-  label?: string;
-  operations?: Record<string, RuntimeOperation>;
+  protocol?: {
+    label?: string;
+  };
+  reads?: {
+    contract?: Record<string, RuntimeOperation>;
+    index?: Record<string, RuntimeOperation>;
+  };
 };
 
 type CatalogEntry = {
@@ -137,22 +141,23 @@ export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTa
         const loaded: CatalogEntry[] = [];
 
         for (const protocol of registry.protocols ?? []) {
-          if (protocol.status === 'inactive' || !protocol.runtimeSpecPath) {
+          if (protocol.status === 'inactive' || !protocol.agentRuntimePath) {
             continue;
           }
-          const runtimeResponse = await fetch(protocol.runtimeSpecPath);
+          const runtimeResponse = await fetch(protocol.agentRuntimePath);
           if (!runtimeResponse.ok) {
             continue;
           }
           const runtime = (await runtimeResponse.json()) as RuntimeSpec;
-          for (const [opId, operation] of Object.entries(runtime.operations ?? {})) {
-            const view = viewKind === 'contract' ? operation.contract_view : operation.index_view;
+          const readOperations = viewKind === 'contract' ? (runtime.reads?.contract ?? {}) : (runtime.reads?.index ?? {});
+          for (const [opId, operation] of Object.entries(readOperations)) {
+            const view = operation.read;
             if (!view) {
               continue;
             }
             loaded.push({
               protocolId: protocol.id,
-              protocolLabel: protocol.name ?? runtime.label ?? protocol.id,
+              protocolLabel: protocol.name ?? runtime.protocol?.label ?? protocol.id,
               operationId: opId,
               operationLabel: operation.label ?? view.title ?? opId,
               description: view.description ?? operation.description ?? operation.read_output?.title ?? '',

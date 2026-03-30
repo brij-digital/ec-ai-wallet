@@ -17,7 +17,8 @@
       "network": "mainnet-beta",
       "programId": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
       "codamaIdlPath": "/idl/orca_whirlpool.codama.json",
-      "runtimeSpecPath": "/idl/orca_whirlpool.runtime.json",
+      "agentRuntimePath": "/idl/orca_whirlpool.runtime.json",
+      "indexingSpecPath": "/idl/orca_whirlpool.indexing.json",
       "transport": "local-orca-whirlpool",
       "supportedCommands": ["/orca-list-pools", "/orca"],
       "status": "active"
@@ -28,7 +29,8 @@
       "network": "mainnet-beta",
       "programId": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
       "codamaIdlPath": "/idl/pump_amm.codama.json",
-      "runtimeSpecPath": "/idl/pump_amm.runtime.json",
+      "agentRuntimePath": "/idl/pump_amm.runtime.json",
+      "indexingSpecPath": "/idl/pump_amm.indexing.json",
       "transport": "local-pump-amm",
       "supportedCommands": ["/pump-amm"],
       "status": "active"
@@ -39,7 +41,8 @@
       "network": "mainnet-beta",
       "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
       "codamaIdlPath": "/idl/pump_core.codama.json",
-      "runtimeSpecPath": "/idl/pump_core.runtime.json",
+      "agentRuntimePath": "/idl/pump_core.runtime.json",
+      "indexingSpecPath": "/idl/pump_core.indexing.json",
       "transport": "local-pump-core",
       "supportedCommands": ["/pump-curve"],
       "status": "active"

@@ -28,20 +28,36 @@ async function main() {
     if (protocol.appPath !== undefined) {
       fail(`Protocol ${protocol.id ?? 'unknown'} still declares appPath.`);
     }
-    const runtimeSpecPath = typeof protocol.runtimeSpecPath === 'string' ? protocol.runtimeSpecPath : null;
-    if (!runtimeSpecPath) {
+    const agentRuntimePath = typeof protocol.agentRuntimePath === 'string' ? protocol.agentRuntimePath : null;
+    const indexingSpecPath = typeof protocol.indexingSpecPath === 'string' ? protocol.indexingSpecPath : null;
+    if (!agentRuntimePath || !indexingSpecPath) {
       continue;
     }
-    if (!runtimeSpecPath.startsWith('/idl/')) {
-      fail(`Protocol ${protocol.id ?? 'unknown'} has invalid runtimeSpecPath.`);
+    if (!agentRuntimePath.startsWith('/idl/')) {
+      fail(`Protocol ${protocol.id ?? 'unknown'} has invalid agentRuntimePath.`);
     }
-    const filePath = path.join(IDL_DIR, runtimeSpecPath.slice('/idl/'.length));
-    const parsed = await loadJson(filePath);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      fail(`${filePath} did not parse as a JSON object.`);
+    if (!indexingSpecPath.startsWith('/idl/')) {
+      fail(`Protocol ${protocol.id ?? 'unknown'} has invalid indexingSpecPath.`);
     }
-    if (!parsed.operations || typeof parsed.operations !== 'object' || Array.isArray(parsed.operations)) {
-      fail(`${filePath} is missing runtime operations.`);
+    const agentRuntimeFilePath = path.join(IDL_DIR, agentRuntimePath.slice('/idl/'.length));
+    const agentRuntime = await loadJson(agentRuntimeFilePath);
+    if (!agentRuntime || typeof agentRuntime !== 'object' || Array.isArray(agentRuntime)) {
+      fail(`${agentRuntimeFilePath} did not parse as a JSON object.`);
+    }
+    const hasCapabilities =
+      (agentRuntime.reads && typeof agentRuntime.reads === 'object' && !Array.isArray(agentRuntime.reads)) ||
+      (agentRuntime.computes && typeof agentRuntime.computes === 'object' && !Array.isArray(agentRuntime.computes)) ||
+      (agentRuntime.executions && typeof agentRuntime.executions === 'object' && !Array.isArray(agentRuntime.executions));
+    if (!hasCapabilities) {
+      fail(`${agentRuntimeFilePath} is missing agent runtime capabilities.`);
+    }
+    const indexingFilePath = path.join(IDL_DIR, indexingSpecPath.slice('/idl/'.length));
+    const indexing = await loadJson(indexingFilePath);
+    if (!indexing || typeof indexing !== 'object' || Array.isArray(indexing)) {
+      fail(`${indexingFilePath} did not parse as a JSON object.`);
+    }
+    if (!indexing.decoderArtifacts || typeof indexing.decoderArtifacts !== 'object' || Array.isArray(indexing.decoderArtifacts)) {
+      fail(`${indexingFilePath} is missing indexing decoder artifacts.`);
     }
     loadedRuntimePacks += 1;
   }

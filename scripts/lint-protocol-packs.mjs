@@ -65,50 +65,57 @@ async function main() {
     if (protocol.appPath !== undefined) {
       fail(`${protocolId}: appPath is no longer allowed.`);
     }
-    if (!protocol.runtimeSpecPath) {
+    if (!protocol.agentRuntimePath) {
       continue;
     }
 
     const runtimePack = asObject(
-      await readJson(toLocalPublicPath(protocol.runtimeSpecPath, `${protocolId}.runtimeSpecPath`), `${protocolId} runtime spec`),
-      `${protocolId}.runtime`,
+      await readJson(toLocalPublicPath(protocol.agentRuntimePath, `${protocolId}.agentRuntimePath`), `${protocolId} agent runtime`),
+      `${protocolId}.agentRuntime`,
     );
-    if (runtimePack.schema !== 'declarative-decoder-runtime.v1') {
-      fail(`${protocolId}.runtime.schema must be declarative-decoder-runtime.v1.`);
+    if (runtimePack.schema !== 'solana-agent-runtime.v1') {
+      fail(`${protocolId}.agentRuntime.schema must be solana-agent-runtime.v1.`);
     }
 
-    const operations = asObject(runtimePack.operations ?? {}, `${protocolId}.runtime.operations`);
+    const sections = [
+      ['reads.contract', asObject(runtimePack.reads?.contract ?? {}, `${protocolId}.agentRuntime.reads.contract`)],
+      ['reads.index', asObject(runtimePack.reads?.index ?? {}, `${protocolId}.agentRuntime.reads.index`)],
+      ['computes', asObject(runtimePack.computes ?? {}, `${protocolId}.agentRuntime.computes`)],
+      ['executions', asObject(runtimePack.executions ?? {}, `${protocolId}.agentRuntime.executions`)],
+    ];
     let lintedOperations = 0;
-    for (const [operationId, operationRaw] of Object.entries(operations)) {
-      const operation = asObject(operationRaw, `${protocolId}.runtime.operations.${operationId}`);
-      const inputs = asObject(operation.inputs ?? {}, `${protocolId}.runtime.operations.${operationId}.inputs`);
-      for (const [inputName, inputRaw] of Object.entries(inputs)) {
-        const input = asObject(inputRaw, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}`);
-        asNonEmptyString(input.type, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.type`);
-        if (input.bind_from !== undefined) {
+    for (const [sectionName, operations] of sections) {
+      for (const [operationId, operationRaw] of Object.entries(operations)) {
+        const operation = asObject(operationRaw, `${protocolId}.agentRuntime.${sectionName}.${operationId}`);
+        const inputs = asObject(operation.inputs ?? {}, `${protocolId}.agentRuntime.${sectionName}.${operationId}.inputs`);
+        for (const [inputName, inputRaw] of Object.entries(inputs)) {
+          const input = asObject(inputRaw, `${protocolId}.agentRuntime.${sectionName}.${operationId}.inputs.${inputName}`);
+          asNonEmptyString(input.type, `${protocolId}.agentRuntime.${sectionName}.${operationId}.inputs.${inputName}.type`);
+          if (input.bind_from !== undefined) {
+            asNonEmptyString(
+              input.bind_from,
+              `${protocolId}.agentRuntime.${sectionName}.${operationId}.inputs.${inputName}.bind_from`,
+            );
+          }
+          if (input.read_from !== undefined) {
+            asNonEmptyString(
+              input.read_from,
+              `${protocolId}.agentRuntime.${sectionName}.${operationId}.inputs.${inputName}.read_from`,
+            );
+          }
+        }
+        if (operation.read_output !== undefined) {
+          const readOutput = asObject(
+            operation.read_output,
+            `${protocolId}.agentRuntime.${sectionName}.${operationId}.read_output`,
+          );
           asNonEmptyString(
-            input.bind_from,
-            `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.bind_from`,
+            readOutput.source,
+            `${protocolId}.agentRuntime.${sectionName}.${operationId}.read_output.source`,
           );
         }
-        if (input.read_from !== undefined) {
-          asNonEmptyString(
-            input.read_from,
-            `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.read_from`,
-          );
-        }
+        lintedOperations += 1;
       }
-      if (operation.read_output !== undefined) {
-        const readOutput = asObject(
-          operation.read_output,
-          `${protocolId}.runtime.operations.${operationId}.read_output`,
-        );
-        asNonEmptyString(
-          readOutput.source,
-          `${protocolId}.runtime.operations.${operationId}.read_output.source`,
-        );
-      }
-      lintedOperations += 1;
     }
     reports.push({ protocolId, lintedOperations });
   }

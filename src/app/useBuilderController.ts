@@ -115,7 +115,7 @@ export function useBuilderController() {
     void (async () => {
       const registry = await listIdlProtocols();
       const protocols = registry.protocols
-        .filter((protocol) => typeof protocol.runtimeSpecPath === 'string' && protocol.runtimeSpecPath.length > 0)
+        .filter((protocol) => typeof protocol.agentRuntimePath === 'string' && protocol.agentRuntimePath.length > 0)
         .map((protocol) => ({
           id: protocol.id,
           name: protocol.name,
@@ -151,15 +151,16 @@ export function useBuilderController() {
       const operationsView = await listRuntimeOperations({
         protocolId: builderProtocolId,
       });
+      const executionOperations = operationsView.operations.filter((entry) => entry.executionKind === 'write');
       if (cancelled) {
         return;
       }
-      setBuilderOperations(operationsView.operations);
+      setBuilderOperations(executionOperations);
       setBuilderOperationId((current) => {
-        if (current && operationsView.operations.some((entry) => entry.operationId === current)) {
+        if (current && executionOperations.some((entry) => entry.operationId === current)) {
           return current;
         }
-        return operationsView.operations[0]?.operationId ?? '';
+        return executionOperations[0]?.operationId ?? '';
       });
     })().catch((error) => {
       if (!cancelled) {

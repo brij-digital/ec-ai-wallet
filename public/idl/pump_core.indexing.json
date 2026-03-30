@@ -1,0 +1,402 @@
+{
+  "$schema": "/idl/declarative_decoder_runtime.schema.v1.json",
+  "schema": "declarative-decoder-runtime.v1",
+  "version": "0.1.0",
+  "protocolId": "pump-core-mainnet",
+  "label": "Pump Core Declarative Runtime",
+  "programId": "$protocol.programId",
+  "decoderArtifacts": {
+    "pumpfun": {
+      "kind": "generated_idl_decoder",
+      "family": "codama",
+      "codamaPath": "/idl/pump_core.codama.json",
+      "artifact": "pumpfun"
+    }
+  },
+  "sources": {
+    "pump_core_crawler": {
+      "kind": "rpc_transaction_crawler",
+      "programId": "$protocol.programId",
+      "commitment": "confirmed",
+      "decoderRef": "pumpfun",
+      "decodeTargets": [
+        "instruction",
+        "log_event"
+      ],
+      "filters": {}
+    }
+  },
+  "matchRules": [
+    {
+      "source": "pump_core_crawler",
+      "match": {
+        "decodedType": "event",
+        "name": "CreateEvent"
+      },
+      "pipeline": "curve_create"
+    },
+    {
+      "source": "pump_core_crawler",
+      "match": {
+        "decodedType": "event",
+        "name": "TradeEvent"
+      },
+      "pipeline": "curve_trade"
+    }
+  ],
+  "pipelines": {
+    "curve_create": {
+      "extract": {
+        "mint": "$decoded.mint",
+        "pool": "$decoded.mint",
+        "marketType": "core",
+        "quoteMint": "So11111111111111111111111111111111111111112",
+        "quoteDecimals": 9,
+        "creator": "$decoded.creator",
+        "complete": false,
+        "observedAt": "$update.eventTime",
+        "virtualTokenReservesAtomic": "$decoded.virtual_token_reserves",
+        "virtualSolReservesAtomic": "$decoded.virtual_sol_reserves",
+        "realTokenReservesAtomic": "$decoded.real_token_reserves",
+        "tokenTotalSupplyAtomic": "$decoded.token_total_supply"
+      },
+      "resolve": [
+        {
+          "name": "baseSupply",
+          "resolve": "rpc.token_supply",
+          "mint": "$ctx.mint"
+        }
+      ],
+      "compute": [
+        {
+          "name": "virtualTokenReserveUi",
+          "compute": "math.amount_ui",
+          "amount": "$ctx.virtualTokenReservesAtomic",
+          "decimals": "$baseSupply.decimals"
+        },
+        {
+          "name": "quoteReserveUi",
+          "compute": "math.amount_ui",
+          "amount": "$ctx.virtualSolReservesAtomic",
+          "decimals": "$ctx.quoteDecimals"
+        },
+        {
+          "name": "priceQuote",
+          "compute": "math.safe_div",
+          "dividend": "$quoteReserveUi",
+          "divisor": "$virtualTokenReserveUi"
+        },
+        {
+          "name": "supplyPositive",
+          "compute": "compare.gt",
+          "left": "$baseSupply.supplyUi",
+          "right": 0
+        },
+        {
+          "name": "marketCapRaw",
+          "compute": "math.mul",
+          "values": [
+            "$priceQuote",
+            "$baseSupply.supplyUi"
+          ]
+        },
+        {
+          "name": "marketCapQuote",
+          "compute": "logic.if",
+          "condition": "$supplyPositive",
+          "then": "$marketCapRaw",
+          "else": "$null"
+        },
+        {
+          "name": "baseReserveUi",
+          "compute": "math.amount_ui",
+          "amount": "$ctx.realTokenReservesAtomic",
+          "decimals": "$baseSupply.decimals"
+        },
+        {
+          "name": "liquidityQuote",
+          "compute": "math.add",
+          "values": [
+            "$quoteReserveUi"
+          ]
+        },
+        {
+          "name": "initialRealTokenReservesUi",
+          "compute": "math.amount_ui",
+          "amount": "$ctx.tokenTotalSupplyAtomic",
+          "decimals": "$baseSupply.decimals"
+        },
+        {
+          "name": "initialPositive",
+          "compute": "compare.gt",
+          "left": "$initialRealTokenReservesUi",
+          "right": 0
+        },
+        {
+          "name": "progressNumerator",
+          "compute": "math.sub",
+          "values": [
+            "$initialRealTokenReservesUi",
+            "$baseReserveUi"
+          ]
+        },
+        {
+          "name": "progressRatio",
+          "compute": "math.safe_div",
+          "dividend": "$progressNumerator",
+          "divisor": "$initialRealTokenReservesUi"
+        },
+        {
+          "name": "progressPctRaw",
+          "compute": "math.mul",
+          "values": [
+            "$progressRatio",
+            100
+          ]
+        },
+        {
+          "name": "bondingCurveProgressPct",
+          "compute": "logic.if",
+          "condition": "$initialPositive",
+          "then": "$progressPctRaw",
+          "else": "$null"
+        }
+      ],
+      "emit": {
+        "state": {
+          "recordKind": "state",
+          "recordName": "BondingCurve",
+          "subjectId": "$ctx.mint",
+          "resourceId": "$ctx.pool",
+          "eventTime": "$ctx.observedAt",
+          "payload": {
+            "mint": "$ctx.mint",
+            "pool": "$ctx.pool",
+            "marketType": "$ctx.marketType",
+            "quoteMint": "$ctx.quoteMint",
+            "baseDecimals": "$baseSupply.decimals",
+            "quoteDecimals": "$ctx.quoteDecimals",
+            "priceQuote": "$priceQuote",
+            "marketCapQuote": "$marketCapQuote",
+            "liquidityQuote": "$liquidityQuote",
+            "baseReserveUi": "$baseReserveUi",
+            "quoteReserveUi": "$quoteReserveUi",
+            "baseSupplyUi": "$baseSupply.supplyUi",
+            "creator": "$ctx.creator",
+            "bondingCurveProgressPct": "$bondingCurveProgressPct",
+            "complete": "$ctx.complete",
+            "observedAt": "$ctx.observedAt"
+          }
+        }
+      }
+    },
+    "curve_trade": {
+      "extract": {
+        "mint": "$decoded.mint",
+        "pool": "$decoded.mint",
+        "marketType": "core",
+        "quoteMint": "So11111111111111111111111111111111111111112",
+        "quoteDecimals": 9,
+        "creator": "$decoded.creator",
+        "complete": false,
+        "observedAt": "$update.eventTime",
+        "participant": "$decoded.user",
+        "isBuy": "$decoded.is_buy",
+        "baseAmountAtomic": "$decoded.token_amount",
+        "quoteAmountAtomic": "$decoded.sol_amount",
+        "virtualTokenReservesAtomic": "$decoded.virtual_token_reserves",
+        "virtualSolReservesAtomic": "$decoded.virtual_sol_reserves",
+        "realTokenReservesAtomic": "$decoded.real_token_reserves",
+        "realSolReservesAtomic": "$decoded.real_sol_reserves",
+        "totalUnclaimedTokensAtomic": "$decoded.total_unclaimed_tokens",
+        "totalClaimedTokensAtomic": "$decoded.total_claimed_tokens",
+        "signature": "$update.signature",
+        "slot": "$update.slot"
+      },
+      "resolve": [
+        {
+          "name": "baseSupply",
+          "resolve": "rpc.token_supply",
+          "mint": "$ctx.mint"
+        }
+      ],
+      "compute": [
+        {
+          "name": "side",
+          "compute": "logic.if",
+          "condition": "$ctx.isBuy",
+          "then": "buy",
+          "else": "sell"
+        },
+        {
+          "name": "virtualTokenReserveUi",
+          "compute": "math.amount_ui",
+          "amount": "$ctx.virtualTokenReservesAtomic",
+          "decimals": "$baseSupply.decimals"
+        },
+        {
+          "name": "virtualSolReserveUi",
+          "compute": "math.amount_ui",
+          "amount": "$ctx.virtualSolReservesAtomic",
+          "decimals": "$ctx.quoteDecimals"
+        },
+        {
+          "name": "priceQuote",
+          "compute": "math.safe_div",
+          "dividend": "$virtualSolReserveUi",
+          "divisor": "$virtualTokenReserveUi"
+        },
+        {
+          "name": "supplyPositive",
+          "compute": "compare.gt",
+          "left": "$baseSupply.supplyUi",
+          "right": 0
+        },
+        {
+          "name": "marketCapRaw",
+          "compute": "math.mul",
+          "values": [
+            "$priceQuote",
+            "$baseSupply.supplyUi"
+          ]
+        },
+        {
+          "name": "marketCapQuote",
+          "compute": "logic.if",
+          "condition": "$supplyPositive",
+          "then": "$marketCapRaw",
+          "else": "$null"
+        },
+        {
+          "name": "quoteAmountUi",
+          "compute": "math.amount_ui",
+          "amount": "$ctx.quoteAmountAtomic",
+          "decimals": "$ctx.quoteDecimals"
+        },
+        {
+          "name": "baseReserveUi",
+          "compute": "math.amount_ui",
+          "amount": "$ctx.realTokenReservesAtomic",
+          "decimals": "$baseSupply.decimals"
+        },
+        {
+          "name": "quoteReserveUi",
+          "compute": "math.amount_ui",
+          "amount": "$ctx.realSolReservesAtomic",
+          "decimals": "$ctx.quoteDecimals"
+        },
+        {
+          "name": "liquidityQuote",
+          "compute": "math.add",
+          "values": [
+            "$quoteReserveUi"
+          ]
+        },
+        {
+          "name": "initialRealTokenReservesAtomic",
+          "compute": "math.add",
+          "values": [
+            "$ctx.realTokenReservesAtomic",
+            "$ctx.totalUnclaimedTokensAtomic",
+            "$ctx.totalClaimedTokensAtomic"
+          ]
+        },
+        {
+          "name": "initialRealTokenReservesUi",
+          "compute": "math.amount_ui",
+          "amount": "$initialRealTokenReservesAtomic",
+          "decimals": "$baseSupply.decimals"
+        },
+        {
+          "name": "initialPositive",
+          "compute": "compare.gt",
+          "left": "$initialRealTokenReservesUi",
+          "right": 0
+        },
+        {
+          "name": "progressNumerator",
+          "compute": "math.sub",
+          "values": [
+            "$initialRealTokenReservesUi",
+            "$baseReserveUi"
+          ]
+        },
+        {
+          "name": "progressRatio",
+          "compute": "math.safe_div",
+          "dividend": "$progressNumerator",
+          "divisor": "$initialRealTokenReservesUi"
+        },
+        {
+          "name": "progressPctRaw",
+          "compute": "math.mul",
+          "values": [
+            "$progressRatio",
+            100
+          ]
+        },
+        {
+          "name": "bondingCurveProgressPct",
+          "compute": "logic.if",
+          "condition": "$initialPositive",
+          "then": "$progressPctRaw",
+          "else": "$null"
+        }
+      ],
+      "emit": {
+        "record": {
+          "recordKind": "event",
+          "recordName": "TradeEvent",
+          "subjectId": "$ctx.mint",
+          "resourceId": "$ctx.pool",
+          "participantId": "$ctx.participant",
+          "signature": "$ctx.signature",
+          "slot": "$ctx.slot",
+          "eventTime": "$ctx.observedAt",
+          "payload": {
+            "mint": "$ctx.mint",
+            "pool": "$ctx.pool",
+            "marketType": "$ctx.marketType",
+            "participant": "$ctx.participant",
+            "side": "$ctx.side",
+            "priceQuote": "$priceQuote",
+            "marketCapQuote": "$marketCapQuote",
+            "quoteAmountUi": "$quoteAmountUi",
+            "baseAmountAtomic": "$ctx.baseAmountAtomic",
+            "quoteAmountAtomic": "$ctx.quoteAmountAtomic",
+            "signature": "$ctx.signature",
+            "slot": "$ctx.slot",
+            "observedAt": "$ctx.observedAt"
+          }
+        },
+        "state": {
+          "recordKind": "state",
+          "recordName": "BondingCurve",
+          "subjectId": "$ctx.mint",
+          "resourceId": "$ctx.pool",
+          "signature": "$ctx.signature",
+          "slot": "$ctx.slot",
+          "eventTime": "$ctx.observedAt",
+          "payload": {
+            "mint": "$ctx.mint",
+            "pool": "$ctx.pool",
+            "marketType": "$ctx.marketType",
+            "quoteMint": "$ctx.quoteMint",
+            "baseDecimals": "$baseSupply.decimals",
+            "quoteDecimals": "$ctx.quoteDecimals",
+            "priceQuote": "$priceQuote",
+            "marketCapQuote": "$marketCapQuote",
+            "liquidityQuote": "$liquidityQuote",
+            "baseReserveUi": "$baseReserveUi",
+            "quoteReserveUi": "$quoteReserveUi",
+            "baseSupplyUi": "$baseSupply.supplyUi",
+            "creator": "$ctx.creator",
+            "bondingCurveProgressPct": "$bondingCurveProgressPct",
+            "complete": "$ctx.complete",
+            "observedAt": "$ctx.observedAt"
+          }
+        }
+      }
+    }
+  }
+}

@@ -246,12 +246,13 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
     void (async () => {
       try {
         const listed = await listRuntimeOperations({ protocolId });
+        const computeOperations = listed.operations.filter((operation) => operation.executionKind === 'compute');
         if (cancelled) {
           return;
         }
-        setOperations(listed.operations);
+        setOperations(computeOperations);
         const countEntries = await Promise.all(
-          listed.operations.map(async (operation) => {
+          computeOperations.map(async (operation) => {
             const details = await explainRuntimeOperation({ protocolId, operationId: operation.operationId });
             return [operation.operationId, Array.isArray(details.compute) ? details.compute.length : 0] as const;
           }),
@@ -262,8 +263,8 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
         const counts = Object.fromEntries(countEntries);
         setOperationComputeCounts(counts);
         const preferred =
-          listed.operations.find((operation) => (counts[operation.operationId] ?? 0) > 0)?.operationId ??
-          listed.operations[0]?.operationId ??
+          computeOperations.find((operation) => (counts[operation.operationId] ?? 0) > 0)?.operationId ??
+          computeOperations[0]?.operationId ??
           '';
         setOperationId(preferred);
       } catch (caught) {
@@ -355,7 +356,7 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
       {error ? <p className="compute-error">Error: {error}</p> : null}
       {selectedProtocol ? (
         <p className="compute-empty">
-          Runtime compute is loaded directly from `{selectedProtocol.id}.runtime.json`. Legacy compute library files stay disabled.
+          Runtime compute is loaded directly from `{selectedProtocol.id}.runtime.json` agent packs.
         </p>
       ) : null}
       {explain ? (

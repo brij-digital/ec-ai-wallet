@@ -1,405 +1,290 @@
 {
-  "$schema": "/idl/declarative_decoder_runtime.schema.v1.json",
-  "schema": "declarative-decoder-runtime.v1",
+  "$schema": "/idl/solana_agent_runtime.schema.v1.json",
+  "schema": "solana-agent-runtime.v1",
   "version": "0.1.0",
-  "protocolId": "pump-core-mainnet",
-  "label": "Pump Core Declarative Runtime",
-  "programId": "$protocol.programId",
-  "decoderArtifacts": {
-    "pumpfun": {
-      "kind": "generated_idl_decoder",
-      "family": "codama",
-      "codamaPath": "/idl/pump_core.codama.json",
-      "artifact": "pumpfun"
-    }
+  "protocol": {
+    "protocolId": "pump-core-mainnet",
+    "label": "Pump Core Declarative Runtime",
+    "programId": "$protocol.programId",
+    "codamaPath": "/idl/pump_core.codama.json"
   },
-  "sources": {
-    "pump_core_crawler": {
-      "kind": "rpc_transaction_crawler",
-      "programId": "$protocol.programId",
-      "commitment": "confirmed",
-      "decoderRef": "pumpfun",
-      "decodeTargets": [
-        "instruction",
-        "log_event"
-      ],
-      "filters": {}
-    }
-  },
-  "matchRules": [
-    {
-      "source": "pump_core_crawler",
-      "match": {
-        "decodedType": "event",
-        "name": "CreateEvent"
-      },
-      "pipeline": "curve_create"
+  "navigation": {
+    "entities": {
+      "bonding_curve": {
+        "description": "Pump core bonding curve state.",
+        "identity_fields": [
+          "base_mint"
+        ],
+        "codama_account": "BondingCurve"
+      }
     },
-    {
-      "source": "pump_core_crawler",
-      "match": {
-        "decodedType": "event",
-        "name": "TradeEvent"
-      },
-      "pipeline": "curve_trade"
+    "entrypoints": {
+      "preview_buy_exact_sol_in": "computes.preview_buy_exact_sol_in",
+      "buy_exact_sol_in": "executions.buy_exact_sol_in"
+    },
+    "relations": [],
+    "recipes": {
+      "buy_exact_sol_in": [
+        "computes.preview_buy_exact_sol_in",
+        "executions.buy_exact_sol_in"
+      ]
     }
-  ],
-  "pipelines": {
-    "curve_create": {
-      "extract": {
-        "mint": "$decoded.mint",
-        "pool": "$decoded.mint",
-        "marketType": "core",
-        "quoteMint": "So11111111111111111111111111111111111111112",
-        "quoteDecimals": 9,
-        "creator": "$decoded.creator",
-        "complete": false,
-        "observedAt": "$update.eventTime",
-        "virtualTokenReservesAtomic": "$decoded.virtual_token_reserves",
-        "virtualSolReservesAtomic": "$decoded.virtual_sol_reserves",
-        "realTokenReservesAtomic": "$decoded.real_token_reserves",
-        "tokenTotalSupplyAtomic": "$decoded.token_total_supply"
+  },
+  "reads": {
+    "contract": {},
+    "index": {}
+  },
+  "computes": {
+    "preview_buy_exact_sol_in": {
+      "inputs": {
+        "base_mint": {
+          "type": "pubkey",
+          "required": true
+        },
+        "spendable_sol_in": {
+          "type": "u64",
+          "required": true
+        },
+        "slippage_bps": {
+          "type": "u16",
+          "required": true
+        },
+        "min_tokens_out": {
+          "type": "u64",
+          "required": false,
+          "bind_from": "$args.min_tokens_out"
+        },
+        "track_volume": {
+          "type": "bool",
+          "required": false,
+          "default": false
+        }
       },
-      "resolve": [
+      "derive": [
         {
-          "name": "baseSupply",
-          "resolve": "rpc.token_supply",
-          "mint": "$ctx.mint"
+          "name": "wallet",
+          "resolver": "wallet_pubkey"
+        },
+        {
+          "name": "token_program",
+          "resolver": "account_owner",
+          "address": "$input.base_mint"
+        },
+        {
+          "name": "global",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:global"
+          ]
+        },
+        {
+          "name": "global_data",
+          "resolver": "decode_account",
+          "address": "$global",
+          "account_type": "Global"
+        },
+        {
+          "name": "bonding_curve",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:bonding-curve",
+            "$input.base_mint"
+          ]
+        },
+        {
+          "name": "bonding_curve_v2",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:bonding-curve-v2",
+            "$input.base_mint"
+          ]
+        },
+        {
+          "name": "bonding_curve_data",
+          "resolver": "decode_account",
+          "address": "$bonding_curve",
+          "account_type": "BondingCurve"
+        },
+        {
+          "name": "associated_bonding_curve",
+          "resolver": "ata",
+          "owner": "$bonding_curve",
+          "mint": "$input.base_mint",
+          "token_program": "$token_program",
+          "allow_owner_off_curve": true
+        },
+        {
+          "name": "associated_user",
+          "resolver": "ata",
+          "owner": "$wallet",
+          "mint": "$input.base_mint",
+          "token_program": "$token_program"
+        },
+        {
+          "name": "creator_vault",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:creator-vault",
+            "$bonding_curve_data.creator"
+          ]
+        },
+        {
+          "name": "event_authority",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:__event_authority"
+          ]
+        },
+        {
+          "name": "global_volume_accumulator",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:global_volume_accumulator"
+          ]
+        },
+        {
+          "name": "user_volume_accumulator",
+          "resolver": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:user_volume_accumulator",
+            "$wallet"
+          ]
+        },
+        {
+          "name": "fee_config",
+          "resolver": "pda",
+          "program_id": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
+          "seeds": [
+            "utf8:fee_config",
+            "$protocol.programId"
+          ]
         }
       ],
       "compute": [
         {
-          "name": "virtualTokenReserveUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.virtualTokenReservesAtomic",
-          "decimals": "$baseSupply.decimals"
+          "name": "creator_is_default",
+          "compute": "compare.equals",
+          "left": "$bonding_curve_data.creator",
+          "right": "11111111111111111111111111111111"
         },
         {
-          "name": "quoteReserveUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.virtualSolReservesAtomic",
-          "decimals": "$ctx.quoteDecimals"
-        },
-        {
-          "name": "priceQuote",
-          "compute": "math.safe_div",
-          "dividend": "$quoteReserveUi",
-          "divisor": "$virtualTokenReserveUi"
-        },
-        {
-          "name": "supplyPositive",
-          "compute": "compare.gt",
-          "left": "$baseSupply.supplyUi",
-          "right": 0
-        },
-        {
-          "name": "marketCapRaw",
-          "compute": "math.mul",
-          "values": [
-            "$priceQuote",
-            "$baseSupply.supplyUi"
-          ]
-        },
-        {
-          "name": "marketCapQuote",
+          "name": "creator_fee_bps_effective",
           "compute": "logic.if",
-          "condition": "$supplyPositive",
-          "then": "$marketCapRaw",
-          "else": "$null"
+          "condition": "$creator_is_default",
+          "then": "0",
+          "else": "$global_data.creator_fee_basis_points"
         },
         {
-          "name": "baseReserveUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.realTokenReservesAtomic",
-          "decimals": "$baseSupply.decimals"
-        },
-        {
-          "name": "liquidityQuote",
+          "name": "total_fee_bps",
           "compute": "math.add",
           "values": [
-            "$quoteReserveUi"
+            "$global_data.fee_basis_points",
+            "$creator_fee_bps_effective"
           ]
         },
         {
-          "name": "initialRealTokenReservesUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.tokenTotalSupplyAtomic",
-          "decimals": "$baseSupply.decimals"
+          "name": "net_sol_numerator",
+          "compute": "math.mul",
+          "values": [
+            "$input.spendable_sol_in",
+            "10000"
+          ]
         },
         {
-          "name": "initialPositive",
-          "compute": "compare.gt",
-          "left": "$initialRealTokenReservesUi",
-          "right": 0
+          "name": "net_sol_denominator",
+          "compute": "math.add",
+          "values": [
+            "10000",
+            "$total_fee_bps"
+          ]
         },
         {
-          "name": "progressNumerator",
+          "name": "net_sol_raw",
+          "compute": "math.floor_div",
+          "dividend": "$net_sol_numerator",
+          "divisor": "$net_sol_denominator"
+        },
+        {
+          "name": "net_sol_minus_one_candidate",
           "compute": "math.sub",
           "values": [
-            "$initialRealTokenReservesUi",
-            "$baseReserveUi"
+            "$net_sol_raw",
+            "1"
           ]
         },
         {
-          "name": "progressRatio",
-          "compute": "math.safe_div",
-          "dividend": "$progressNumerator",
-          "divisor": "$initialRealTokenReservesUi"
+          "name": "net_sol_gt_one",
+          "compute": "compare.gt",
+          "left": "$net_sol_raw",
+          "right": "1"
         },
         {
-          "name": "progressPctRaw",
+          "name": "net_sol_minus_one",
+          "compute": "logic.if",
+          "condition": "$net_sol_gt_one",
+          "then": "$net_sol_minus_one_candidate",
+          "else": "0"
+        },
+        {
+          "name": "estimated_out_numerator",
           "compute": "math.mul",
           "values": [
-            "$progressRatio",
-            100
+            "$net_sol_minus_one",
+            "$bonding_curve_data.virtual_token_reserves"
           ]
         },
         {
-          "name": "bondingCurveProgressPct",
-          "compute": "logic.if",
-          "condition": "$initialPositive",
-          "then": "$progressPctRaw",
-          "else": "$null"
-        }
-      ],
-      "emit": {
-        "state": {
-          "recordKind": "state",
-          "recordName": "BondingCurve",
-          "subjectId": "$ctx.mint",
-          "resourceId": "$ctx.pool",
-          "eventTime": "$ctx.observedAt",
-          "payload": {
-            "mint": "$ctx.mint",
-            "pool": "$ctx.pool",
-            "marketType": "$ctx.marketType",
-            "quoteMint": "$ctx.quoteMint",
-            "baseDecimals": "$baseSupply.decimals",
-            "quoteDecimals": "$ctx.quoteDecimals",
-            "priceQuote": "$priceQuote",
-            "marketCapQuote": "$marketCapQuote",
-            "liquidityQuote": "$liquidityQuote",
-            "baseReserveUi": "$baseReserveUi",
-            "quoteReserveUi": "$quoteReserveUi",
-            "baseSupplyUi": "$baseSupply.supplyUi",
-            "creator": "$ctx.creator",
-            "bondingCurveProgressPct": "$bondingCurveProgressPct",
-            "complete": "$ctx.complete",
-            "observedAt": "$ctx.observedAt"
-          }
-        }
-      }
-    },
-    "curve_trade": {
-      "extract": {
-        "mint": "$decoded.mint",
-        "pool": "$decoded.mint",
-        "marketType": "core",
-        "quoteMint": "So11111111111111111111111111111111111111112",
-        "quoteDecimals": 9,
-        "creator": "$decoded.creator",
-        "complete": false,
-        "observedAt": "$update.eventTime",
-        "participant": "$decoded.user",
-        "isBuy": "$decoded.is_buy",
-        "baseAmountAtomic": "$decoded.token_amount",
-        "quoteAmountAtomic": "$decoded.sol_amount",
-        "virtualTokenReservesAtomic": "$decoded.virtual_token_reserves",
-        "virtualSolReservesAtomic": "$decoded.virtual_sol_reserves",
-        "realTokenReservesAtomic": "$decoded.real_token_reserves",
-        "realSolReservesAtomic": "$decoded.real_sol_reserves",
-        "totalUnclaimedTokensAtomic": "$decoded.total_unclaimed_tokens",
-        "totalClaimedTokensAtomic": "$decoded.total_claimed_tokens",
-        "signature": "$update.signature",
-        "slot": "$update.slot"
-      },
-      "resolve": [
-        {
-          "name": "baseSupply",
-          "resolve": "rpc.token_supply",
-          "mint": "$ctx.mint"
-        }
-      ],
-      "compute": [
-        {
-          "name": "side",
-          "compute": "logic.if",
-          "condition": "$ctx.isBuy",
-          "then": "buy",
-          "else": "sell"
-        },
-        {
-          "name": "virtualTokenReserveUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.virtualTokenReservesAtomic",
-          "decimals": "$baseSupply.decimals"
-        },
-        {
-          "name": "virtualSolReserveUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.virtualSolReservesAtomic",
-          "decimals": "$ctx.quoteDecimals"
-        },
-        {
-          "name": "priceQuote",
-          "compute": "math.safe_div",
-          "dividend": "$virtualSolReserveUi",
-          "divisor": "$virtualTokenReserveUi"
-        },
-        {
-          "name": "supplyPositive",
-          "compute": "compare.gt",
-          "left": "$baseSupply.supplyUi",
-          "right": 0
-        },
-        {
-          "name": "marketCapRaw",
-          "compute": "math.mul",
-          "values": [
-            "$priceQuote",
-            "$baseSupply.supplyUi"
-          ]
-        },
-        {
-          "name": "marketCapQuote",
-          "compute": "logic.if",
-          "condition": "$supplyPositive",
-          "then": "$marketCapRaw",
-          "else": "$null"
-        },
-        {
-          "name": "quoteAmountUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.quoteAmountAtomic",
-          "decimals": "$ctx.quoteDecimals"
-        },
-        {
-          "name": "baseReserveUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.realTokenReservesAtomic",
-          "decimals": "$baseSupply.decimals"
-        },
-        {
-          "name": "quoteReserveUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.realSolReservesAtomic",
-          "decimals": "$ctx.quoteDecimals"
-        },
-        {
-          "name": "liquidityQuote",
+          "name": "estimated_out_denominator",
           "compute": "math.add",
           "values": [
-            "$quoteReserveUi"
+            "$bonding_curve_data.virtual_sol_reserves",
+            "$net_sol_minus_one"
           ]
         },
         {
-          "name": "initialRealTokenReservesAtomic",
-          "compute": "math.add",
-          "values": [
-            "$ctx.realTokenReservesAtomic",
-            "$ctx.totalUnclaimedTokensAtomic",
-            "$ctx.totalClaimedTokensAtomic"
-          ]
+          "name": "estimated_out_auto",
+          "compute": "math.floor_div",
+          "dividend": "$estimated_out_numerator",
+          "divisor": "$estimated_out_denominator"
         },
         {
-          "name": "initialRealTokenReservesUi",
-          "compute": "math.amount_ui",
-          "amount": "$initialRealTokenReservesAtomic",
-          "decimals": "$baseSupply.decimals"
-        },
-        {
-          "name": "initialPositive",
-          "compute": "compare.gt",
-          "left": "$initialRealTokenReservesUi",
-          "right": 0
-        },
-        {
-          "name": "progressNumerator",
+          "name": "slippage_keep_bps",
           "compute": "math.sub",
           "values": [
-            "$initialRealTokenReservesUi",
-            "$baseReserveUi"
+            "10000",
+            "$input.slippage_bps"
           ]
         },
         {
-          "name": "progressRatio",
-          "compute": "math.safe_div",
-          "dividend": "$progressNumerator",
-          "divisor": "$initialRealTokenReservesUi"
-        },
-        {
-          "name": "progressPctRaw",
+          "name": "min_tokens_out_auto_numerator",
           "compute": "math.mul",
           "values": [
-            "$progressRatio",
-            100
+            "$estimated_out_auto",
+            "$slippage_keep_bps"
           ]
         },
         {
-          "name": "bondingCurveProgressPct",
-          "compute": "logic.if",
-          "condition": "$initialPositive",
-          "then": "$progressPctRaw",
-          "else": "$null"
+          "name": "min_tokens_out_auto",
+          "compute": "math.floor_div",
+          "dividend": "$min_tokens_out_auto_numerator",
+          "divisor": "10000"
         }
       ],
-      "emit": {
-        "record": {
-          "recordKind": "event",
-          "recordName": "TradeEvent",
-          "subjectId": "$ctx.mint",
-          "resourceId": "$ctx.pool",
-          "participantId": "$ctx.participant",
-          "signature": "$ctx.signature",
-          "slot": "$ctx.slot",
-          "eventTime": "$ctx.observedAt",
-          "payload": {
-            "mint": "$ctx.mint",
-            "pool": "$ctx.pool",
-            "marketType": "$ctx.marketType",
-            "participant": "$ctx.participant",
-            "side": "$ctx.side",
-            "priceQuote": "$priceQuote",
-            "marketCapQuote": "$marketCapQuote",
-            "quoteAmountUi": "$quoteAmountUi",
-            "baseAmountAtomic": "$ctx.baseAmountAtomic",
-            "quoteAmountAtomic": "$ctx.quoteAmountAtomic",
-            "signature": "$ctx.signature",
-            "slot": "$ctx.slot",
-            "observedAt": "$ctx.observedAt"
-          }
-        },
-        "state": {
-          "recordKind": "state",
-          "recordName": "BondingCurve",
-          "subjectId": "$ctx.mint",
-          "resourceId": "$ctx.pool",
-          "signature": "$ctx.signature",
-          "slot": "$ctx.slot",
-          "eventTime": "$ctx.observedAt",
-          "payload": {
-            "mint": "$ctx.mint",
-            "pool": "$ctx.pool",
-            "marketType": "$ctx.marketType",
-            "quoteMint": "$ctx.quoteMint",
-            "baseDecimals": "$baseSupply.decimals",
-            "quoteDecimals": "$ctx.quoteDecimals",
-            "priceQuote": "$priceQuote",
-            "marketCapQuote": "$marketCapQuote",
-            "liquidityQuote": "$liquidityQuote",
-            "baseReserveUi": "$baseReserveUi",
-            "quoteReserveUi": "$quoteReserveUi",
-            "baseSupplyUi": "$baseSupply.supplyUi",
-            "creator": "$ctx.creator",
-            "bondingCurveProgressPct": "$bondingCurveProgressPct",
-            "complete": "$ctx.complete",
-            "observedAt": "$ctx.observedAt"
-          }
-        }
+      "read_output": {
+        "type": "object",
+        "source": "$derived",
+        "title": "Bonding curve buy preview"
       }
     }
   },
-  "operations": {
+  "executions": {
     "buy_exact_sol_in": {
       "instruction": "buy_exact_sol_in",
       "inputs": {
@@ -648,16 +533,6 @@
         "min_tokens_out": "$min_tokens_out_auto",
         "track_volume": "$input.track_volume"
       },
-      "pre": [
-        {
-          "kind": "spl_ata_create_idempotent",
-          "payer": "$wallet",
-          "ata": "$associated_user",
-          "owner": "$wallet",
-          "mint": "$input.base_mint",
-          "token_program": "$token_program"
-        }
-      ],
       "accounts": {
         "global": "$global",
         "fee_recipient": "$global_data.fee_recipient",
@@ -676,7 +551,18 @@
         "user_volume_accumulator": "$user_volume_accumulator",
         "fee_config": "$fee_config",
         "fee_program": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"
-      }
+      },
+      "pre": [
+        {
+          "kind": "spl_ata_create_idempotent",
+          "payer": "$wallet",
+          "ata": "$associated_user",
+          "owner": "$wallet",
+          "mint": "$input.base_mint",
+          "token_program": "$token_program"
+        }
+      ]
     }
-  }
+  },
+  "templates": {}
 }

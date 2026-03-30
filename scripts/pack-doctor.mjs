@@ -115,7 +115,8 @@ async function main() {
     const id = asString(manifest.id, `${manifest.id}.id`);
     const programId = checkPubkey(manifest.programId, `${id}.programId`);
     const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
-    const runtimePath = manifest.runtimeSpecPath ? resolvePublicAssetPath(manifest.runtimeSpecPath, `${id}.runtimeSpecPath`) : null;
+    const agentRuntimePath = manifest.agentRuntimePath ? resolvePublicAssetPath(manifest.agentRuntimePath, `${id}.agentRuntimePath`) : null;
+    const indexingPath = manifest.indexingSpecPath ? resolvePublicAssetPath(manifest.indexingSpecPath, `${id}.indexingSpecPath`) : null;
 
     const protocolErrors = [];
     const protocolWarnings = [];
@@ -132,9 +133,14 @@ async function main() {
       protocolErrors.push(`Missing Codama IDL file: ${path.relative(ROOT, codamaPath)}`);
     }
 
-    const runtimeExists = runtimePath ? await pathExists(runtimePath) : false;
-    if (runtimePath && !runtimeExists) {
-      protocolErrors.push(`Missing runtime spec file: ${path.relative(ROOT, runtimePath)}`);
+    const agentRuntimeExists = agentRuntimePath ? await pathExists(agentRuntimePath) : false;
+    if (agentRuntimePath && !agentRuntimeExists) {
+      protocolErrors.push(`Missing agent runtime file: ${path.relative(ROOT, agentRuntimePath)}`);
+    }
+
+    const indexingExists = indexingPath ? await pathExists(indexingPath) : false;
+    if (indexingPath && !indexingExists) {
+      protocolErrors.push(`Missing indexing spec file: ${path.relative(ROOT, indexingPath)}`);
     }
 
     if (codamaExists) {
@@ -150,26 +156,45 @@ async function main() {
       }
     }
 
-    if (runtimeExists && runtimePath) {
+    if (agentRuntimeExists && agentRuntimePath) {
       try {
-        const runtime = asObject(await readJson(runtimePath, `${id} runtime spec`), `${id} runtime spec`);
-        if (runtime.schema !== 'declarative-decoder-runtime.v1') {
-          protocolErrors.push(`Unsupported runtime schema: ${String(runtime.schema ?? '')}`);
+        const runtime = asObject(await readJson(agentRuntimePath, `${id} agent runtime`), `${id} agent runtime`);
+        if (runtime.schema !== 'solana-agent-runtime.v1') {
+          protocolErrors.push(`Unsupported agent runtime schema: ${String(runtime.schema ?? '')}`);
         }
-        if (asString(runtime.protocolId, `${id}.runtime.protocolId`) !== id) {
-          protocolErrors.push(`runtime.protocolId mismatch: ${String(runtime.protocolId)} != ${id}`);
+        const protocol = asObject(runtime.protocol, `${id}.agentRuntime.protocol`);
+        if (asString(protocol.protocolId, `${id}.agentRuntime.protocol.protocolId`) !== id) {
+          protocolErrors.push(`agent runtime protocolId mismatch: ${String(protocol.protocolId)} != ${id}`);
         }
-        const operations = asObject(runtime.operations ?? {}, `${id}.runtime.operations`);
-        if (Object.keys(operations).length === 0) {
-          protocolWarnings.push('No runtime operations declared.');
+        const reads = asObject(runtime.reads ?? {}, `${id}.agentRuntime.reads`);
+        const contractReads = asObject(reads.contract ?? {}, `${id}.agentRuntime.reads.contract`);
+        const indexReads = asObject(reads.index ?? {}, `${id}.agentRuntime.reads.index`);
+        const computes = asObject(runtime.computes ?? {}, `${id}.agentRuntime.computes`);
+        const executions = asObject(runtime.executions ?? {}, `${id}.agentRuntime.executions`);
+        if (Object.keys(contractReads).length + Object.keys(indexReads).length + Object.keys(computes).length + Object.keys(executions).length === 0) {
+          protocolWarnings.push('No agent runtime capabilities declared.');
         }
       } catch (error) {
         protocolErrors.push(error instanceof Error ? error.message : String(error));
       }
     }
 
-    if (!runtimePath) {
-      protocolWarnings.push('No runtimeSpecPath declared; protocol is not runtime-backed.');
+    if (indexingExists && indexingPath) {
+      try {
+        const indexing = asObject(await readJson(indexingPath, `${id} indexing spec`), `${id} indexing spec`);
+        if (indexing.schema !== 'declarative-decoder-runtime.v1') {
+          protocolErrors.push(`Unsupported indexing schema: ${String(indexing.schema ?? '')}`);
+        }
+        if (asString(indexing.protocolId, `${id}.indexing.protocolId`) !== id) {
+          protocolErrors.push(`indexing protocolId mismatch: ${String(indexing.protocolId)} != ${id}`);
+        }
+      } catch (error) {
+        protocolErrors.push(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    if (!agentRuntimePath || !indexingPath) {
+      protocolWarnings.push('Missing agentRuntimePath or indexingSpecPath; protocol is not fully split.');
     }
 
     if (protocolErrors.length > 0) {
@@ -184,10 +209,15 @@ async function main() {
     console.log(`- network: ${asString(manifest.network, `${id}.network`)}`);
     console.log(`- programId: ${programId}`);
     console.log(`- codama: ${path.relative(ROOT, codamaPath)} ${codamaExists ? 'OK' : 'MISSING'}`);
-    if (runtimePath) {
-      console.log(`- runtime: ${path.relative(ROOT, runtimePath)} ${runtimeExists ? 'OK' : 'MISSING'}`);
+    if (agentRuntimePath) {
+      console.log(`- agent runtime: ${path.relative(ROOT, agentRuntimePath)} ${agentRuntimeExists ? 'OK' : 'MISSING'}`);
     } else {
-      console.log('- runtime: none');
+      console.log('- agent runtime: none');
+    }
+    if (indexingPath) {
+      console.log(`- indexing: ${path.relative(ROOT, indexingPath)} ${indexingExists ? 'OK' : 'MISSING'}`);
+    } else {
+      console.log('- indexing: none');
     }
 
     for (const warn of protocolWarnings) {

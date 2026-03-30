@@ -94,31 +94,45 @@ function collectInstructionNamesFromCodama(codama, label) {
   );
 }
 
-function validateRuntimeOperation(protocolId, operationId, operation, instructionNames) {
-  const op = asObject(operation, `${protocolId}.runtime.operations.${operationId}`);
-  if (op.instruction !== undefined) {
-    const instruction = asString(op.instruction, `${protocolId}.runtime.operations.${operationId}.instruction`);
-    if (!instructionNames.has(instruction)) {
-      fail(`${protocolId}: runtime operation ${operationId} references missing instruction ${instruction}.`);
-    }
-  }
-
-  const inputs = asOptionalObject(op.inputs, `${protocolId}.runtime.operations.${operationId}.inputs`);
+function validateRuntimeInputs(protocolId, sectionLabel, operationId, operation) {
+  const op = asObject(operation, `${protocolId}.${sectionLabel}.${operationId}`);
+  const inputs = asOptionalObject(op.inputs, `${protocolId}.${sectionLabel}.${operationId}.inputs`);
   for (const [inputName, inputRaw] of Object.entries(inputs)) {
-    const input = asObject(inputRaw, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}`);
-    asString(input.type, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.type`);
+    const input = asObject(inputRaw, `${protocolId}.${sectionLabel}.${operationId}.inputs.${inputName}`);
+    asString(input.type, `${protocolId}.${sectionLabel}.${operationId}.inputs.${inputName}.type`);
     if (input.bind_from !== undefined) {
-      asString(input.bind_from, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.bind_from`);
+      asString(input.bind_from, `${protocolId}.${sectionLabel}.${operationId}.inputs.${inputName}.bind_from`);
     }
     if (input.read_from !== undefined) {
-      asString(input.read_from, `${protocolId}.runtime.operations.${operationId}.inputs.${inputName}.read_from`);
+      asString(input.read_from, `${protocolId}.${sectionLabel}.${operationId}.inputs.${inputName}.read_from`);
     }
   }
 
   if (op.read_output !== undefined) {
-    const readOutput = asObject(op.read_output, `${protocolId}.runtime.operations.${operationId}.read_output`);
-    asString(readOutput.source, `${protocolId}.runtime.operations.${operationId}.read_output.source`);
+    const readOutput = asObject(op.read_output, `${protocolId}.${sectionLabel}.${operationId}.read_output`);
+    asString(readOutput.source, `${protocolId}.${sectionLabel}.${operationId}.read_output.source`);
   }
+
+  return op;
+}
+
+function validateExecution(protocolId, executionId, execution, instructionNames) {
+  const op = validateRuntimeInputs(protocolId, 'agentRuntime.executions', executionId, execution);
+  if (op.instruction !== undefined) {
+    const instruction = asString(op.instruction, `${protocolId}.agentRuntime.executions.${executionId}.instruction`);
+    if (!instructionNames.has(instruction)) {
+      fail(`${protocolId}: execution ${executionId} references missing instruction ${instruction}.`);
+    }
+  }
+}
+
+function validateRead(protocolId, bucket, operationId, operation) {
+  const op = validateRuntimeInputs(protocolId, `agentRuntime.reads.${bucket}`, operationId, operation);
+  asObject(op.read, `${protocolId}.agentRuntime.reads.${bucket}.${operationId}.read`);
+}
+
+function validateCompute(protocolId, operationId, operation) {
+  validateRuntimeInputs(protocolId, 'agentRuntime.computes', operationId, operation);
 }
 
 async function main() {
@@ -169,53 +183,78 @@ async function main() {
 
     const instructionNames = collectInstructionNamesFromCodama(codama, `${protocolId}.codama`);
 
-    if (manifest.runtimeSpecPath === undefined) {
+    if (manifest.agentRuntimePath === undefined || manifest.indexingSpecPath === undefined) {
       if (isActive) {
-        fail(`${protocolId}: active protocols must declare runtimeSpecPath.`);
+        fail(`${protocolId}: active protocols must declare agentRuntimePath and indexingSpecPath.`);
       }
       continue;
     }
 
     runtimeBackedCount += 1;
-    const runtimePath = resolvePublicAssetPath(manifest.runtimeSpecPath, `${protocolId}.runtimeSpecPath`);
-    const runtime = asObject(await readJson(runtimePath, `${protocolId} runtime spec`), `${protocolId} runtime spec`);
-    if (runtime.schema !== 'declarative-decoder-runtime.v1') {
-      fail(`${protocolId}: runtimeSpecPath must point to declarative-decoder-runtime.v1.`);
+    const agentRuntimePath = resolvePublicAssetPath(manifest.agentRuntimePath, `${protocolId}.agentRuntimePath`);
+    const agentRuntime = asObject(await readJson(agentRuntimePath, `${protocolId} agent runtime`), `${protocolId} agent runtime`);
+    if (agentRuntime.schema !== 'solana-agent-runtime.v1') {
+      fail(`${protocolId}: agentRuntimePath must point to solana-agent-runtime.v1.`);
     }
-    if (asString(runtime.protocolId, `${protocolId}.runtime.protocolId`) !== protocolId) {
-      fail(`${protocolId}: runtime.protocolId mismatch.`);
+    if (asString(agentRuntime.protocol?.protocolId, `${protocolId}.agentRuntime.protocol.protocolId`) !== protocolId) {
+      fail(`${protocolId}: agentRuntime.protocol.protocolId mismatch.`);
     }
 
-    const decoderArtifacts = asObject(runtime.decoderArtifacts, `${protocolId}.runtime.decoderArtifacts`);
+    const indexingPath = resolvePublicAssetPath(manifest.indexingSpecPath, `${protocolId}.indexingSpecPath`);
+    const runtime = asObject(await readJson(indexingPath, `${protocolId} indexing spec`), `${protocolId} indexing spec`);
+    if (runtime.schema !== 'declarative-decoder-runtime.v1') {
+      fail(`${protocolId}: indexingSpecPath must point to declarative-decoder-runtime.v1.`);
+    }
+    if (asString(runtime.protocolId, `${protocolId}.indexing.protocolId`) !== protocolId) {
+      fail(`${protocolId}: indexing.protocolId mismatch.`);
+    }
+
+    const decoderArtifacts = asObject(runtime.decoderArtifacts, `${protocolId}.indexing.decoderArtifacts`);
     if (Object.keys(decoderArtifacts).length === 0) {
-      fail(`${protocolId}: runtime.decoderArtifacts must not be empty.`);
+      fail(`${protocolId}: indexing.decoderArtifacts must not be empty.`);
     }
     for (const [artifactName, artifactRaw] of Object.entries(decoderArtifacts)) {
-      const artifact = asObject(artifactRaw, `${protocolId}.runtime.decoderArtifacts.${artifactName}`);
+      const artifact = asObject(artifactRaw, `${protocolId}.indexing.decoderArtifacts.${artifactName}`);
       if (artifact.codecIdlPath !== undefined) {
-        fail(`${protocolId}: runtime decoder artifact ${artifactName} must not declare legacy codecIdlPath.`);
+        fail(`${protocolId}: indexing decoder artifact ${artifactName} must not declare legacy codecIdlPath.`);
       }
       if (artifact.idlPath !== undefined) {
-        fail(`${protocolId}: runtime decoder artifact ${artifactName} must not declare legacy idlPath.`);
+        fail(`${protocolId}: indexing decoder artifact ${artifactName} must not declare legacy idlPath.`);
       }
       if (artifact.family === 'codama') {
         const artifactCodamaPath = resolvePublicAssetPath(
           artifact.codamaPath,
-          `${protocolId}.runtime.decoderArtifacts.${artifactName}.codamaPath`,
+          `${protocolId}.indexing.decoderArtifacts.${artifactName}.codamaPath`,
         );
         const artifactCodama = asObject(
-          await readJson(artifactCodamaPath, `${protocolId} runtime codama ${artifactName}`),
-          `${protocolId} runtime codama ${artifactName}`,
+          await readJson(artifactCodamaPath, `${protocolId} indexing codama ${artifactName}`),
+          `${protocolId} indexing codama ${artifactName}`,
         );
         if (artifactCodama.standard !== 'codama') {
-          fail(`${protocolId}: runtime decoder artifact ${artifactName} codamaPath is not Codama.`);
+          fail(`${protocolId}: indexing decoder artifact ${artifactName} codamaPath is not Codama.`);
         }
       }
     }
 
-    const operations = asObject(runtime.operations, `${protocolId}.runtime.operations`);
-    for (const [operationId, operationRaw] of Object.entries(operations)) {
-      validateRuntimeOperation(protocolId, operationId, operationRaw, instructionNames);
+    const contractReads = asOptionalObject(agentRuntime.reads?.contract, `${protocolId}.agentRuntime.reads.contract`);
+    const indexReads = asOptionalObject(agentRuntime.reads?.index, `${protocolId}.agentRuntime.reads.index`);
+    const computes = asOptionalObject(agentRuntime.computes, `${protocolId}.agentRuntime.computes`);
+    const executions = asOptionalObject(agentRuntime.executions, `${protocolId}.agentRuntime.executions`);
+
+    for (const [operationId, operationRaw] of Object.entries(contractReads)) {
+      validateRead(protocolId, 'contract', operationId, operationRaw);
+      operationCount += 1;
+    }
+    for (const [operationId, operationRaw] of Object.entries(indexReads)) {
+      validateRead(protocolId, 'index', operationId, operationRaw);
+      operationCount += 1;
+    }
+    for (const [operationId, operationRaw] of Object.entries(computes)) {
+      validateCompute(protocolId, operationId, operationRaw);
+      operationCount += 1;
+    }
+    for (const [operationId, operationRaw] of Object.entries(executions)) {
+      validateExecution(protocolId, operationId, operationRaw, instructionNames);
       operationCount += 1;
     }
   }

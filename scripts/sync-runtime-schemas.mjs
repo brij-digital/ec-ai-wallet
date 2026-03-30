@@ -9,8 +9,9 @@ const RUNTIME_DIR = process.env.APPPACK_RUNTIME_DIR?.trim()
 const SOURCE_DIR = path.join(RUNTIME_DIR, 'schemas');
 const FILES = [
   'declarative_decoder_runtime.schema.v1.json',
+  'solana_agent_runtime.schema.v1.json',
 ];
-const MANAGED_SCHEMA_PATTERN = /^declarative_decoder_runtime\.schema\.v1\.json$/;
+const MANAGED_SCHEMA_PATTERN = /^(declarative_decoder_runtime|solana_agent_runtime)\.schema\.v1\.json$/;
 
 function fail(message) {
   throw new Error(message);

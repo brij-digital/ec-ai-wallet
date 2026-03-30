@@ -1,0 +1,336 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "/idl/solana_agent_runtime.schema.v1.json",
+  "title": "Solana Agent Runtime Spec V1",
+  "type": "object",
+  "required": ["schema", "protocol", "navigation", "reads", "computes", "executions"],
+  "properties": {
+    "schema": {
+      "const": "solana-agent-runtime.v1"
+    },
+    "version": {
+      "type": "string"
+    },
+    "protocol": {
+      "$ref": "#/$defs/protocolSpec"
+    },
+    "navigation": {
+      "$ref": "#/$defs/navigationSpec"
+    },
+    "reads": {
+      "$ref": "#/$defs/readsSpec"
+    },
+    "computes": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/computeSpec"
+      }
+    },
+    "executions": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/executionSpec"
+      }
+    },
+    "templates": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/templateSpec"
+      }
+    }
+  },
+  "$defs": {
+    "jsonValue": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "null" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      ]
+    },
+    "protocolSpec": {
+      "type": "object",
+      "required": ["protocolId", "programId", "codamaPath"],
+      "properties": {
+        "protocolId": { "type": "string" },
+        "label": { "type": "string" },
+        "programId": { "type": "string" },
+        "codamaPath": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "navigationSpec": {
+      "type": "object",
+      "properties": {
+        "entities": {
+          "type": "object",
+          "additionalProperties": { "type": "object", "additionalProperties": true }
+        },
+        "entrypoints": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "relations": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        },
+        "recipes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "inputSpec": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "required": { "type": "boolean" },
+        "default": { "$ref": "#/$defs/jsonValue" },
+        "bind_from": { "type": "string" },
+        "validate": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "readOutputSpec": {
+      "type": "object",
+      "required": ["type", "source"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["array", "object", "scalar", "list"]
+        },
+        "source": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "contractReadSpec": {
+      "type": "object",
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/inputSpec"
+          }
+        },
+        "validate": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "read_output": {
+          "$ref": "#/$defs/readOutputSpec"
+        },
+        "read": {
+          "type": "object",
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["account", "accounts"]
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": ["read"],
+      "additionalProperties": true
+    },
+    "indexReadSpec": {
+      "type": "object",
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/inputSpec"
+          }
+        },
+        "validate": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "read_output": {
+          "$ref": "#/$defs/readOutputSpec"
+        },
+        "read": {
+          "type": "object",
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["search", "account", "feed", "series", "ranking", "context"]
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": ["read"],
+      "additionalProperties": true
+    },
+    "readsSpec": {
+      "type": "object",
+      "required": ["contract", "index"],
+      "properties": {
+        "contract": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/contractReadSpec"
+          }
+        },
+        "index": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/indexReadSpec"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "computeSpec": {
+      "type": "object",
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/inputSpec"
+          }
+        },
+        "validate": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "discover": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "derive": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "compute": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "use": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/templateUseSpec" }
+        },
+        "read_output": {
+          "$ref": "#/$defs/readOutputSpec"
+        }
+      },
+      "additionalProperties": true
+    },
+    "executionSpec": {
+      "type": "object",
+      "properties": {
+        "instruction": { "type": "string" },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/inputSpec"
+          }
+        },
+        "validate": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "discover": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "derive": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "compute": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        },
+        "accounts": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        },
+        "remaining_accounts": { "$ref": "#/$defs/jsonValue" },
+        "pre": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "post": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        "use": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/templateUseSpec" }
+        },
+        "read_output": {
+          "$ref": "#/$defs/readOutputSpec"
+        }
+      },
+      "additionalProperties": true
+    },
+    "templateParamSpec": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" },
+            "required": { "type": "boolean" },
+            "default": { "$ref": "#/$defs/jsonValue" }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "templateSpec": {
+      "type": "object",
+      "required": ["expand"],
+      "properties": {
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/templateParamSpec"
+          }
+        },
+        "expand": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "templateUseSpec": {
+      "type": "object",
+      "required": ["template"],
+      "properties": {
+        "template": { "type": "string" },
+        "with": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

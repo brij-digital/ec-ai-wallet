@@ -102,21 +102,26 @@ async function main() {
     if (protocol.appPath !== undefined) {
       throw new Error(`${protocolId}: appPath is no longer allowed.`);
     }
-    if (!protocol.runtimeSpecPath) {
+    if (!protocol.agentRuntimePath) {
       continue;
     }
 
     const runtimePack = asObject(
-      await readJson(toLocalPublicPath(protocol.runtimeSpecPath, `${protocolId}.runtimeSpecPath`), `${protocolId} runtime spec`),
-      `${protocolId}.runtime`,
+      await readJson(toLocalPublicPath(protocol.agentRuntimePath, `${protocolId}.agentRuntimePath`), `${protocolId} agent runtime`),
+      `${protocolId}.agentRuntime`,
     );
-    const operations = asObject(runtimePack.operations ?? {}, `${protocolId}.runtime.operations`);
-    const opEntries = Object.entries(operations);
+    const sections = [
+      ...Object.entries(asObject(runtimePack.reads?.contract ?? {}, `${protocolId}.agentRuntime.reads.contract`)),
+      ...Object.entries(asObject(runtimePack.reads?.index ?? {}, `${protocolId}.agentRuntime.reads.index`)),
+      ...Object.entries(asObject(runtimePack.computes ?? {}, `${protocolId}.agentRuntime.computes`)),
+      ...Object.entries(asObject(runtimePack.executions ?? {}, `${protocolId}.agentRuntime.executions`)),
+    ];
+    const opEntries = sections;
     const opCount = opEntries.length;
     let maxDerive = 0;
     let maxCompute = 0;
     for (const [operationId, opRaw] of opEntries) {
-      const op = asObject(opRaw, `${protocolId}.runtime.operations.${operationId}`);
+      const op = asObject(opRaw, `${protocolId}.agentRuntime.operation.${operationId}`);
       const derive = Array.isArray(op.derive) ? op.derive.length : 0;
       const compute = Array.isArray(op.compute) ? op.compute.length : 0;
       if (derive > maxDerive) {
