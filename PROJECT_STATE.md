@@ -116,7 +116,6 @@ Active protocols:
 - `orca-whirlpool-mainnet`
 - `pump-amm-mainnet`
 - `pump-core-mainnet`
-- `kamino-klend-mainnet`
 
 Active surfaces:
 - Apps

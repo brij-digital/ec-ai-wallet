@@ -10,7 +10,6 @@
       "kind": "generated_idl_decoder",
       "family": "codama",
       "codamaPath": "/idl/orca_whirlpool.codama.json",
-      "codecIdlPath": "/idl/orca_whirlpool.json",
       "artifact": "orca_whirlpool"
     }
   },

@@ -32,6 +32,14 @@ function asString(value, label) {
   return value.trim();
 }
 
+function toSnakeCase(value) {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[\s-]+/g, '_')
+    .replace(/__+/g, '_')
+    .toLowerCase();
+}
+
 function asOptionalObject(value, label) {
   if (value === undefined) {
     return {};
@@ -71,60 +79,19 @@ function normalizePubkey(value, label) {
   }
 }
 
-function collectInstructionNamesFromCodecIdl(idl, label) {
-  const instructions = asArray(idl.instructions ?? [], `${label}.instructions`);
-  return new Set(
-    instructions.map((entry, index) =>
-      asString(asObject(entry, `${label}.instructions[${index}]`).name, `${label}.instructions[${index}].name`),
-    ),
-  );
-}
-
 function collectInstructionNamesFromCodama(codama, label) {
   const program = asObject(codama.program, `${label}.program`);
   const instructions = asArray(program.instructions ?? [], `${label}.program.instructions`);
   return new Set(
     instructions.map((entry, index) =>
-      asString(
-        asObject(entry, `${label}.program.instructions[${index}]`).name,
-        `${label}.program.instructions[${index}].name`,
+      toSnakeCase(
+        asString(
+          asObject(entry, `${label}.program.instructions[${index}]`).name,
+          `${label}.program.instructions[${index}].name`,
+        ),
       ),
     ),
   );
-}
-
-async function resolveCodecIdlPath(manifest, protocolId) {
-  if (manifest.runtimeSpecPath !== undefined && manifest.idlPath !== undefined) {
-    fail(`${protocolId}: registry idlPath is not allowed alongside runtimeSpecPath.`);
-  }
-  if (manifest.runtimeSpecPath === undefined) {
-    return manifest.idlPath !== undefined
-      ? resolvePublicAssetPath(manifest.idlPath, `${protocolId}.idlPath`)
-      : null;
-  }
-
-  const runtimePath = resolvePublicAssetPath(manifest.runtimeSpecPath, `${protocolId}.runtimeSpecPath`);
-  const runtime = asObject(await readJson(runtimePath, `${protocolId} runtime spec`), `${protocolId} runtime spec`);
-  const decoderArtifacts = asObject(runtime.decoderArtifacts, `${protocolId}.runtime.decoderArtifacts`);
-  const candidates = new Set();
-  for (const [artifactName, artifactRaw] of Object.entries(decoderArtifacts)) {
-    const artifact = asObject(artifactRaw, `${protocolId}.runtime.decoderArtifacts.${artifactName}`);
-    if (artifact.idlPath !== undefined) {
-      fail(`${protocolId}: runtime decoder artifact ${artifactName} must not declare legacy idlPath.`);
-    }
-    const codecIdlPath = asString(
-      artifact.codecIdlPath,
-      `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`,
-    );
-    candidates.add(resolvePublicAssetPath(codecIdlPath, `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`));
-  }
-  if (candidates.size === 0) {
-    return null;
-  }
-  if (candidates.size > 1) {
-    fail(`${protocolId}: runtime decoderArtifacts declare multiple codec IDL paths.`);
-  }
-  return Array.from(candidates)[0] ?? null;
 }
 
 function validateRuntimeOperation(protocolId, operationId, operation, instructionNames) {
@@ -200,17 +167,7 @@ async function main() {
       fail(`${protocolId}: registry programId does not match codama.program.publicKey.`);
     }
 
-    const codecIdlPath = await resolveCodecIdlPath(manifest, protocolId);
-    const instructionNames = codecIdlPath
-      ? collectInstructionNamesFromCodecIdl(
-          asObject(await readJson(codecIdlPath, `${protocolId} codec IDL`), `${protocolId} codec IDL`),
-          `${protocolId}.codecIdl`,
-        )
-      : collectInstructionNamesFromCodama(codama, `${protocolId}.codama`);
-
-    if (isActive && manifest.idlPath !== undefined) {
-      fail(`${protocolId}: active protocols must not declare legacy idlPath.`);
-    }
+    const instructionNames = collectInstructionNamesFromCodama(codama, `${protocolId}.codama`);
 
     if (manifest.runtimeSpecPath === undefined) {
       if (isActive) {
@@ -235,11 +192,9 @@ async function main() {
     }
     for (const [artifactName, artifactRaw] of Object.entries(decoderArtifacts)) {
       const artifact = asObject(artifactRaw, `${protocolId}.runtime.decoderArtifacts.${artifactName}`);
-      const codecPath = resolvePublicAssetPath(
-        artifact.codecIdlPath,
-        `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`,
-      );
-      await readJson(codecPath, `${protocolId} runtime codec IDL ${artifactName}`);
+      if (artifact.codecIdlPath !== undefined) {
+        fail(`${protocolId}: runtime decoder artifact ${artifactName} must not declare legacy codecIdlPath.`);
+      }
       if (artifact.idlPath !== undefined) {
         fail(`${protocolId}: runtime decoder artifact ${artifactName} must not declare legacy idlPath.`);
       }

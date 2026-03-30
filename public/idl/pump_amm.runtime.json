@@ -10,7 +10,6 @@
       "kind": "generated_idl_decoder",
       "family": "codama",
       "codamaPath": "/idl/pump_amm.codama.json",
-      "codecIdlPath": "/idl/pump_amm.json",
       "artifact": "pump_swap"
     }
   },

@@ -1,9 +1,0 @@
-{
-  "name": "Kamino negative tx parity: invalid obligation owner",
-  "protocolId": "kamino-klend-mainnet",
-  "signature": "PkcAgykwP7cf5uaMVg4jV6ZkhRAQdDJfCzMcxbAxD88Uh8wMwJMkGueCozPuiJ3Qenfca9sU3ZnCCmn5Pk7dBUZ",
-  "expect": {
-    "programIdsContains": ["KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD"],
-    "errorIncludes": ["6016"]
-  }
-}

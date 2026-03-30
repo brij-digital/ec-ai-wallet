@@ -43,17 +43,6 @@
       "transport": "local-pump-core",
       "supportedCommands": ["/pump-curve"],
       "status": "active"
-    },
-    {
-      "id": "kamino-klend-mainnet",
-      "name": "Kamino Lend",
-      "network": "mainnet-beta",
-      "programId": "KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD",
-      "idlPath": "/idl/kamino_klend.json",
-      "codamaIdlPath": "/idl/kamino_klend.codama.json",
-      "transport": "local-kamino-klend",
-      "supportedCommands": ["/kamino-deposit", "/kamino-withdraw", "/kamino-view-position"],
-      "status": "inactive"
     }
   ]
 }

@@ -249,8 +249,6 @@ export function useCommandController(options: UseCommandControllerOptions) {
         '/meta-explain orca-whirlpool-mainnet list_pools',
         '/meta-explain pump-amm-mainnet buy',
         '/meta-explain pump-core-mainnet buy_exact_sol_in',
-        '/meta-explain kamino-klend-mainnet deposit_reserve_liquidity',
-        '/meta-explain kamino-klend-mainnet redeem_reserve_collateral',
         '/view-run orca-whirlpool-mainnet list_pools {"token_in_mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","token_out_mint":"So11111111111111111111111111111111111111112"}',
       ].join('\n'),
     [defaultViewApiBaseUrl],

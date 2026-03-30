@@ -32,15 +32,14 @@ Protocol pack ownership rule:
 
 Generated protocol artifacts in this directory now include:
 - canonical protocol specs: `*.codama.json`
-- codec compatibility IDLs: `*.json`
 - declarative indexing/runtime specs: `*.runtime.json`
+- compiled runtime codec plan: `runtime-codec-plan.json`
 
 Current ownership model:
 - `*.codama.json` are the protocol source of truth
-- `*.json` IDLs are compatibility artifacts while some tooling still needs Anchor-style codecs
 - `*.runtime.json` are wallet-owned declarative indexing specs
+- `runtime-codec-plan.json` is a generated execution artifact derived from `Codama + runtime`
 - downstream repos must sync these files instead of editing their own copies
-- `registry.json` may omit `idlPath` for migrated protocols; when a codec IDL is still needed, it should be resolved from `*.runtime.json` decoder artifacts, not treated as primary registry truth
 
 Target architecture:
 - `Codama` = protocol truth

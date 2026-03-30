@@ -260,7 +260,7 @@ Required fields:
 {
   "kind": "account",
   "source": "rpc",
-  "entity_type": "kamino_reserve",
+  "entity_type": "orca_pool",
   "target": {
     "address": "$input.reserve",
     "account_type": "Reserve"

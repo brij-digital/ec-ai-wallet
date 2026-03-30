@@ -80,7 +80,7 @@
     },
     "decoderArtifactSpec": {
       "type": "object",
-      "required": ["kind", "artifact", "codecIdlPath"],
+      "required": ["kind", "artifact"],
       "properties": {
         "kind": {
           "type": "string",
@@ -91,9 +91,6 @@
           "enum": ["anchor", "codama", "custom"]
         },
         "codamaPath": {
-          "type": "string"
-        },
-        "codecIdlPath": {
           "type": "string"
         },
         "artifact": {

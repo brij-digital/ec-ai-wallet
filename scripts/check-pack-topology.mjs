@@ -45,6 +45,7 @@ async function readJson(filePath, label) {
 
 async function main() {
   const registry = asObject(await readJson(REGISTRY_PATH, 'registry'), 'registry');
+  await readJson(path.join(IDL_DIR, 'runtime-codec-plan.json'), 'runtime codec plan');
   const protocols = registry.protocols;
   if (!Array.isArray(protocols) || protocols.length === 0) {
     fail('registry.protocols must be a non-empty array.');

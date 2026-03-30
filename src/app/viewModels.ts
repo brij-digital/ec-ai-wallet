@@ -164,19 +164,6 @@ export const VIEW_PLAYGROUND_PRESETS: ViewExample[] = [
     ),
     limit: '10',
   },
-  {
-    label: 'Kamino reserve resolve',
-    protocolId: 'kamino-klend-mainnet',
-    operationId: 'resolve_reserve',
-    input: JSON.stringify(
-      {
-        mint: DEFAULT_QUOTE_MINT,
-      },
-      null,
-      2,
-    ),
-    limit: '5',
-  },
 ];
 
 export const PUMP_VIEW_SCENARIO: ViewScenarioDefinition = {

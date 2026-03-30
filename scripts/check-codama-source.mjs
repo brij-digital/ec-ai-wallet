@@ -80,7 +80,7 @@ async function main() {
     }
 
     if (protocol.idlPath !== undefined) {
-      resolveIdlPath(protocol.idlPath, `${id}.idlPath`);
+      fail(`${id}.idlPath is no longer allowed.`);
     }
   }
 

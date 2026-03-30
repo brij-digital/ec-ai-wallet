@@ -6,9 +6,8 @@ This doc covers the practical workflow to add or evolve protocol packs in this r
 
 A protocol pack is represented by files under `public/idl`:
 - `<slug>.codama.json` (protocol source of truth)
-- `<slug>.json` (codec compatibility IDL)
 - `<slug>.runtime.json` (runtime/indexing/read contract)
-- `<slug>.app.json` (app/UI/flow contract)
+- `runtime-codec-plan.json` (generated execution artifact)
 
 Registry entry:
 - `public/idl/registry.json`
@@ -32,22 +31,14 @@ Useful optional flags:
 
 What scaffold creates:
 - `aidl/<slug>.aidl.json` (starter AIDL source)
-- `public/idl/<slug>.json` (starter IDL)
 - `registry.json` entry
 - then runs AIDL compile
 
-## 2) Author Operations + App Flow
+## 2) Author Operations
 
 In AIDL source:
-- define app-facing operations/flows
-- define `apps` with step actions and transitions
-
-Rules to keep in mind:
-- app step actions must use `do.fn` (`run|back|reset`)
-- `run` requires `do.mode` (`view|simulate|send`)
-- use `next_on_success` for transitions
-- use `requires_paths` for gating
-- use `ui_mode` (`edit|readonly|hidden`) on inputs
+- define runtime-facing operations
+- keep protocol behavior in `Codama + runtime`
 
 ## 3) Compile and Split Outputs
 
@@ -55,7 +46,7 @@ Rules to keep in mind:
 npm run aidl:compile
 ```
 
-This compiles AIDL and generates split outputs consumed by runtime/UI.
+This compiles AIDL and generates the runtime pack outputs consumed by runtime/UI.
 
 ## 4) Validate During Authoring
 
@@ -88,5 +79,5 @@ npm run ci:protocol-packs
 1. Edit AIDL + compute libraries.
 2. `npm run aidl:compile`.
 3. Validate with `pack:check`, `pack:lint`, complexity gate.
-4. Run app in `npm run dev` and test in Apps + Raw + Command tabs.
+4. Run app in `npm run dev` and test in Raw + Compute + Views tabs.
 5. Commit source and generated pack outputs together.

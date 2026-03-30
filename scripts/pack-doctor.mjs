@@ -87,38 +87,6 @@ function checkPubkey(value, label) {
   }
 }
 
-async function resolveCodecIdlPath(manifest, protocolId) {
-  if (manifest.runtimeSpecPath !== undefined && manifest.idlPath !== undefined) {
-    throw new Error(`${protocolId}: registry idlPath is not allowed alongside runtimeSpecPath.`);
-  }
-  if (manifest.idlPath !== undefined) {
-    return resolvePublicAssetPath(manifest.idlPath, `${protocolId}.idlPath`);
-  }
-  if (manifest.runtimeSpecPath === undefined) {
-    return null;
-  }
-
-  const runtimePath = resolvePublicAssetPath(manifest.runtimeSpecPath, `${protocolId}.runtimeSpecPath`);
-  const runtime = asObject(await readJson(runtimePath, `${protocolId} runtime spec`), `${protocolId} runtime spec`);
-  const decoderArtifacts = asObject(runtime.decoderArtifacts, `${protocolId}.runtime.decoderArtifacts`);
-  const candidates = new Set();
-  for (const [artifactName, artifactRaw] of Object.entries(decoderArtifacts)) {
-    const artifact = asObject(artifactRaw, `${protocolId}.runtime.decoderArtifacts.${artifactName}`);
-    if (artifact.idlPath !== undefined) {
-      throw new Error(`${protocolId}: runtime decoder artifact ${artifactName} must not declare legacy idlPath.`);
-    }
-    candidates.add(resolvePublicAssetPath(artifact.codecIdlPath, `${protocolId}.runtime.decoderArtifacts.${artifactName}.codecIdlPath`));
-  }
-
-  if (candidates.size === 0) {
-    return null;
-  }
-  if (candidates.size > 1) {
-    throw new Error(`${protocolId}: runtime decoderArtifacts declare multiple codec IDL paths.`);
-  }
-  return Array.from(candidates)[0] ?? null;
-}
-
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -148,7 +116,7 @@ async function main() {
     const programId = checkPubkey(manifest.programId, `${id}.programId`);
     const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
     const runtimePath = manifest.runtimeSpecPath ? resolvePublicAssetPath(manifest.runtimeSpecPath, `${id}.runtimeSpecPath`) : null;
-    const codecIdlPath = await resolveCodecIdlPath(manifest, id);
+    const codecPlanPath = path.join(ROOT, 'public', 'idl', 'runtime-codec-plan.json');
 
     const protocolErrors = [];
     const protocolWarnings = [];
@@ -165,9 +133,9 @@ async function main() {
       protocolErrors.push(`Missing Codama IDL file: ${path.relative(ROOT, codamaPath)}`);
     }
 
-    const codecExists = codecIdlPath ? await pathExists(codecIdlPath) : false;
-    if (codecIdlPath && !codecExists) {
-      protocolErrors.push(`Missing codec IDL file: ${path.relative(ROOT, codecIdlPath)}`);
+    const codecPlanExists = await pathExists(codecPlanPath);
+    if (!codecPlanExists) {
+      protocolErrors.push(`Missing runtime codec plan file: ${path.relative(ROOT, codecPlanPath)}`);
     }
 
     const runtimeExists = runtimePath ? await pathExists(runtimePath) : false;
@@ -222,11 +190,7 @@ async function main() {
     console.log(`- network: ${asString(manifest.network, `${id}.network`)}`);
     console.log(`- programId: ${programId}`);
     console.log(`- codama: ${path.relative(ROOT, codamaPath)} ${codamaExists ? 'OK' : 'MISSING'}`);
-    if (codecIdlPath) {
-      console.log(`- codec idl: ${path.relative(ROOT, codecIdlPath)} ${codecExists ? 'OK' : 'MISSING'}`);
-    } else {
-      console.log('- codec idl: none');
-    }
+    console.log(`- runtime codec plan: ${path.relative(ROOT, codecPlanPath)} ${codecPlanExists ? 'OK' : 'MISSING'}`);
     if (runtimePath) {
       console.log(`- runtime: ${path.relative(ROOT, runtimePath)} ${runtimeExists ? 'OK' : 'MISSING'}`);
     } else {

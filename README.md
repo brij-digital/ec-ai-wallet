@@ -4,8 +4,7 @@ This repository is the web app and pack-authoring workspace for AppPack.
 
 It provides:
 - a wallet-connected UI to execute declarative protocol operations
-- command mode for strict, protocol-agnostic execution
-- authoring + CI tooling for protocol packs (Codama + runtime spec)
+- authoring + CI tooling for protocol packs (`Codama + runtime`)
 
 ## Related Repos
 
@@ -32,7 +31,6 @@ Active protocols in this repo:
 - `orca-whirlpool-mainnet`
 - `pump-amm-mainnet`
 - `pump-core-mainnet`
-- `kamino-klend-mainnet`
 
 Main UI tabs:
 - `Pump`: pump-specific reference workspace
@@ -47,7 +45,7 @@ Currently disabled in the default UI shell:
 
 ## Spec Model
 
-Each protocol pack is now split into 3 layers:
+Each active protocol pack is now split into 2 layers:
 
 1. `Codama IDL`
 - canonical source of truth for protocol structure
@@ -56,14 +54,9 @@ Each protocol pack is now split into 3 layers:
   - [public/idl/orca_whirlpool.codama.json](public/idl/orca_whirlpool.codama.json)
   - [public/idl/pump_amm.codama.json](public/idl/pump_amm.codama.json)
 
-2. `Codec IDL`
-- compatibility artifact for tooling that still expects Anchor-style account/instruction codecs
-- not the primary protocol source of truth anymore
-- example: [public/idl/orca_whirlpool.json](public/idl/orca_whirlpool.json)
-
-3. `Declarative Runtime Spec`
+2. `Declarative Runtime Spec`
 - declarative indexing/runtime contract
-- sources, match rules, resolve, compute, emit, projections
+- sources, match rules, resolve, compute, projections, read/execution ops
 - examples:
   - [public/idl/orca_whirlpool.runtime.json](public/idl/orca_whirlpool.runtime.json)
   - [public/idl/pump_core.runtime.json](public/idl/pump_core.runtime.json)
@@ -77,7 +70,7 @@ Schemas:
 ## Runtime + View Architecture
 
 This web app depends on:
-- `@brij-digital/apppack-runtime` (external package): deterministic protocol/runtime/app execution runtime
+- `@brij-digital/apppack-runtime` (external package): deterministic protocol/runtime execution runtime
 - `apppack-view-service` (separate repo/service): read/view execution and indexed data endpoint (`/view-run`)
 
 Important behavior:
