@@ -117,7 +117,8 @@ export async function sendPreparedExecutionDraft(options: {
   draft: PreparedExecutionDraft;
   connection: Connection;
   wallet: WalletContextState;
-  onStatus?: (status: 'preparing' | 'simulating' | 'awaiting_wallet_approval' | 'submitting' | 'confirming' | 'confirmed') => void;
+  onStatus?: (status: 'preparing' | 'simulating' | 'awaiting_wallet_approval' | 'submitting' | 'submitted' | 'confirming' | 'confirmed') => void;
+  onSubmitted?: (payload: { signature: string; explorerUrl: string }) => void;
 }) {
   if (!options.draft.instructionName) {
     throw new Error('Draft has no instructionName.');
@@ -134,5 +135,6 @@ export async function sendPreparedExecutionDraft(options: {
     connection: options.connection,
     wallet: options.wallet,
     onStatus: options.onStatus,
+    onSubmitted: options.onSubmitted,
   });
 }

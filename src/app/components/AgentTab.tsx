@@ -219,6 +219,7 @@ type SubmitProgressStatus =
   | 'simulating'
   | 'awaiting_wallet_approval'
   | 'submitting'
+  | 'submitted'
   | 'confirming'
   | 'confirmed';
 
@@ -240,6 +241,8 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
   const [isDraftActionLoading, setIsDraftActionLoading] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [submitProgress, setSubmitProgress] = useState<SubmitProgressStatus | null>(null);
+  const [submittedSignature, setSubmittedSignature] = useState<string | null>(null);
+  const [submittedExplorerUrl, setSubmittedExplorerUrl] = useState<string | null>(null);
 
   const trimmedBaseUrl = useMemo(() => viewApiBaseUrl.trim().replace(/\/+$/, ''), [viewApiBaseUrl]);
   const walletPublicKey = publicKey?.toBase58() ?? null;
@@ -350,11 +353,13 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
           message: 'Your signed transaction is being broadcast to Solana.',
         } as const;
       }
-      if (submitProgress === 'confirming' || submitProgress === 'confirmed') {
+      if (submitProgress === 'submitted' || submitProgress === 'confirming' || submitProgress === 'confirmed') {
         return {
-          tone: 'pending',
-          title: 'Confirming on-chain',
-          message: 'The network is finalizing your transaction.',
+          tone: 'success',
+          title: 'Submitted',
+          message: submittedSignature
+            ? `Transaction sent: ${submittedSignature}`
+            : 'Transaction sent to Solana.',
         } as const;
       }
       return {
@@ -373,7 +378,7 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     }
 
     return null;
-  }, [latestDraft, latestInteraction, latestInteractionResult, submitProgress]);
+  }, [latestDraft, latestInteraction, latestInteractionResult, submitProgress, submittedSignature]);
 
   useEffect(() => {
     setApiKey(readCookie(AGENT_API_KEY_COOKIE));
@@ -415,6 +420,8 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     setIsLoading(true);
     setErrorText(null);
     setSubmitProgress(null);
+    setSubmittedSignature(null);
+    setSubmittedExplorerUrl(null);
     if (!sessionId) {
       setUsageText(null);
       setTranscript([]);
@@ -551,6 +558,8 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     setUsageText(null);
     setStatusText(null);
     setSubmitProgress(null);
+    setSubmittedSignature(null);
+    setSubmittedExplorerUrl(null);
   };
 
   const appendAssistantText = (text: string) => {
@@ -644,6 +653,8 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     setIsDraftActionLoading(true);
     setErrorText(null);
     setSubmitProgress('preparing');
+    setSubmittedSignature(null);
+    setSubmittedExplorerUrl(null);
     setStatusText('Preparing transaction...');
     try {
       const sent = await sendPreparedExecutionDraft({
@@ -668,14 +679,24 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
             setStatusText('Submitting transaction...');
             return;
           }
+          if (status === 'submitted') {
+            setStatusText('Transaction submitted to network.');
+            return;
+          }
           if (status === 'confirming') {
             setStatusText('Confirming on-chain...');
             return;
           }
           setStatusText('Transaction confirmed.');
         },
+        onSubmitted: ({ signature, explorerUrl }) => {
+          setSubmittedSignature(signature);
+          setSubmittedExplorerUrl(explorerUrl);
+        },
       });
       if (interactionId) {
+        setSubmittedSignature(sent.signature);
+        setSubmittedExplorerUrl(sent.explorerUrl);
         upsertInteractionResult({
           role: 'system',
           kind: 'interaction_result',
@@ -779,22 +800,30 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
                 {latestInteraction ? (
                   <>
                     {latestInteractionResult ? null : (
-                      <button
-                        type="button"
-                        onClick={() => void handleSendDraft(latestInteractionDraft, latestInteraction.interactionId)}
-                        disabled={isLoading || isDraftActionLoading || !wallet.publicKey || !latestInteractionDraft}
-                      >
-                        {submitProgress === 'submitting' || submitProgress === 'confirming'
-                          ? 'Submitting...'
-                          : submitProgress === 'awaiting_wallet_approval'
-                            ? 'Waiting for Wallet...'
-                            : isDraftActionLoading
-                              ? 'Working...'
-                              : 'Approve in Wallet'}
-                      </button>
+                      submittedSignature ? null : (
+                        <button
+                          type="button"
+                          onClick={() => void handleSendDraft(latestInteractionDraft, latestInteraction.interactionId)}
+                          disabled={isLoading || isDraftActionLoading || !wallet.publicKey || !latestInteractionDraft}
+                        >
+                          {submitProgress === 'submitting'
+                            ? 'Submitting...'
+                            : submitProgress === 'submitted' || submitProgress === 'confirming'
+                              ? 'Submitted'
+                              : submitProgress === 'awaiting_wallet_approval'
+                                ? 'Waiting for Wallet...'
+                                : isDraftActionLoading
+                                  ? 'Working...'
+                                  : 'Approve in Wallet'}
+                        </button>
+                      )
                     )}
                     {latestInteractionResult?.status === 'confirmed' && latestInteractionResult.explorerUrl ? (
                       <a href={latestInteractionResult.explorerUrl} target="_blank" rel="noreferrer">
+                        View Explorer
+                      </a>
+                    ) : submittedExplorerUrl ? (
+                      <a href={submittedExplorerUrl} target="_blank" rel="noreferrer">
                         View Explorer
                       </a>
                     ) : null}
