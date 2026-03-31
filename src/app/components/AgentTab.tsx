@@ -242,6 +242,7 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
   const [statusText, setStatusText] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isDraftActionLoading, setIsDraftActionLoading] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   const trimmedBaseUrl = useMemo(() => viewApiBaseUrl.trim().replace(/\/+$/, ''), [viewApiBaseUrl]);
   const walletPublicKey = publicKey?.toBase58() ?? null;
@@ -691,6 +692,27 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
               })
             )}
           </div>
+          {showDebug ? (
+            <div className="agent-debug">
+              <h4>Debug Trace</h4>
+              <div className="agent-transcript">
+                {transcript.length === 0 ? (
+                  <p className="view-playground-empty">No raw agent events yet.</p>
+                ) : (
+                  transcript.map((entry, index) => (
+                    <article key={`debug-${index}`} className="agent-entry">
+                      <p>
+                        <strong>{entry.role}</strong> / <strong>{entry.kind}</strong>
+                        {'toolName' in entry ? ` / ${entry.toolName}` : null}
+                        {'interactionType' in entry ? ` / ${entry.interactionType}` : null}
+                      </p>
+                      <ExpandablePre text={JSON.stringify(entry, null, 2)} />
+                    </article>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : null}
         </section>
       </div>
 
@@ -730,6 +752,14 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
             <label>
               Connected Wallet
               <input value={walletPublicKey ?? 'not connected'} disabled />
+            </label>
+            <label>
+              Debug
+              <input
+                type="checkbox"
+                checked={showDebug}
+                onChange={(event) => setShowDebug(event.target.checked)}
+              />
             </label>
             <label className="agent-form-full">
               Claude API Key
