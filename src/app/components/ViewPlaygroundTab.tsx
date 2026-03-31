@@ -141,8 +141,8 @@ export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTa
               protocolId: protocol.id,
               protocolLabel: protocol.name ?? protocol.id,
               operationId: opId,
-              operationLabel: operation.label ?? view.title ?? opId,
-              description: view.description ?? operation.description ?? '',
+              operationLabel: operation.label ?? opId,
+              description: operation.description ?? '',
               inputTemplate: buildInputTemplate(operation.inputs),
               limit: defaultLimitForOperation(opId),
             });

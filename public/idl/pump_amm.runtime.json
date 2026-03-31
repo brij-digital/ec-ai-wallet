@@ -795,14 +795,6 @@
       },
       "read": {
         "kind": "index",
-        "entity_type": "pump_pool",
-        "title": "List tokens",
-        "description": "List indexed Pump AMM markets for a quote mint.",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 10000,
-          "max_staleness_ms": 60000
-        },
         "canonical": {
           "source": "indexed_idl_state",
           "protocol_id": "pump-amm-mainnet",
@@ -924,14 +916,6 @@
       },
       "read": {
         "kind": "index",
-        "entity_type": "pump_pool",
-        "title": "View pool",
-        "description": "Resolve a Pump AMM market for a base/quote pair from indexed state.",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 10000,
-          "max_staleness_ms": 60000
-        },
         "canonical": {
           "source": "indexed_idl_state",
           "protocol_id": "pump-amm-mainnet",
@@ -985,14 +969,6 @@
       },
       "read": {
         "kind": "resolve",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 5000,
-          "max_staleness_ms": 20000
-        },
-        "entity_type": "pump_pool",
-        "title": "Resolve pool",
-        "description": "Resolve the Pump AMM pool for a token mint against a quote mint.",
         "canonical": {
           "source": "indexed_idl_state",
           "protocol_id": "pump-amm-mainnet",
@@ -1091,14 +1067,6 @@
       },
       "read": {
         "kind": "get",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 2000,
-          "max_staleness_ms": 10000
-        },
-        "entity_type": "pump_pool",
-        "title": "Pool snapshot",
-        "description": "Read the current Pump AMM pool snapshot for a known pool address.",
         "canonical": {
           "source": "indexed_idl_state",
           "protocol_id": "pump-amm-mainnet",
@@ -1201,14 +1169,6 @@
       },
       "read": {
         "kind": "feed",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 1000,
-          "max_staleness_ms": 5000
-        },
-        "entity_type": "pump_trade",
-        "title": "Trade feed",
-        "description": "Recent Pump AMM trades ordered by event time.",
         "canonical": {
           "source": "indexed_idl_records",
           "protocol_id": "pump-amm-mainnet",
@@ -1323,14 +1283,6 @@
       },
       "read": {
         "kind": "series",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 5000,
-          "max_staleness_ms": 30000
-        },
-        "entity_type": "pump_market_cap_series",
-        "title": "Market cap series",
-        "description": "Materialized Pump market-cap and price series with 1m base candles, interval rollups, and optional dense fill.",
         "canonical": {
           "source": "indexed_series_1m",
           "protocol_id": "pump-amm-mainnet",
@@ -1490,14 +1442,6 @@
       },
       "read": {
         "kind": "ranking",
-        "freshness": {
-          "class": "near_realtime",
-          "target_ms": 10000,
-          "max_staleness_ms": 60000
-        },
-        "entity_type": "pump_ranked_token",
-        "title": "Ranked active tokens",
-        "description": "Rank Pump tokens by recent activity while penalizing thin, stale, or suspicious flow.",
         "canonical": {
           "source": "indexed_idl_records",
           "protocol_id": "pump-amm-mainnet",

@@ -16,7 +16,6 @@
       },
       "read": {
         "kind": "index",
-        "description": "Resolve one manually indexed token by symbol.",
         "canonical": {
           "source": "indexed_idl_state",
           "protocol_id": "token-index-mainnet",
@@ -72,8 +71,6 @@
       "inputs": {},
       "read": {
         "kind": "search",
-        "title": "Known tokens",
-        "description": "List manually indexed known tokens.",
         "canonical": {
           "source": "indexed_idl_state",
           "protocol_id": "token-index-mainnet",
