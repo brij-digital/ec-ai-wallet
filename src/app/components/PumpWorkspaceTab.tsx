@@ -281,37 +281,38 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
   }
 
   async function loadWorkspace(mint: string): Promise<void> {
-    const [resolveResponse, feedResponse] = await Promise.all([
-      runView(
-        baseUrl,
-        'pump-amm-mainnet',
-        'resolve_pool',
-        {
-          mint,
-          quote_mint: DEFAULT_QUOTE_MINT,
-        },
-        1,
-      ),
-      runView(
-        baseUrl,
-        'pump-amm-mainnet',
-        'trade_feed',
-        {
-          mint,
-          quote_mint: DEFAULT_QUOTE_MINT,
-        },
-        12,
-      ),
-    ]);
+    const resolveResponse = await runView(
+      baseUrl,
+      'pump-amm-mainnet',
+      'resolve_pool',
+      {
+        mint,
+        quote_mint: DEFAULT_QUOTE_MINT,
+      },
+      1,
+    );
 
     if (!resolveResponse.ok || !Array.isArray(resolveResponse.items) || !resolveResponse.items[0]) {
       throw new Error(resolveResponse.error ?? 'Failed to resolve Pump pool.');
     }
 
     const resolved = resolveResponse.items[0] as Record<string, unknown>;
+    const pool = typeof resolved.pool === 'string' ? resolved.pool : '';
+    const feedResponse = pool
+      ? await runView(
+          baseUrl,
+          'pump-amm-mainnet',
+          'trade_feed',
+          {
+            pool,
+          },
+          12,
+        )
+      : { ok: true, items: [] };
+
     setContext({
       mint,
-      pool: typeof resolved.pool === 'string' ? resolved.pool : '',
+      pool,
       marketType: typeof resolved.marketType === 'string' ? resolved.marketType : 'amm',
       quoteMint: typeof resolved.quoteMint === 'string' ? resolved.quoteMint : DEFAULT_QUOTE_MINT,
       priceQuote: typeof resolved.priceQuote === 'number' ? resolved.priceQuote : null,
