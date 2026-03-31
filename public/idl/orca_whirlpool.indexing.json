@@ -359,5 +359,224 @@
         }
       }
     }
+  },
+  "operations": {
+    "best_pool_for_pair": {
+      "index_view": {
+        "kind": "search",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "notes": "Canonical Whirlpool pool directory ordered by indexed liquidity."
+        },
+        "projection": {
+          "projection_kind": "search",
+          "filters": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  }
+                ]
+              }
+            ]
+          },
+          "sort_by": [
+            {
+              "field": "liquidityQuote",
+              "dir": "desc"
+            },
+            {
+              "field": "updatedAt",
+              "dir": "desc"
+            }
+          ]
+        }
+      }
+    },
+    "trade_feed": {
+      "index_view": {
+        "kind": "feed",
+        "canonical": {
+          "source": "indexed_idl_records",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "event",
+          "record_name": "SwapEvent",
+          "subject_input": "pool",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "time_field": "event_time",
+          "notes": "Recent canonical Orca swap records ordered by event time."
+        },
+        "projection": {
+          "projection_kind": "feed",
+          "group_by": [
+            "subject_id"
+          ],
+          "sort_by": [
+            {
+              "field": "event_time",
+              "dir": "desc"
+            }
+          ]
+        }
+      }
+    },
+    "market_cap_series": {
+      "index_view": {
+        "kind": "series",
+        "canonical": {
+          "source": "indexed_series_1m",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "series_id": "orca.whirlpool.market.1m",
+          "subject_input": "pool",
+          "resource_input": "pool",
+          "time_field": "bucket_start",
+          "notes": "Canonical 1m Orca Whirlpool market series projected from canonical swap records."
+        },
+        "projection": {
+          "projection_kind": "series",
+          "source_operation": "trade_feed",
+          "group_by": [
+            "subject_id"
+          ],
+          "bucket": "1m",
+          "fill_mode": "sparse",
+          "aggregations": [
+            {
+              "name": "open",
+              "field": "priceQuote",
+              "fn": "first"
+            },
+            {
+              "name": "high",
+              "field": "priceQuote",
+              "fn": "max"
+            },
+            {
+              "name": "low",
+              "field": "priceQuote",
+              "fn": "min"
+            },
+            {
+              "name": "close",
+              "field": "priceQuote",
+              "fn": "last"
+            },
+            {
+              "name": "volumeQuote",
+              "field": "quoteNotionalUi",
+              "fn": "sum"
+            },
+            {
+              "name": "tradeCount",
+              "field": "*",
+              "fn": "count"
+            }
+          ]
+        }
+      }
+    },
+    "pools_get": {
+      "index_view": {
+        "kind": "account",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "notes": "Read the latest canonical Whirlpool state by pool address."
+        },
+        "projection": {
+          "projection_kind": "snapshot",
+          "group_by": [
+            "resource_id"
+          ]
+        }
+      }
+    },
+    "pools_index": {
+      "index_view": {
+        "kind": "search",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "notes": "Canonical Whirlpool pool directory ordered by indexed liquidity."
+        },
+        "projection": {
+          "projection_kind": "search",
+          "filters": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  }
+                ]
+              }
+            ]
+          },
+          "sort_by": [
+            {
+              "field": "liquidityQuote",
+              "dir": "desc"
+            },
+            {
+              "field": "updatedAt",
+              "dir": "desc"
+            }
+          ]
+        }
+      }
+    }
   }
 }

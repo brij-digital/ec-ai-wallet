@@ -131,7 +131,6 @@ function createAgentRuntimeSkeleton({ protocolId, programId, codamaAssetPath }) 
     index_views: {},
     computes: {},
     contract_writes: {},
-    templates: {},
   };
 }
 

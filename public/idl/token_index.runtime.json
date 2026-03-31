@@ -14,30 +14,6 @@
           "required": true
         }
       },
-      "read": {
-        "kind": "index",
-        "canonical": {
-          "source": "indexed_idl_state",
-          "protocol_id": "token-index-mainnet",
-          "record_kind": "account",
-          "record_name": "Token",
-          "notes": "Manual token directory seeded directly into canonical state."
-        },
-        "projection": {
-          "projection_kind": "search",
-          "filters": {
-            "field": "symbol",
-            "op": "ieq",
-            "value": "$input.symbol"
-          },
-          "sort_by": [
-            {
-              "field": "symbol",
-              "dir": "asc"
-            }
-          ]
-        }
-      },
       "read_output": {
         "type": "object",
         "source": "$items.0",
@@ -69,25 +45,6 @@
     },
     "tokens_index": {
       "inputs": {},
-      "read": {
-        "kind": "search",
-        "canonical": {
-          "source": "indexed_idl_state",
-          "protocol_id": "token-index-mainnet",
-          "record_kind": "account",
-          "record_name": "Token",
-          "notes": "Manual token directory seeded directly into canonical state."
-        },
-        "projection": {
-          "projection_kind": "search",
-          "sort_by": [
-            {
-              "field": "symbol",
-              "dir": "asc"
-            }
-          ]
-        }
-      },
       "read_output": {
         "type": "array",
         "source": "$rows",

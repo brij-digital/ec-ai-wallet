@@ -172,7 +172,15 @@ function validateExecution(protocolId, executionId, execution, instructionNames)
 
 function validateRead(protocolId, bucket, operationId, operation) {
   const op = validateRuntimeInputs(protocolId, `agentRuntime.${bucket}`, operationId, operation);
-  asObject(op.read, `${protocolId}.agentRuntime.${bucket}.${operationId}.read`);
+  if (op.read !== undefined) {
+    fail(`${protocolId}.agentRuntime.${bucket}.${operationId}.read is no longer allowed; declare index views in indexing.operations.`);
+  }
+}
+
+function validateIndexingIndexView(protocolId, indexing, operationId) {
+  const operations = asOptionalObject(indexing.operations, `${protocolId}.indexing.operations`);
+  const operation = asObject(operations[operationId], `${protocolId}.indexing.operations.${operationId}`);
+  asObject(operation.index_view, `${protocolId}.indexing.operations.${operationId}.index_view`);
 }
 
 function validateCompute(protocolId, operationId, operation) {
@@ -245,15 +253,15 @@ async function main() {
     }
 
     const indexingPath = resolvePublicAssetPath(manifest.indexingSpecPath, `${protocolId}.indexingSpecPath`);
-    const runtime = asObject(await readJson(indexingPath, `${protocolId} indexing spec`), `${protocolId} indexing spec`);
-    if (runtime.schema !== 'declarative-decoder-runtime.v1') {
+    const indexing = asObject(await readJson(indexingPath, `${protocolId} indexing spec`), `${protocolId} indexing spec`);
+    if (indexing.schema !== 'declarative-decoder-runtime.v1') {
       fail(`${protocolId}: indexingSpecPath must point to declarative-decoder-runtime.v1.`);
     }
-    if (asString(runtime.protocolId, `${protocolId}.indexing.protocolId`) !== protocolId) {
+    if (asString(indexing.protocolId, `${protocolId}.indexing.protocolId`) !== protocolId) {
       fail(`${protocolId}: indexing.protocolId mismatch.`);
     }
 
-    const decoderArtifacts = asObject(runtime.decoderArtifacts, `${protocolId}.indexing.decoderArtifacts`);
+    const decoderArtifacts = asObject(indexing.decoderArtifacts, `${protocolId}.indexing.decoderArtifacts`);
     if (Object.keys(decoderArtifacts).length === 0) {
       fail(`${protocolId}: indexing.decoderArtifacts must not be empty.`);
     }
@@ -286,6 +294,7 @@ async function main() {
 
     for (const [operationId, operationRaw] of Object.entries(indexViews)) {
       validateRead(protocolId, 'index_views', operationId, operationRaw);
+      validateIndexingIndexView(protocolId, indexing, operationId);
       operationCount += 1;
     }
     for (const [operationId, operationRaw] of Object.entries(computes)) {

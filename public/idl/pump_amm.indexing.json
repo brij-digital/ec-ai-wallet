@@ -397,5 +397,295 @@
         }
       }
     }
+  },
+  "operations": {
+    "list_tokens": {
+      "index_view": {
+        "kind": "search",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "pump-amm-mainnet",
+          "record_kind": "account",
+          "record_name": [
+            "Pool",
+            "BondingCurve"
+          ],
+          "notes": "Canonical Pump AMM market directory ordered by indexed activity and liquidity."
+        },
+        "projection": {
+          "projection_kind": "search",
+          "filters": {
+            "all": [
+              {
+                "field": "quoteMint",
+                "op": "=",
+                "value": "$input.quote_mint"
+              },
+              {
+                "field": "liquidityQuote",
+                "op": ">",
+                "value": 0
+              }
+            ]
+          },
+          "sort_by": [
+            {
+              "field": "updatedAt",
+              "dir": "desc"
+            },
+            {
+              "field": "liquidityQuote",
+              "dir": "desc"
+            }
+          ]
+        }
+      }
+    },
+    "view_pool": {
+      "index_view": {
+        "kind": "search",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "pump-amm-mainnet",
+          "record_kind": "account",
+          "record_name": [
+            "Pool",
+            "BondingCurve"
+          ],
+          "notes": "Canonical Pump AMM market search by base and quote mint."
+        },
+        "projection": {
+          "projection_kind": "search",
+          "filters": {
+            "all": [
+              {
+                "field": "mint",
+                "op": "=",
+                "value": "$input.base_mint"
+              },
+              {
+                "field": "quoteMint",
+                "op": "=",
+                "value": "$input.quote_mint"
+              }
+            ]
+          },
+          "sort_by": [
+            {
+              "field": "liquidityQuote",
+              "dir": "desc"
+            },
+            {
+              "field": "updatedAt",
+              "dir": "desc"
+            }
+          ]
+        }
+      }
+    },
+    "resolve_pool": {
+      "index_view": {
+        "kind": "account",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "pump-amm-mainnet",
+          "record_kind": "account",
+          "record_name": [
+            "Pool",
+            "BondingCurve"
+          ],
+          "subject_input": "mint",
+          "subject_field": "subject_id",
+          "resource_field": "resource_id",
+          "notes": "Resolve a mint to its current projected state derived from IDL-native records."
+        },
+        "projection": {
+          "projection_kind": "snapshot",
+          "group_by": [
+            "subject_id"
+          ]
+        }
+      }
+    },
+    "pool_snapshot": {
+      "index_view": {
+        "kind": "account",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "pump-amm-mainnet",
+          "record_kind": "account",
+          "record_name": [
+            "Pool",
+            "BondingCurve"
+          ],
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "notes": "Read the latest projected state row by pool/resource id."
+        },
+        "projection": {
+          "projection_kind": "snapshot",
+          "group_by": [
+            "resource_id"
+          ]
+        }
+      }
+    },
+    "trade_feed": {
+      "index_view": {
+        "kind": "feed",
+        "canonical": {
+          "source": "indexed_idl_records",
+          "protocol_id": "pump-amm-mainnet",
+          "record_kind": "event",
+          "record_name": [
+            "BuyEvent",
+            "SellEvent",
+            "TradeEvent"
+          ],
+          "subject_input": "mint",
+          "subject_field": "subject_id",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "time_field": "event_time",
+          "notes": "Recent trade records from the canonical append-only IDL record log."
+        },
+        "projection": {
+          "projection_kind": "feed",
+          "group_by": [
+            "subject_id"
+          ],
+          "sort_by": [
+            {
+              "field": "event_time",
+              "dir": "desc"
+            }
+          ]
+        }
+      }
+    },
+    "market_cap_series": {
+      "index_view": {
+        "kind": "series",
+        "canonical": {
+          "source": "indexed_series_1m",
+          "protocol_id": "pump-amm-mainnet",
+          "series_id": "pump.market.1m",
+          "subject_input": "mint",
+          "subject_field": "subject_id",
+          "resource_input": "pool",
+          "time_field": "bucket_start",
+          "notes": "Canonical 1m market series projected from IDL-native trade records with rollups and optional dense fill in the runner."
+        },
+        "projection": {
+          "projection_kind": "series",
+          "source_operation": "trade_feed",
+          "group_by": [
+            "subject_id"
+          ],
+          "bucket": "1m",
+          "fill_mode": "sparse",
+          "aggregations": [
+            {
+              "name": "open",
+              "field": "priceQuote",
+              "fn": "first"
+            },
+            {
+              "name": "high",
+              "field": "priceQuote",
+              "fn": "max"
+            },
+            {
+              "name": "low",
+              "field": "priceQuote",
+              "fn": "min"
+            },
+            {
+              "name": "close",
+              "field": "priceQuote",
+              "fn": "last"
+            },
+            {
+              "name": "openMarketCap",
+              "field": "marketCapQuote",
+              "fn": "first"
+            },
+            {
+              "name": "highMarketCap",
+              "field": "marketCapQuote",
+              "fn": "max"
+            },
+            {
+              "name": "lowMarketCap",
+              "field": "marketCapQuote",
+              "fn": "min"
+            },
+            {
+              "name": "closeMarketCap",
+              "field": "marketCapQuote",
+              "fn": "last"
+            },
+            {
+              "name": "volumeQuote",
+              "field": "quoteAmountUi",
+              "fn": "sum"
+            },
+            {
+              "name": "tradeCount",
+              "field": "*",
+              "fn": "count"
+            }
+          ]
+        }
+      }
+    },
+    "ranked_active_tokens": {
+      "index_view": {
+        "kind": "ranking",
+        "canonical": {
+          "source": "indexed_idl_records",
+          "protocol_id": "pump-amm-mainnet",
+          "record_kind": "event",
+          "record_name": [
+            "BuyEvent",
+            "SellEvent",
+            "TradeEvent"
+          ],
+          "time_field": "event_time",
+          "notes": "Ranking is computed from IDL-native trade records joined with projected current state."
+        },
+        "projection": {
+          "projection_kind": "ranking",
+          "group_by": [
+            "subject_id"
+          ],
+          "ranking": {
+            "state_operation": "resolve_pool",
+            "window_hours_input": "window_hours",
+            "max_activity_age_minutes_input": "max_activity_age_minutes",
+            "min_liquidity_input": "min_liquidity",
+            "min_volume_input": "min_volume",
+            "default_window_hours": 24,
+            "default_max_activity_age_minutes": 30,
+            "quote_mint_input": "quote_mint",
+            "default_quote_mint": "So11111111111111111111111111111111111111112",
+            "event_fields": {
+              "market_type": "marketType",
+              "participant": "participant",
+              "side": "side",
+              "volume": "quoteAmountUi"
+            },
+            "state_fields": {
+              "market_type": "marketType",
+              "quote_mint": "quoteMint",
+              "liquidity": "liquidityQuote",
+              "price": "priceQuote",
+              "market_cap": "marketCapQuote",
+              "pool": "pool"
+            }
+          }
+        }
+      }
+    }
   }
 }

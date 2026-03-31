@@ -187,14 +187,8 @@
         },
         "read_output": {
           "$ref": "#/$defs/readOutputSpec"
-        },
-        "read": {
-          "$ref": "#/$defs/readSpec"
         }
       },
-      "required": [
-        "read"
-      ],
       "additionalProperties": false
     },
     "computeSpec": {
@@ -281,89 +275,6 @@
         "read_output": {
           "$ref": "#/$defs/readOutputSpec"
         }
-      },
-      "additionalProperties": false
-    },
-    "readCanonicalSpec": {
-      "type": "object",
-      "properties": {
-        "source": { "type": "string" },
-        "protocol_id": { "type": "string" },
-        "record_kind": {
-          "oneOf": [
-            { "type": "string" },
-            { "type": "array", "items": { "type": "string" } }
-          ]
-        },
-        "record_name": {
-          "oneOf": [
-            { "type": "string" },
-            { "type": "array", "items": { "type": "string" } }
-          ]
-        },
-        "series_id": { "type": "string" },
-        "time_field": { "type": "string" },
-        "subject_input": { "type": "string" },
-        "resource_input": { "type": "string" },
-        "subject_field": { "type": "string" },
-        "resource_field": { "type": "string" },
-        "notes": { "type": "string" }
-      },
-      "required": ["source", "protocol_id"],
-      "additionalProperties": false
-    },
-    "readProjectionSpec": {
-      "type": "object",
-      "properties": {
-        "projection_kind": {
-          "type": "string",
-          "enum": ["snapshot", "feed", "series", "ranking", "context", "search"]
-        },
-        "source_operation": { "type": "string" },
-        "filters": { "$ref": "#/$defs/jsonValue" },
-        "group_by": { "type": "array", "items": { "type": "string" } },
-        "bucket": { "type": "string" },
-        "fill_mode": { "type": "string", "enum": ["sparse", "dense"] },
-        "aggregations": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["name", "field", "fn"],
-            "properties": {
-              "name": { "type": "string" },
-              "field": { "type": "string" },
-              "fn": { "type": "string" }
-            },
-            "additionalProperties": false
-          }
-        },
-        "sort_by": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["field", "dir"],
-            "properties": {
-              "field": { "type": "string" },
-              "dir": { "type": "string", "enum": ["asc", "desc"] }
-            },
-            "additionalProperties": false
-          }
-        },
-        "ranking": { "$ref": "#/$defs/jsonValue" }
-      },
-      "required": ["projection_kind"],
-      "additionalProperties": false
-    },
-    "readSpec": {
-      "type": "object",
-      "required": ["kind", "canonical", "projection"],
-      "properties": {
-        "kind": {
-          "type": "string",
-          "enum": ["index", "search", "get", "resolve", "feed", "series", "ranking", "context"]
-        },
-        "canonical": { "$ref": "#/$defs/readCanonicalSpec" },
-        "projection": { "$ref": "#/$defs/readProjectionSpec" }
       },
       "additionalProperties": false
     },
