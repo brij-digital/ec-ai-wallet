@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 
+const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+const ANTHROPIC_MODEL_PRESETS = [
+  'claude-sonnet-4-20250514',
+  'claude-opus-4-20250514',
+  'claude-3-5-haiku-20241022',
+] as const;
+
 type AgentTabProps = {
   viewApiBaseUrl: string;
 };
@@ -54,7 +61,7 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
   const [protocols, setProtocols] = useState<RegistryProtocol[]>([]);
   const [protocolId, setProtocolId] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('claude-3-7-sonnet-latest');
+  const [model, setModel] = useState(DEFAULT_ANTHROPIC_MODEL);
   const [prompt, setPrompt] = useState('Find the best capability to inspect a market, then compute a preview before drafting an execution.');
   const [isLoading, setIsLoading] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
@@ -149,7 +156,12 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
         </label>
         <label>
           Model
-          <input value={model} onChange={(event) => setModel(event.target.value)} placeholder="claude-3-7-sonnet-latest" />
+          <input
+            value={model}
+            onChange={(event) => setModel(event.target.value)}
+            placeholder={DEFAULT_ANTHROPIC_MODEL}
+            list="anthropic-model-presets"
+          />
         </label>
         <label>
           Protocol
@@ -183,9 +195,14 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
           <button type="submit" disabled={isLoading || apiKey.trim().length === 0 || prompt.trim().length === 0}>
             {isLoading ? 'Running...' : 'Run Agent'}
           </button>
-          <p>Your key is used only for this request. Nothing is stored for now.</p>
+          <p>Your key is used only for this request. Nothing is stored for now. Use an exact Anthropic model id.</p>
         </div>
       </form>
+      <datalist id="anthropic-model-presets">
+        {ANTHROPIC_MODEL_PRESETS.map((preset) => (
+          <option key={preset} value={preset} />
+        ))}
+      </datalist>
 
       {errorText ? <p className="view-playground-error">{errorText}</p> : null}
       {usageText ? <p className="view-playground-info">{usageText}</p> : null}
