@@ -179,6 +179,38 @@
         font-size: 14px;
       }
 
+      .example-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+      }
+
+      .example-box {
+        display: grid;
+        gap: 8px;
+        border: 1px solid #dde5f2;
+        border-radius: 14px;
+        background: white;
+        padding: 14px;
+      }
+
+      .example-box strong {
+        color: var(--text);
+      }
+
+      .example-box code {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: var(--warm);
+        border: 1px solid #f0ddb1;
+        color: #6a4c00;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        line-height: 1.45;
+        word-break: break-all;
+      }
+
       .footer-note {
         margin-top: 16px;
         padding: 16px 18px;
@@ -218,12 +250,16 @@
         <article class="card">
           <h2>Live flow</h2>
           <ol>
-            <li>Resolve pair inputs like <code>USDC -&gt; SOL</code> from indexed token and pool data.</li>
-            <li>Run a deterministic quote compute.</li>
+            <li>Start from a fixed pair and fixed mints: <code>USDC -&gt; SOL</code>.</li>
+            <li>Run a deterministic quote compute for <code>10,000 USDC</code>.</li>
             <li>Draft the Orca swap from Codama-backed instruction metadata.</li>
             <li>Optionally submit in wallet from the Runner view.</li>
           </ol>
-          <p>Recommended demo in the app: <code>Draft Swap on Orca</code>.</p>
+          <p>
+            For this demo, the pair is intentionally pre-filled so the interesting part is
+            <code> runtime + Codama </code>
+            rather than discovery/indexing.
+          </p>
         </article>
 
         <article class="card">
@@ -241,6 +277,36 @@
             </div>
           </div>
         </article>
+      </section>
+
+      <section class="card" style="margin-top: 16px;">
+        <h2>Concrete example</h2>
+        <div class="example-grid">
+          <div class="example-box">
+            <strong>Human intent</strong>
+            <code>Swap 10,000 USDC to SOL on Orca</code>
+          </div>
+          <div class="example-box">
+            <strong>Inputs</strong>
+            <code>token_in_mint = EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+token_out_mint = So11111111111111111111111111111111111111112
+amount_in = 10000000000
+slippage_bps = 100</code>
+          </div>
+          <div class="example-box">
+            <strong>What Codama provides</strong>
+            <code>swap instruction shape
+named accounts
+signers
+default / PDA-backed accounts</code>
+          </div>
+          <div class="example-box">
+            <strong>What runtime provides</strong>
+            <code>quote_exact_in
+minimum_out
+draft swap payload</code>
+          </div>
+        </div>
       </section>
 
       <section class="card" style="margin-top: 16px;">
