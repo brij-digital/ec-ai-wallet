@@ -189,6 +189,21 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     }
     return false;
   }, [transcript]);
+  const submitApprovalMessage = useMemo(() => {
+    for (let index = transcript.length - 1; index >= 0; index -= 1) {
+      const entry = transcript[index];
+      if (!entry || entry.role !== 'tool' || entry.kind !== 'tool_result' || entry.toolName !== 'submit_execution') {
+        continue;
+      }
+      const result = entry.result;
+      if (!result || typeof result !== 'object' || Array.isArray(result)) {
+        continue;
+      }
+      const message = (result as Record<string, unknown>).message;
+      return typeof message === 'string' ? message : null;
+    }
+    return null;
+  }, [transcript]);
 
   useEffect(() => {
     setApiKey(readCookie(AGENT_API_KEY_COOKIE));
@@ -500,6 +515,23 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
       {errorText ? <p className="view-playground-error">{errorText}</p> : null}
       {statusText ? <p className="view-playground-info">{statusText}</p> : null}
       {usageText ? <p className="view-playground-info">{usageText}</p> : null}
+      {submitApprovalRequested && latestDraft ? (
+        <div className="agent-panel">
+          <h3>Wallet Approval Required</h3>
+          <p>{submitApprovalMessage ?? 'Claude requested submission of the latest draft. Approve it below to open your wallet and sign.'}</p>
+          <div className="agent-actions">
+            <button type="button" onClick={handleSendDraft} disabled={isLoading || isDraftActionLoading || !wallet.publicKey}>
+              {isDraftActionLoading ? 'Opening Wallet...' : 'Approve Submit'}
+            </button>
+            <p>
+              This will open your connected wallet and ask it to sign and submit
+              {' '}
+              {latestDraft.operationId}
+              .
+            </p>
+          </div>
+        </div>
+      ) : null}
       {latestDraft ? (
         <div className="agent-actions">
           <button type="button" onClick={handleSimulateDraft} disabled={isLoading || isDraftActionLoading || !wallet.publicKey}>
