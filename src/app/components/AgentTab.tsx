@@ -571,7 +571,7 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
       <form className="agent-form agent-composer" onSubmit={handleRun}>
         <label className="agent-form-full">
           Prompt
-          <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={6} />
+          <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={2} />
         </label>
         <details className="agent-settings">
           <summary>Settings</summary>
