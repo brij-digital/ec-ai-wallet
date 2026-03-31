@@ -415,6 +415,116 @@
               "dir": "desc"
             }
           ]
+        },
+        "inputs": {
+          "token_in_mint": {
+            "type": "token_mint",
+            "required": true
+          },
+          "token_out_mint": {
+            "type": "token_mint",
+            "required": true
+          }
+        },
+        "read_output": {
+          "type": "object",
+          "source": "$items.0",
+          "object_schema": {
+            "entity_type": "orca_whirlpool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "subjectId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "resourceId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "tokenMintA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenMintB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenDecimalsA": {
+                "type": "u8",
+                "required": true
+              },
+              "tokenDecimalsB": {
+                "type": "u8",
+                "required": true
+              },
+              "tickSpacing": {
+                "type": "u16",
+                "required": true
+              },
+              "feeRateBps": {
+                "type": "number",
+                "required": true
+              },
+              "liquidity": {
+                "type": "u128",
+                "required": true
+              },
+              "tickCurrentIndex": {
+                "type": "i32",
+                "required": true
+              },
+              "priceQuote": {
+                "type": "number",
+                "required": true
+              },
+              "inversePriceQuote": {
+                "type": "number",
+                "required": true
+              },
+              "vaultBalanceAUi": {
+                "type": "number",
+                "required": true
+              },
+              "vaultBalanceBUi": {
+                "type": "number",
+                "required": true
+              },
+              "liquidityQuote": {
+                "type": "number",
+                "required": true
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": true
+              },
+              "updatedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "lastEventTime": {
+                "type": "timestamp",
+                "required": false
+              }
+            }
+          }
         }
       }
     },
@@ -443,6 +553,73 @@
               "dir": "desc"
             }
           ]
+        },
+        "inputs": {
+          "pool": {
+            "type": "pubkey",
+            "required": true
+          },
+          "limit": {
+            "type": "u16",
+            "required": false,
+            "default": 50
+          }
+        },
+        "read_output": {
+          "type": "array",
+          "source": "$items",
+          "item_schema": {
+            "entity_type": "orca_swap",
+            "identity_fields": [
+              "signature"
+            ],
+            "fields": {
+              "signature": {
+                "type": "string",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "trader": {
+                "type": "pubkey",
+                "required": false
+              },
+              "side": {
+                "type": "string",
+                "required": true
+              },
+              "eventTime": {
+                "type": "timestamp",
+                "required": true
+              },
+              "tokenInMint": {
+                "type": "pubkey",
+                "required": false
+              },
+              "tokenOutMint": {
+                "type": "pubkey",
+                "required": false
+              },
+              "amountInUi": {
+                "type": "number",
+                "required": false
+              },
+              "amountOutUi": {
+                "type": "number",
+                "required": false
+              },
+              "quoteNotionalUi": {
+                "type": "number",
+                "required": true
+              },
+              "priceQuote": {
+                "type": "number",
+                "required": true
+              }
+            }
+          }
         }
       }
     },
@@ -498,6 +675,75 @@
               "fn": "count"
             }
           ]
+        },
+        "inputs": {
+          "pool": {
+            "type": "pubkey",
+            "required": true
+          },
+          "limit": {
+            "type": "u16",
+            "required": false,
+            "default": 240
+          },
+          "from": {
+            "type": "string",
+            "required": false
+          },
+          "to": {
+            "type": "string",
+            "required": false
+          },
+          "interval": {
+            "type": "string",
+            "required": false,
+            "default": "1m"
+          },
+          "mode": {
+            "type": "string",
+            "required": false,
+            "default": "sparse"
+          }
+        },
+        "read_output": {
+          "type": "array",
+          "source": "$items",
+          "item_schema": {
+            "entity_type": "orca_market_series_point",
+            "identity_fields": [
+              "bucketStart"
+            ],
+            "fields": {
+              "bucketStart": {
+                "type": "timestamp",
+                "required": true
+              },
+              "open": {
+                "type": "number",
+                "required": true
+              },
+              "high": {
+                "type": "number",
+                "required": true
+              },
+              "low": {
+                "type": "number",
+                "required": true
+              },
+              "close": {
+                "type": "number",
+                "required": true
+              },
+              "volumeQuote": {
+                "type": "number",
+                "required": true
+              },
+              "tradeCount": {
+                "type": "u32",
+                "required": true
+              }
+            }
+          }
         }
       }
     },
@@ -518,6 +764,112 @@
           "group_by": [
             "resource_id"
           ]
+        },
+        "inputs": {
+          "pool": {
+            "type": "pubkey",
+            "required": true
+          }
+        },
+        "read_output": {
+          "type": "object",
+          "source": "$items.0",
+          "object_schema": {
+            "entity_type": "orca_whirlpool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "subjectId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "resourceId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "tokenMintA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenMintB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenDecimalsA": {
+                "type": "u8",
+                "required": true
+              },
+              "tokenDecimalsB": {
+                "type": "u8",
+                "required": true
+              },
+              "tickSpacing": {
+                "type": "u16",
+                "required": true
+              },
+              "feeRateBps": {
+                "type": "number",
+                "required": true
+              },
+              "liquidity": {
+                "type": "u128",
+                "required": true
+              },
+              "tickCurrentIndex": {
+                "type": "i32",
+                "required": true
+              },
+              "priceQuote": {
+                "type": "number",
+                "required": true
+              },
+              "inversePriceQuote": {
+                "type": "number",
+                "required": true
+              },
+              "vaultBalanceAUi": {
+                "type": "number",
+                "required": true
+              },
+              "vaultBalanceBUi": {
+                "type": "number",
+                "required": true
+              },
+              "liquidityQuote": {
+                "type": "number",
+                "required": true
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": true
+              },
+              "updatedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "lastEventTime": {
+                "type": "timestamp",
+                "required": false
+              }
+            }
+          }
         }
       }
     },
@@ -575,6 +927,116 @@
               "dir": "desc"
             }
           ]
+        },
+        "inputs": {
+          "token_in_mint": {
+            "type": "token_mint",
+            "required": true
+          },
+          "token_out_mint": {
+            "type": "token_mint",
+            "required": true
+          }
+        },
+        "read_output": {
+          "type": "array",
+          "source": "$items",
+          "item_schema": {
+            "entity_type": "orca_whirlpool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "subjectId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "resourceId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "tokenMintA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenMintB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenDecimalsA": {
+                "type": "u8",
+                "required": true
+              },
+              "tokenDecimalsB": {
+                "type": "u8",
+                "required": true
+              },
+              "tickSpacing": {
+                "type": "u16",
+                "required": true
+              },
+              "feeRateBps": {
+                "type": "number",
+                "required": true
+              },
+              "liquidity": {
+                "type": "u128",
+                "required": true
+              },
+              "tickCurrentIndex": {
+                "type": "i32",
+                "required": true
+              },
+              "priceQuote": {
+                "type": "number",
+                "required": true
+              },
+              "inversePriceQuote": {
+                "type": "number",
+                "required": true
+              },
+              "vaultBalanceAUi": {
+                "type": "number",
+                "required": true
+              },
+              "vaultBalanceBUi": {
+                "type": "number",
+                "required": true
+              },
+              "liquidityQuote": {
+                "type": "number",
+                "required": true
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": true
+              },
+              "updatedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "lastEventTime": {
+                "type": "timestamp",
+                "required": false
+              }
+            }
+          }
         }
       }
     }

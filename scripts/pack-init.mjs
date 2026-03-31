@@ -112,6 +112,7 @@ function createIndexingSkeleton({ protocolId, programId, codamaAssetPath }) {
     matchRules: [],
     pipelines: {},
     projectionSpecs: {},
+    operations: {},
     notes: [
       `Starter indexing spec for ${protocolId}.`,
       `Add sources/matchRules/pipelines/projections for program ${programId}.`,
@@ -120,15 +121,14 @@ function createIndexingSkeleton({ protocolId, programId, codamaAssetPath }) {
 }
 
 function createAgentRuntimeSkeleton({ protocolId, programId, codamaAssetPath }) {
+  void programId;
+  void codamaAssetPath;
   return {
     $schema: '/idl/solana_agent_runtime.schema.v1.json',
     schema: 'solana-agent-runtime.v1',
     protocol: {
       protocolId,
-      programId,
-      codamaPath: codamaAssetPath,
     },
-    index_views: {},
     computes: {},
     contract_writes: {},
   };

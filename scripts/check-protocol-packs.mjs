@@ -168,19 +168,37 @@ function validateExecution(protocolId, executionId, execution, instructionNames)
       fail(`${protocolId}: execution ${executionId} references missing instruction ${instruction}.`);
     }
   }
-}
-
-function validateRead(protocolId, bucket, operationId, operation) {
-  const op = validateRuntimeInputs(protocolId, `agentRuntime.${bucket}`, operationId, operation);
-  if (op.read !== undefined) {
-    fail(`${protocolId}.agentRuntime.${bucket}.${operationId}.read is no longer allowed; declare index views in indexing.operations.`);
+  const accounts = asOptionalObject(op.accounts, `${protocolId}.agentRuntime.contract_writes.${executionId}.accounts`);
+  for (const [accountName, binding] of Object.entries(accounts)) {
+    asString(binding, `${protocolId}.agentRuntime.contract_writes.${executionId}.accounts.${accountName}`);
+  }
+  if (op.remaining_accounts !== undefined) {
+    if (typeof op.remaining_accounts === 'string') {
+      asString(op.remaining_accounts, `${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts`);
+    } else {
+      const metas = asArray(op.remaining_accounts, `${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts`);
+      for (let index = 0; index < metas.length; index += 1) {
+        const meta = asObject(metas[index], `${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts[${index}]`);
+        asString(meta.pubkey, `${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts[${index}].pubkey`);
+        if (meta.isSigner !== undefined && typeof meta.isSigner !== 'boolean') {
+          fail(`${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts[${index}].isSigner must be boolean.`);
+        }
+        if (meta.isWritable !== undefined && typeof meta.isWritable !== 'boolean') {
+          fail(`${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts[${index}].isWritable must be boolean.`);
+        }
+      }
+    }
   }
 }
 
 function validateIndexingIndexView(protocolId, indexing, operationId) {
   const operations = asOptionalObject(indexing.operations, `${protocolId}.indexing.operations`);
   const operation = asObject(operations[operationId], `${protocolId}.indexing.operations.${operationId}`);
-  asObject(operation.index_view, `${protocolId}.indexing.operations.${operationId}.index_view`);
+  const indexView = validateRuntimeInputs(protocolId, 'indexing.operations', operationId, asObject(
+    operation.index_view,
+    `${protocolId}.indexing.operations.${operationId}.index_view`,
+  ));
+  asString(indexView.kind, `${protocolId}.indexing.operations.${operationId}.index_view.kind`);
 }
 
 function validateCompute(protocolId, operationId, operation) {
@@ -292,8 +310,16 @@ async function main() {
     const computes = asOptionalObject(agentRuntime.computes, `${protocolId}.agentRuntime.computes`);
     const contract_writes = asOptionalObject(agentRuntime.contract_writes, `${protocolId}.agentRuntime.contract_writes`);
 
-    for (const [operationId, operationRaw] of Object.entries(indexViews)) {
-      validateRead(protocolId, 'index_views', operationId, operationRaw);
+    if (Object.keys(indexViews).length > 0) {
+      fail(`${protocolId}: agentRuntime.index_views is no longer allowed; declare reads in indexing.operations.`);
+    }
+
+    const indexingOperations = asOptionalObject(indexing.operations, `${protocolId}.indexing.operations`);
+    for (const [operationId, operationRaw] of Object.entries(indexingOperations)) {
+      const operation = asObject(operationRaw, `${protocolId}.indexing.operations.${operationId}`);
+      if (operation.index_view === undefined) {
+        continue;
+      }
       validateIndexingIndexView(protocolId, indexing, operationId);
       operationCount += 1;
     }

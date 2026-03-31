@@ -59,7 +59,16 @@ async function main() {
     if (!indexing.decoderArtifacts || typeof indexing.decoderArtifacts !== 'object' || Array.isArray(indexing.decoderArtifacts)) {
       fail(`${indexingFilePath} is missing indexing decoder artifacts.`);
     }
+    const hasIndexingViews =
+      indexing.operations && typeof indexing.operations === 'object' && !Array.isArray(indexing.operations)
+      && Object.values(indexing.operations).some(
+        (operation) => operation && typeof operation === 'object' && !Array.isArray(operation)
+          && operation.index_view && typeof operation.index_view === 'object' && !Array.isArray(operation.index_view),
+      );
     loadedRuntimePacks += 1;
+    if (!hasCapabilities && !hasIndexingViews) {
+      fail(`${agentRuntimeFilePath} and ${indexingFilePath} expose no usable capabilities.`);
+    }
   }
 
   console.log(`Wallet runtime pack smoke succeeded for ${loadedRuntimePacks} runtime pack file(s).`);

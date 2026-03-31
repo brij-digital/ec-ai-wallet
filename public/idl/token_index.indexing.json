@@ -41,6 +41,40 @@
               "dir": "asc"
             }
           ]
+        },
+        "inputs": {
+          "symbol": {
+            "type": "string",
+            "required": true
+          }
+        },
+        "read_output": {
+          "type": "object",
+          "source": "$items.0",
+          "object_schema": {
+            "entity_type": "token",
+            "identity_fields": [
+              "mint"
+            ],
+            "fields": {
+              "symbol": {
+                "type": "string",
+                "required": true
+              },
+              "name": {
+                "type": "string",
+                "required": true
+              },
+              "mint": {
+                "type": "token_mint",
+                "required": true
+              },
+              "decimals": {
+                "type": "u16",
+                "required": true
+              }
+            }
+          }
         }
       }
     },
@@ -62,6 +96,35 @@
               "dir": "asc"
             }
           ]
+        },
+        "inputs": {},
+        "read_output": {
+          "type": "array",
+          "source": "$rows",
+          "item_schema": {
+            "entity_type": "token",
+            "identity_fields": [
+              "mint"
+            ],
+            "fields": {
+              "symbol": {
+                "type": "string",
+                "required": true
+              },
+              "name": {
+                "type": "string",
+                "required": true
+              },
+              "mint": {
+                "type": "token_mint",
+                "required": true
+              },
+              "decimals": {
+                "type": "u16",
+                "required": true
+              }
+            }
+          }
         }
       }
     }

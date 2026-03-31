@@ -2,9 +2,7 @@
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
   "protocol": {
-    "protocolId": "pump-core-mainnet",
-    "programId": "$protocol.programId",
-    "codamaPath": "/idl/pump_core.codama.json"
+    "protocolId": "pump-core-mainnet"
   },
   "computes": {
     "preview_buy_exact_sol_in": {
@@ -279,7 +277,6 @@
       }
     }
   },
-  "index_views": {},
   "contract_writes": {
     "buy_exact_sol_in": {
       "instruction": "buy_exact_sol_in",

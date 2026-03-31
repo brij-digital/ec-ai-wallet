@@ -438,6 +438,86 @@
               "dir": "desc"
             }
           ]
+        },
+        "inputs": {
+          "quote_mint": {
+            "type": "pubkey",
+            "required": false,
+            "default": "So11111111111111111111111111111111111111112"
+          },
+          "min_last_seen_slot": {
+            "type": "u64",
+            "required": false,
+            "default": "0"
+          }
+        },
+        "read_output": {
+          "source": "$items",
+          "type": "array",
+          "item_schema": {
+            "entity_type": "pump_pool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "mint": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "quoteMint": {
+                "type": "pubkey",
+                "required": false
+              },
+              "priceQuote": {
+                "type": "number",
+                "required": false
+              },
+              "marketCapQuote": {
+                "type": "number",
+                "required": false
+              },
+              "liquidityQuote": {
+                "type": "number",
+                "required": false
+              },
+              "volume24hQuote": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange5mPct": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange1hPct": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange24hPct": {
+                "type": "number",
+                "required": false
+              },
+              "latestTradeAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "coinCreator": {
+                "type": "pubkey",
+                "required": false
+              }
+            }
+          }
         }
       }
     },
@@ -480,6 +560,85 @@
               "dir": "desc"
             }
           ]
+        },
+        "inputs": {
+          "base_mint": {
+            "type": "pubkey",
+            "required": true
+          },
+          "quote_mint": {
+            "type": "pubkey",
+            "required": false,
+            "default": "So11111111111111111111111111111111111111112"
+          }
+        },
+        "read_output": {
+          "source": "$items",
+          "type": "array",
+          "item_schema": {
+            "entity_type": "pump_pool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "mint": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "quoteMint": {
+                "type": "pubkey",
+                "required": false
+              },
+              "priceQuote": {
+                "type": "number",
+                "required": false
+              },
+              "marketCapQuote": {
+                "type": "number",
+                "required": false
+              },
+              "liquidityQuote": {
+                "type": "number",
+                "required": false
+              },
+              "volume24hQuote": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange5mPct": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange1hPct": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange24hPct": {
+                "type": "number",
+                "required": false
+              },
+              "latestTradeAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "coinCreator": {
+                "type": "pubkey",
+                "required": false
+              }
+            }
+          }
         }
       }
     },
@@ -504,6 +663,85 @@
           "group_by": [
             "subject_id"
           ]
+        },
+        "inputs": {
+          "mint": {
+            "type": "pubkey",
+            "required": true
+          },
+          "quote_mint": {
+            "type": "pubkey",
+            "required": false,
+            "default": "So11111111111111111111111111111111111111112"
+          }
+        },
+        "read_output": {
+          "type": "object",
+          "source": "$items.0",
+          "object_schema": {
+            "entity_type": "pump_pool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "mint": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "quoteMint": {
+                "type": "pubkey",
+                "required": false
+              },
+              "priceQuote": {
+                "type": "number",
+                "required": false
+              },
+              "marketCapQuote": {
+                "type": "number",
+                "required": false
+              },
+              "liquidityQuote": {
+                "type": "number",
+                "required": false
+              },
+              "volume24hQuote": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange5mPct": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange1hPct": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange24hPct": {
+                "type": "number",
+                "required": false
+              },
+              "latestTradeAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "coinCreator": {
+                "type": "pubkey",
+                "required": false
+              }
+            }
+          }
         }
       }
     },
@@ -527,6 +765,80 @@
           "group_by": [
             "resource_id"
           ]
+        },
+        "inputs": {
+          "pool": {
+            "type": "pubkey",
+            "required": true
+          }
+        },
+        "read_output": {
+          "type": "object",
+          "source": "$items.0",
+          "object_schema": {
+            "entity_type": "pump_pool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "mint": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "quoteMint": {
+                "type": "pubkey",
+                "required": false
+              },
+              "priceQuote": {
+                "type": "number",
+                "required": false
+              },
+              "marketCapQuote": {
+                "type": "number",
+                "required": false
+              },
+              "liquidityQuote": {
+                "type": "number",
+                "required": false
+              },
+              "volume24hQuote": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange5mPct": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange1hPct": {
+                "type": "number",
+                "required": false
+              },
+              "priceChange24hPct": {
+                "type": "number",
+                "required": false
+              },
+              "latestTradeAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "coinCreator": {
+                "type": "pubkey",
+                "required": false
+              }
+            }
+          }
         }
       }
     },
@@ -560,6 +872,69 @@
               "dir": "desc"
             }
           ]
+        },
+        "inputs": {
+          "pool": {
+            "type": "pubkey",
+            "required": true
+          },
+          "limit": {
+            "type": "u16",
+            "required": false,
+            "default": 50
+          }
+        },
+        "read_output": {
+          "type": "array",
+          "source": "$items",
+          "item_schema": {
+            "entity_type": "pump_trade",
+            "identity_fields": [
+              "signature"
+            ],
+            "fields": {
+              "signature": {
+                "type": "string",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": false
+              },
+              "mint": {
+                "type": "pubkey",
+                "required": false
+              },
+              "user": {
+                "type": "pubkey",
+                "required": false
+              },
+              "side": {
+                "type": "string",
+                "required": true
+              },
+              "eventTime": {
+                "type": "timestamp",
+                "required": true
+              },
+              "quoteAmountUi": {
+                "type": "number",
+                "required": true
+              },
+              "baseAmountUi": {
+                "type": "number",
+                "required": false
+              },
+              "priceQuote": {
+                "type": "number",
+                "required": true
+              },
+              "marketCapQuote": {
+                "type": "number",
+                "required": false
+              }
+            }
+          }
         }
       }
     },
@@ -636,6 +1011,91 @@
               "fn": "count"
             }
           ]
+        },
+        "inputs": {
+          "pool": {
+            "type": "pubkey",
+            "required": true
+          },
+          "limit": {
+            "type": "u16",
+            "required": false,
+            "default": 240
+          },
+          "from": {
+            "type": "string",
+            "required": false
+          },
+          "to": {
+            "type": "string",
+            "required": false
+          },
+          "interval": {
+            "type": "string",
+            "required": false,
+            "default": "1m"
+          },
+          "mode": {
+            "type": "string",
+            "required": false,
+            "default": "sparse"
+          }
+        },
+        "read_output": {
+          "type": "array",
+          "source": "$items",
+          "item_schema": {
+            "entity_type": "pump_market_series_point",
+            "identity_fields": [
+              "bucketStart"
+            ],
+            "fields": {
+              "bucketStart": {
+                "type": "timestamp",
+                "required": true
+              },
+              "open": {
+                "type": "number",
+                "required": true
+              },
+              "high": {
+                "type": "number",
+                "required": true
+              },
+              "low": {
+                "type": "number",
+                "required": true
+              },
+              "close": {
+                "type": "number",
+                "required": true
+              },
+              "openMarketCap": {
+                "type": "number",
+                "required": false
+              },
+              "highMarketCap": {
+                "type": "number",
+                "required": false
+              },
+              "lowMarketCap": {
+                "type": "number",
+                "required": false
+              },
+              "closeMarketCap": {
+                "type": "number",
+                "required": false
+              },
+              "volumeQuote": {
+                "type": "number",
+                "required": true
+              },
+              "tradeCount": {
+                "type": "u32",
+                "required": true
+              }
+            }
+          }
         }
       }
     },
@@ -682,6 +1142,97 @@
               "price": "priceQuote",
               "market_cap": "marketCapQuote",
               "pool": "pool"
+            }
+          }
+        },
+        "inputs": {
+          "quote_mint": {
+            "type": "pubkey",
+            "required": false,
+            "default": "So11111111111111111111111111111111111111112"
+          },
+          "window_hours": {
+            "type": "u32",
+            "required": false,
+            "default": 24
+          },
+          "max_activity_age_minutes": {
+            "type": "u32",
+            "required": false,
+            "default": 30
+          },
+          "min_liquidity": {
+            "type": "u64",
+            "required": false,
+            "default": 0
+          },
+          "min_volume": {
+            "type": "u64",
+            "required": false,
+            "default": 0
+          }
+        },
+        "read_output": {
+          "type": "array",
+          "source": "$items",
+          "item_schema": {
+            "entity_type": "pump_ranked_token",
+            "identity_fields": [
+              "mint"
+            ],
+            "fields": {
+              "mint": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "marketCapQuote": {
+                "type": "number",
+                "required": false
+              },
+              "liquidityQuote": {
+                "type": "number",
+                "required": true
+              },
+              "volumeWindowQuote": {
+                "type": "number",
+                "required": true
+              },
+              "tradeCountWindow": {
+                "type": "u32",
+                "required": true
+              },
+              "uniqueTradersWindow": {
+                "type": "u32",
+                "required": true
+              },
+              "buyCountWindow": {
+                "type": "u32",
+                "required": true
+              },
+              "sellCountWindow": {
+                "type": "u32",
+                "required": true
+              },
+              "lastTradeAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "warnings": {
+                "type": "string[]",
+                "required": true
+              },
+              "score": {
+                "type": "number",
+                "required": true
+              }
             }
           }
         }
