@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Codama Runtime Demo</title>
+    <title>Codama Orca Demo</title>
     <style>
       :root {
         color-scheme: light;
@@ -65,33 +65,6 @@
         margin: 12px 0 0;
         color: var(--muted);
         line-height: 1.6;
-      }
-
-      .actions {
-        display: grid;
-        gap: 10px;
-        align-content: start;
-      }
-
-      .btn, .ghost {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 46px;
-        border-radius: 12px;
-        text-decoration: none;
-        font-weight: 700;
-      }
-
-      .btn {
-        background: var(--accent);
-        color: white;
-      }
-
-      .ghost {
-        border: 1px solid #cad5eb;
-        background: white;
-        color: #19315c;
       }
 
       .grid {
@@ -221,6 +194,97 @@
         line-height: 1.6;
       }
 
+      .demo-form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+      }
+
+      .demo-field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .demo-field label {
+        color: var(--text);
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .demo-field input {
+        min-height: 42px;
+        border: 1px solid #cad5eb;
+        border-radius: 10px;
+        padding: 0 12px;
+        font: inherit;
+        color: var(--text);
+        background: white;
+      }
+
+      .demo-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .demo-actions button {
+        border: 0;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 12px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        background: var(--accent);
+        color: white;
+      }
+
+      .demo-status {
+        min-height: 24px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .result-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .result-card {
+        border: 1px solid #dde5f2;
+        background: white;
+        border-radius: 14px;
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .result-card h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      .result-card pre {
+        margin: 0;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        padding: 10px;
+        border-radius: 10px;
+        background: #f7f9fd;
+        border: 1px solid #e2e8f4;
+        color: #233252;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
       @media (max-width: 820px) {
         .hero {
           grid-template-columns: 1fr;
@@ -232,17 +296,12 @@
     <main class="page">
       <section class="hero">
         <div>
-          <p class="eyebrow">Codama Runtime Demo</p>
+          <p class="eyebrow">Codama Orca Demo</p>
           <h1>How we use Codama as the instruction source of truth</h1>
           <p>
-            This is the smallest concrete walkthrough of the boundary we ended up with.
-            Codama carries instruction execution truth. Our runtime keeps only deterministic compute
-            and write preparation on top of that.
+            This page shows one concrete Orca swap flow. Codama carries the instruction-level truth.
+            Our runtime only adds deterministic quote computation and swap draft preparation.
           </p>
-        </div>
-        <div class="actions">
-          <a class="btn" href="/#runner">Open live runner flow</a>
-          <a class="ghost" href="/#raw">Open raw operations</a>
         </div>
       </section>
 
@@ -251,14 +310,12 @@
           <h2>Live flow</h2>
           <ol>
             <li>Start from a fixed pair and fixed mints: <code>USDC -&gt; SOL</code>.</li>
-            <li>Run a deterministic quote compute for <code>10,000 USDC</code>.</li>
+            <li>Run a deterministic quote compute for <code>1 USDC</code>.</li>
             <li>Draft the Orca swap from Codama-backed instruction metadata.</li>
-            <li>Optionally submit in wallet from the Runner view.</li>
           </ol>
           <p>
-            For this demo, the pair is intentionally pre-filled so the interesting part is
-            <code> runtime + Codama </code>
-            rather than discovery/indexing.
+            The pair and the mints are intentionally fixed here so the demo stays focused on
+            <code>Codama + runtime</code>, not on discovery.
           </p>
         </article>
 
@@ -272,8 +329,8 @@
             </div>
             <div class="row">
               <strong>Runtime spec</strong>
-              <span>Deterministic compute and write prep</span>
-              <code>quote math, draft construction</code>
+              <span>Deterministic compute and write preparation</span>
+              <code>quote computation, minimum_out, draft payload</code>
             </div>
           </div>
         </article>
@@ -284,13 +341,13 @@
         <div class="example-grid">
           <div class="example-box">
             <strong>Human intent</strong>
-            <code>Swap 10,000 USDC to SOL on Orca</code>
+            <code>Swap 1 USDC to SOL on Orca</code>
           </div>
           <div class="example-box">
             <strong>Inputs</strong>
             <code>token_in_mint = EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 token_out_mint = So11111111111111111111111111111111111111112
-amount_in = 10000000000
+amount_in = 1000000
 slippage_bps = 100</code>
           </div>
           <div class="example-box">
@@ -309,27 +366,107 @@ draft swap payload</code>
         </div>
       </section>
 
-      <section class="card" style="margin-top: 16px;">
-        <h2>Two files to inspect</h2>
-        <div class="specs">
-          <a class="spec" href="/idl/orca_whirlpool.codama.json" target="_blank" rel="noreferrer">
-            <strong>Codama IDL</strong>
-            <span>/idl/orca_whirlpool.codama.json</span>
-            <p>Instruction truth: accounts, defaults, PDA metadata.</p>
-          </a>
-          <a class="spec" href="/idl/orca_whirlpool.runtime.json" target="_blank" rel="noreferrer">
-            <strong>Runtime Spec</strong>
-            <span>/idl/orca_whirlpool.runtime.json</span>
-            <p>Compute and contract-write capabilities only.</p>
-          </a>
+      <section id="live-demo" class="card" style="margin-top: 16px;">
+        <h2>Live demo: build a real Orca quote and swap draft</h2>
+        <p>
+          This form runs a real Orca quote for <code>1 USDC -&gt; SOL</code> and then prepares the
+          corresponding swap draft. The pair, the mints, and the Whirlpool are fixed so you can see
+          exactly what our runtime adds on top of Codama.
+        </p>
+        <form id="orca-demo-form" class="demo-form">
+          <div class="demo-grid">
+            <div class="demo-field">
+              <label for="amount-ui">USDC amount</label>
+              <input id="amount-ui" name="amount_ui" value="1" inputmode="decimal" />
+            </div>
+            <div class="demo-field">
+              <label for="slippage-bps">Slippage (bps)</label>
+              <input id="slippage-bps" name="slippage_bps" value="100" inputmode="numeric" />
+            </div>
+            <div class="demo-field" style="grid-column: 1 / -1;">
+              <label for="wallet-public-key">Wallet public key used to prepare the swap draft</label>
+              <input
+                id="wallet-public-key"
+                name="wallet_public_key"
+                value="BJ4GQ3ioNaeec761ovQGQmehiB14crqw1jSg9XA7xFn2"
+                spellcheck="false"
+              />
+            </div>
+          </div>
+          <div class="demo-actions">
+            <button type="submit">Run live Orca quote and draft</button>
+          </div>
+          <div id="demo-status" class="demo-status"></div>
+        </form>
+        <div id="demo-results" class="result-grid" hidden>
+          <article class="result-card">
+            <h3>Quote</h3>
+            <pre id="quote-output"></pre>
+          </article>
+          <article class="result-card">
+            <h3>Draft</h3>
+            <pre id="draft-output"></pre>
+          </article>
         </div>
       </section>
 
       <section class="footer-note">
-        The remaining custom layer on our side is mostly quote/preview logic and transaction-envelope
-        logic. That is why Codama instruction plans feel like the natural next place to reduce our
-        runtime surface even further.
+        For this Orca flow, Codama already covers the instruction shape and account model. The small
+        layer left on our side is deterministic quote logic plus draft preparation around that
+        instruction.
       </section>
     </main>
+    <script>
+      const form = document.getElementById('orca-demo-form');
+      const statusEl = document.getElementById('demo-status');
+      const resultsEl = document.getElementById('demo-results');
+      const quoteEl = document.getElementById('quote-output');
+      const draftEl = document.getElementById('draft-output');
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? '#b42318' : '';
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        resultsEl.hidden = true;
+        quoteEl.textContent = '';
+        draftEl.textContent = '';
+        setStatus('Running a real Orca quote and preparing a swap draft...');
+
+        const formData = new FormData(form);
+        const payload = {
+          amount_ui: String(formData.get('amount_ui') || '1'),
+          slippage_bps: String(formData.get('slippage_bps') || '100'),
+          wallet_public_key: String(formData.get('wallet_public_key') || ''),
+          unwrap_sol_output: true,
+        };
+
+        try {
+          const response = await fetch(`${window.location.origin}/demo-api/loris/orca-swap`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const rawText = await response.text();
+          let parsed;
+          try {
+            parsed = JSON.parse(rawText);
+          } catch {
+            throw new Error('Demo endpoint returned HTML instead of JSON.');
+          }
+          if (!response.ok || !parsed.ok) {
+            throw new Error(parsed.error || 'Demo request failed.');
+          }
+          quoteEl.textContent = JSON.stringify(parsed.quote, null, 2);
+          draftEl.textContent = JSON.stringify(parsed.draft, null, 2);
+          resultsEl.hidden = false;
+          setStatus('Live quote and draft prepared successfully.');
+        } catch (error) {
+          setStatus(error instanceof Error ? error.message : 'Live demo failed.', true);
+        }
+      });
+    </script>
   </body>
   </html>
