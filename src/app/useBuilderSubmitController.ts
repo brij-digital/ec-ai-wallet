@@ -1,17 +1,8 @@
-import {
-  createAssociatedTokenAccountIdempotentInstruction,
-  createCloseAccountInstruction,
-  createSyncNativeInstruction,
-} from '@solana/spl-token';
 import type { WalletContextState } from '@solana/wallet-adapter-react';
 import type { Connection } from '@solana/web3.js';
-import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { useCallback, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
-import {
-  sendIdlInstruction,
-  simulateIdlInstruction,
-} from '@brij-digital/apppack-runtime/idlDeclarativeRuntime';
 import {
   prepareRuntimeOperation,
   type RuntimeOperationSummary,
@@ -24,6 +15,10 @@ import {
   stringifyBuilderDefault,
 } from './builderHelpers';
 import { validateOperationInput, type OperationEnhancement } from './metaEnhancements';
+import {
+  sendPreparedExecutionDraft,
+  simulatePreparedExecutionDraft,
+} from './runtimeSubmit';
 import type { BuilderPreparedStepResult } from './useBuilderController';
 
 type RemoteViewRunResponse = {
@@ -50,72 +45,6 @@ type UseBuilderSubmitControllerOptions = {
   setBuilderResult: (lines: string[], raw?: unknown) => void;
   builderSimulate: boolean;
 };
-
-function buildPostInstructions(
-  postSpecs: Array<{
-    kind: 'spl_token_close_account';
-    account: string;
-    destination: string;
-    owner: string;
-    tokenProgram: string;
-  }>,
-): TransactionInstruction[] {
-  return postSpecs.map((spec) =>
-    createCloseAccountInstruction(
-      new PublicKey(spec.account),
-      new PublicKey(spec.destination),
-      new PublicKey(spec.owner),
-      [],
-      new PublicKey(spec.tokenProgram),
-    ),
-  );
-}
-
-function buildPreInstructions(
-  preSpecs: Array<
-    | {
-        kind: 'spl_ata_create_idempotent';
-        payer: string;
-        ata: string;
-        owner: string;
-        mint: string;
-        tokenProgram: string;
-        associatedTokenProgram: string;
-      }
-    | {
-        kind: 'system_transfer';
-        from: string;
-        to: string;
-        lamports: string;
-      }
-    | {
-        kind: 'spl_token_sync_native';
-        account: string;
-        tokenProgram: string;
-      }
-  > = [],
-): TransactionInstruction[] {
-  return preSpecs.map((spec) => {
-    if (spec.kind === 'spl_ata_create_idempotent') {
-      return createAssociatedTokenAccountIdempotentInstruction(
-        new PublicKey(spec.payer),
-        new PublicKey(spec.ata),
-        new PublicKey(spec.owner),
-        new PublicKey(spec.mint),
-        new PublicKey(spec.tokenProgram),
-        new PublicKey(spec.associatedTokenProgram),
-      );
-    }
-    if (spec.kind === 'system_transfer') {
-      return SystemProgram.transfer({
-        fromPubkey: new PublicKey(spec.from),
-        toPubkey: new PublicKey(spec.to),
-        lamports: Number(spec.lamports),
-      });
-    }
-    return createSyncNativeInstruction(new PublicKey(spec.account), new PublicKey(spec.tokenProgram));
-  });
-}
 
 async function runRemoteViewRun(options: {
   viewApiBaseUrl: string;
@@ -346,18 +275,9 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
           throw new Error(`Operation ${operation.operationId} did not resolve to an instruction.`);
         }
 
-        const preInstructions = buildPreInstructions(prepared.preInstructions);
-        const postInstructions = buildPostInstructions(prepared.postInstructions);
-
         if (options.builderSimulate) {
-          const simulation = await simulateIdlInstruction({
-            protocolId: prepared.protocolId,
-            instructionName: prepared.instructionName,
-            args: prepared.args,
-            accounts: prepared.accounts,
-            remainingAccounts: prepared.remainingAccounts,
-            preInstructions,
-            postInstructions,
+          const simulation = await simulatePreparedExecutionDraft({
+            draft: prepared,
             connection: options.connection,
             wallet: options.wallet,
           });
@@ -378,14 +298,8 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
           return;
         }
 
-        const sent = await sendIdlInstruction({
-          protocolId: prepared.protocolId,
-          instructionName: prepared.instructionName,
-          args: prepared.args,
-          accounts: prepared.accounts,
-          remainingAccounts: prepared.remainingAccounts,
-          preInstructions,
-          postInstructions,
+        const sent = await sendPreparedExecutionDraft({
+          draft: prepared,
           connection: options.connection,
           wallet: options.wallet,
         });

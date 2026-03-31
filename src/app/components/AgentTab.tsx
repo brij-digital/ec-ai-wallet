@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import {
+  sendPreparedExecutionDraft,
+  simulatePreparedExecutionDraft,
+  type PreparedExecutionDraft,
+} from '../runtimeSubmit';
 
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
 const ANTHROPIC_MODEL_PRESETS = [
@@ -127,7 +132,9 @@ function clearCookie(name: string): void {
 }
 
 export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
-  const { publicKey } = useWallet();
+  const wallet = useWallet();
+  const { connection } = useConnection();
+  const { publicKey } = wallet;
   const [protocols, setProtocols] = useState<RegistryProtocol[]>([]);
   const [protocolId, setProtocolId] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -140,9 +147,34 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
   const [usageText, setUsageText] = useState<string | null>(null);
   const [statusText, setStatusText] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isDraftActionLoading, setIsDraftActionLoading] = useState(false);
 
   const trimmedBaseUrl = useMemo(() => viewApiBaseUrl.trim().replace(/\/+$/, ''), [viewApiBaseUrl]);
   const walletPublicKey = publicKey?.toBase58() ?? null;
+  const latestDraft = useMemo<PreparedExecutionDraft | null>(() => {
+    for (let index = transcript.length - 1; index >= 0; index -= 1) {
+      const entry = transcript[index];
+      if (!entry || entry.role !== 'tool' || entry.kind !== 'tool_result' || entry.toolName !== 'draft_execution') {
+        continue;
+      }
+      const result = entry.result;
+      if (!result || typeof result !== 'object' || Array.isArray(result)) {
+        continue;
+      }
+      const candidate = result as Record<string, unknown>;
+      if (
+        typeof candidate.protocolId === 'string'
+        && typeof candidate.operationId === 'string'
+        && typeof candidate.args === 'object'
+        && candidate.args !== null
+        && typeof candidate.accounts === 'object'
+        && candidate.accounts !== null
+      ) {
+        return candidate as unknown as PreparedExecutionDraft;
+      }
+    }
+    return null;
+  }, [transcript]);
 
   useEffect(() => {
     setApiKey(readCookie(AGENT_API_KEY_COOKIE));
@@ -315,6 +347,68 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     setStatusText(null);
   };
 
+  const appendAssistantText = (text: string) => {
+    setTranscript((current) => [
+      ...current,
+      {
+        role: 'assistant',
+        kind: 'text',
+        text,
+      },
+    ]);
+    setFinalText(text);
+  };
+
+  const handleSimulateDraft = async () => {
+    if (!latestDraft) {
+      return;
+    }
+    setIsDraftActionLoading(true);
+    setErrorText(null);
+    setStatusText('Simulating latest draft...');
+    try {
+      const simulation = await simulatePreparedExecutionDraft({
+        draft: latestDraft,
+        connection,
+        wallet,
+      });
+      const text = simulation.ok
+        ? `Draft simulation succeeded.\nunits: ${simulation.unitsConsumed ?? 'n/a'}`
+        : `Draft simulation failed.\nerror: ${simulation.error ?? 'unknown'}\nunits: ${simulation.unitsConsumed ?? 'n/a'}`;
+      appendAssistantText(text);
+      setStatusText('Simulation completed.');
+    } catch (error) {
+      setErrorText(error instanceof Error ? error.message : 'Simulation failed.');
+      setStatusText(null);
+    } finally {
+      setIsDraftActionLoading(false);
+    }
+  };
+
+  const handleSendDraft = async () => {
+    if (!latestDraft) {
+      return;
+    }
+    setIsDraftActionLoading(true);
+    setErrorText(null);
+    setStatusText('Sending latest draft...');
+    try {
+      const sent = await sendPreparedExecutionDraft({
+        draft: latestDraft,
+        connection,
+        wallet,
+      });
+      const text = `Draft submitted.\nsignature: ${sent.signature}\nexplorer: ${sent.explorerUrl}`;
+      appendAssistantText(text);
+      setStatusText('Submission completed.');
+    } catch (error) {
+      setErrorText(error instanceof Error ? error.message : 'Submission failed.');
+      setStatusText(null);
+    } finally {
+      setIsDraftActionLoading(false);
+    }
+  };
+
   return (
     <section className="agent-shell">
       <div className="agent-header">
@@ -392,6 +486,17 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
       {errorText ? <p className="view-playground-error">{errorText}</p> : null}
       {statusText ? <p className="view-playground-info">{statusText}</p> : null}
       {usageText ? <p className="view-playground-info">{usageText}</p> : null}
+      {latestDraft ? (
+        <div className="agent-actions">
+          <button type="button" onClick={handleSimulateDraft} disabled={isLoading || isDraftActionLoading || !wallet.publicKey}>
+            {isDraftActionLoading ? 'Working...' : 'Simulate Draft'}
+          </button>
+          <button type="button" onClick={handleSendDraft} disabled={isLoading || isDraftActionLoading || !wallet.publicKey}>
+            {isDraftActionLoading ? 'Working...' : 'Send Draft'}
+          </button>
+          <p>Latest draft: {latestDraft.operationId} / {latestDraft.instructionName ?? 'no instruction'}</p>
+        </div>
+      ) : null}
 
       <div className="agent-results">
         <section className="agent-panel">
