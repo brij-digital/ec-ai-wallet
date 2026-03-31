@@ -3,7 +3,13 @@
   "$id": "/idl/solana_agent_runtime.schema.v1.json",
   "title": "Solana Agent Runtime Spec V1",
   "type": "object",
-  "required": ["schema", "protocol", "index_views", "computes", "contract_writes"],
+  "required": [
+    "schema",
+    "protocol",
+    "index_views",
+    "computes",
+    "contract_writes"
+  ],
   "properties": {
     "schema": {
       "const": "solana-agent-runtime.v1"
@@ -20,50 +26,167 @@
     "computes": {
       "type": "object",
       "additionalProperties": {
-        "$ref": "#/$defs/computeSpec"
+        "$ref": "#/$defs/computeSpec",
+        "properties": {
+          "instruction": {
+            "type": "string"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/inputSpec"
+            }
+          },
+          "validate": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "resolve": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/resolveStepSpec"
+            }
+          },
+          "compute": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/computeStepSpec"
+            }
+          },
+          "read_output": {
+            "$ref": "#/$defs/readOutputSpec"
+          }
+        }
       }
     },
     "contract_writes": {
       "type": "object",
       "additionalProperties": {
-        "$ref": "#/$defs/executionSpec"
+        "$ref": "#/$defs/executionSpec",
+        "properties": {
+          "instruction": {
+            "type": "string"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/inputSpec"
+            }
+          },
+          "validate": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "resolve": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/resolveStepSpec"
+            }
+          },
+          "compute": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/computeStepSpec"
+            }
+          },
+          "args": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "accounts": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "remaining_accounts": {
+            "$ref": "#/$defs/jsonValue"
+          },
+          "pre": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/preInstructionSpec"
+            }
+          },
+          "post": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/postInstructionSpec"
+            }
+          },
+          "read_output": {
+            "$ref": "#/$defs/readOutputSpec"
+          }
+        }
       }
     }
   },
   "$defs": {
     "jsonValue": {
       "oneOf": [
-        { "type": "string" },
-        { "type": "number" },
-        { "type": "boolean" },
-        { "type": "null" },
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
         {
           "type": "array",
-          "items": { "$ref": "#/$defs/jsonValue" }
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          }
         },
         {
           "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
         }
       ]
     },
     "protocolSpec": {
       "type": "object",
-      "required": ["protocolId", "programId", "codamaPath"],
+      "required": [
+        "protocolId",
+        "programId",
+        "codamaPath"
+      ],
       "properties": {
-        "protocolId": { "type": "string" },
-        "programId": { "type": "string" },
-        "codamaPath": { "type": "string" }
+        "protocolId": {
+          "type": "string"
+        },
+        "programId": {
+          "type": "string"
+        },
+        "codamaPath": {
+          "type": "string"
+        }
       },
       "additionalProperties": true
     },
     "inputSpec": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": { "type": "string" },
-        "required": { "type": "boolean" },
-        "default": { "$ref": "#/$defs/jsonValue" },
+        "type": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {
+          "$ref": "#/$defs/jsonValue"
+        },
         "validate": {
           "type": "object",
           "additionalProperties": true
@@ -73,22 +196,36 @@
     },
     "outputFieldSpec": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": { "type": "string" },
-        "required": { "type": "boolean" },
-        "description": { "type": "string" }
+        "type": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        }
       },
       "additionalProperties": true
     },
     "outputObjectSchemaSpec": {
       "type": "object",
-      "required": ["fields"],
+      "required": [
+        "fields"
+      ],
       "properties": {
-        "entity_type": { "type": "string" },
+        "entity_type": {
+          "type": "string"
+        },
         "identity_fields": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "fields": {
           "type": "object",
@@ -101,20 +238,32 @@
     },
     "readOutputSpec": {
       "type": "object",
-      "required": ["type", "source"],
+      "required": [
+        "type",
+        "source"
+      ],
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["array", "object", "scalar", "list"]
+          "enum": [
+            "array",
+            "object",
+            "scalar",
+            "list"
+          ]
         },
-        "source": { "type": "string" },
+        "source": {
+          "type": "string"
+        },
         "object_schema": {
           "$ref": "#/$defs/outputObjectSchemaSpec"
         },
         "item_schema": {
           "$ref": "#/$defs/outputObjectSchemaSpec"
         },
-        "scalar_type": { "type": "string" }
+        "scalar_type": {
+          "type": "string"
+        }
       },
       "additionalProperties": true
     },
@@ -136,23 +285,37 @@
         },
         "read": {
           "type": "object",
-          "required": ["kind"],
+          "required": [
+            "kind"
+          ],
           "properties": {
             "kind": {
               "type": "string",
-              "enum": ["index", "get", "resolve", "feed", "series", "ranking", "context"]
+              "enum": [
+                "index",
+                "get",
+                "resolve",
+                "feed",
+                "series",
+                "ranking",
+                "context"
+              ]
             }
           },
           "additionalProperties": true
         }
       },
-      "required": ["read"],
+      "required": [
+        "read"
+      ],
       "additionalProperties": true
     },
     "computeSpec": {
       "type": "object",
       "properties": {
-        "instruction": { "type": "string" },
+        "instruction": {
+          "type": "string"
+        },
         "inputs": {
           "type": "object",
           "additionalProperties": {
@@ -163,13 +326,17 @@
           "type": "object",
           "additionalProperties": true
         },
-        "derive": {
+        "resolve": {
           "type": "array",
-          "items": { "$ref": "#/$defs/jsonValue" }
+          "items": {
+            "$ref": "#/$defs/resolveStepSpec"
+          }
         },
         "compute": {
           "type": "array",
-          "items": { "$ref": "#/$defs/jsonValue" }
+          "items": {
+            "$ref": "#/$defs/computeStepSpec"
+          }
         },
         "read_output": {
           "$ref": "#/$defs/readOutputSpec"
@@ -180,7 +347,9 @@
     "executionSpec": {
       "type": "object",
       "properties": {
-        "instruction": { "type": "string" },
+        "instruction": {
+          "type": "string"
+        },
         "inputs": {
           "type": "object",
           "additionalProperties": {
@@ -191,36 +360,1111 @@
           "type": "object",
           "additionalProperties": true
         },
-        "derive": {
+        "resolve": {
           "type": "array",
-          "items": { "$ref": "#/$defs/jsonValue" }
+          "items": {
+            "$ref": "#/$defs/resolveStepSpec"
+          }
         },
         "compute": {
           "type": "array",
-          "items": { "$ref": "#/$defs/jsonValue" }
+          "items": {
+            "$ref": "#/$defs/computeStepSpec"
+          }
         },
         "args": {
           "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
         },
         "accounts": {
           "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
         },
-        "remaining_accounts": { "$ref": "#/$defs/jsonValue" },
+        "remaining_accounts": {
+          "$ref": "#/$defs/jsonValue"
+        },
         "pre": {
           "type": "array",
-          "items": { "$ref": "#/$defs/jsonValue" }
+          "items": {
+            "$ref": "#/$defs/preInstructionSpec"
+          }
         },
         "post": {
           "type": "array",
-          "items": { "$ref": "#/$defs/jsonValue" }
+          "items": {
+            "$ref": "#/$defs/postInstructionSpec"
+          }
         },
         "read_output": {
           "$ref": "#/$defs/readOutputSpec"
         }
       },
       "additionalProperties": true
+    },
+    "metaConditionSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "equals"
+          ],
+          "properties": {
+            "equals": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "$ref": "#/$defs/jsonValue"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "all"
+          ],
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/metaConditionSpec"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "any"
+          ],
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/metaConditionSpec"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "not"
+          ],
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/metaConditionSpec"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "resolveSeedSpec": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/jsonValue"
+        }
+      ]
+    },
+    "resolveStepSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "wallet_pubkey"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "address",
+            "account_type"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "decode_account"
+            },
+            "address": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "account_type": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "address"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "account_owner"
+            },
+            "address": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "address"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "token_account_balance"
+            },
+            "address": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "allow_missing": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "default": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "mint"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "token_supply"
+            },
+            "mint": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "owner",
+            "mint"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "ata"
+            },
+            "owner": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "mint": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "token_program": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "allow_owner_off_curve": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "program_id"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "pda"
+            },
+            "program_id": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "seeds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/resolveSeedSpec"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "unix_timestamp"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "listWhereClauseSpec": {
+      "type": "object",
+      "required": [
+        "path",
+        "value"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string",
+          "enum": [
+            "=",
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/jsonValue"
+        }
+      },
+      "additionalProperties": false
+    },
+    "pdaSeedSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "utf8"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "pubkey"
+            },
+            "value": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "i32_le"
+            },
+            "value": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "item_i32_le"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "item_utf8"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "computeStepSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "values"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "math.add"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/jsonValue"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "values"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "math.sum"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/jsonValue"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "values"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "math.mul"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/jsonValue"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "values"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "math.sub"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/jsonValue"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "dividend",
+            "divisor"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "math.floor_div"
+            },
+            "dividend": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "divisor": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "base",
+            "step",
+            "count"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "list.range_map"
+            },
+            "base": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "step": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "count": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "values",
+            "index"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "list.get"
+            },
+            "values": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "index": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "items"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "list.filter"
+            },
+            "items": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "where": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/listWhereClauseSpec"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/listWhereClauseSpec"
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "items"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "list.first"
+            },
+            "items": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "allow_empty": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "items",
+            "path"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "list.min_by"
+            },
+            "items": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "path": {
+              "type": "string"
+            },
+            "allow_empty": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "items",
+            "path"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "list.max_by"
+            },
+            "items": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "path": {
+              "type": "string"
+            },
+            "allow_empty": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "values"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "coalesce"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/jsonValue"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "seeds"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "pda(seed_spec)"
+            },
+            "program_id": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "seeds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/pdaSeedSpec"
+              }
+            },
+            "map_over": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "compare.equals"
+            },
+            "left": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "right": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "compare.not_equals"
+            },
+            "left": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "right": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "compare.gt"
+            },
+            "left": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "right": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "compare.gte"
+            },
+            "left": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "right": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "compare.lt"
+            },
+            "left": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "right": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "compare.lte"
+            },
+            "left": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "right": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "condition",
+            "then",
+            "else"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "logic.if"
+            },
+            "condition": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "then": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "else": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "assert.not_null"
+            },
+            "value": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "points",
+            "x_bps"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "curve.linear_interpolate_bps"
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/jsonValue"
+              }
+            },
+            "x_bps": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "x_field": {
+              "type": "string"
+            },
+            "y_field": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "preInstructionSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "payer",
+            "ata",
+            "owner",
+            "mint"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "spl_ata_create_idempotent"
+            },
+            "payer": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "ata": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "owner": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "mint": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "token_program": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "associated_token_program": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "when": {
+              "$ref": "#/$defs/metaConditionSpec"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "from",
+            "to",
+            "lamports"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "system_transfer"
+            },
+            "from": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "to": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "lamports": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "when": {
+              "$ref": "#/$defs/metaConditionSpec"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "account"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "spl_token_sync_native"
+            },
+            "account": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "token_program": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "when": {
+              "$ref": "#/$defs/metaConditionSpec"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "postInstructionSpec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "account",
+            "destination",
+            "owner"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "spl_token_close_account"
+            },
+            "account": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "destination": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "owner": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "token_program": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "when": {
+              "$ref": "#/$defs/metaConditionSpec"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     }
   },
   "additionalProperties": false

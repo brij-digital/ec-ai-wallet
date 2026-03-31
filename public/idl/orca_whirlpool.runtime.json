@@ -50,14 +50,14 @@
           }
         ]
       },
-      "derive": [
+      "resolve": [
         {
           "name": "wallet",
-          "resolver": "wallet_pubkey"
+          "kind": "wallet_pubkey"
         },
         {
           "name": "whirlpool_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$input.whirlpool",
           "account_type": "Whirlpool"
         }
@@ -65,20 +65,20 @@
       "compute": [
         {
           "name": "a_to_b",
-          "compute": "compare.equals",
+          "kind": "compare.equals",
           "left": "$whirlpool_data.token_mint_a",
           "right": "$input.token_in_mint"
         },
         {
           "name": "tick_array_direction",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$a_to_b",
           "then": -1,
           "else": 1
         },
         {
           "name": "ticks_per_array",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$whirlpool_data.tick_spacing",
             88
@@ -86,7 +86,7 @@
         },
         {
           "name": "direction_step",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$ticks_per_array",
             "$tick_array_direction"
@@ -94,13 +94,13 @@
         },
         {
           "name": "current_array_index",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$whirlpool_data.tick_current_index",
           "divisor": "$ticks_per_array"
         },
         {
           "name": "current_start_index",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$current_array_index",
             "$ticks_per_array"
@@ -108,14 +108,14 @@
         },
         {
           "name": "tick_array_starts",
-          "compute": "list.range_map",
+          "kind": "list.range_map",
           "base": "$current_start_index",
           "step": "$direction_step",
           "count": 3
         },
         {
           "name": "tick_arrays",
-          "compute": "pda(seed_spec)",
+          "kind": "pda(seed_spec)",
           "program_id": "$protocol.programId",
           "map_over": "$tick_array_starts",
           "seeds": [
@@ -134,7 +134,7 @@
         },
         {
           "name": "spot_price_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$whirlpool_data.sqrt_price",
             "$whirlpool_data.sqrt_price"
@@ -142,7 +142,7 @@
         },
         {
           "name": "estimated_out_a_to_b_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$input.amount_in",
             "$spot_price_numerator"
@@ -150,13 +150,13 @@
         },
         {
           "name": "estimated_out_a_to_b",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$estimated_out_a_to_b_numerator",
           "divisor": "340282366920938463463374607431768211456"
         },
         {
           "name": "estimated_out_b_to_a_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$input.amount_in",
             "340282366920938463463374607431768211456"
@@ -164,27 +164,27 @@
         },
         {
           "name": "estimated_out_b_to_a",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$estimated_out_b_to_a_numerator",
           "divisor": "$spot_price_numerator"
         },
         {
           "name": "estimated_out_spot",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$a_to_b",
           "then": "$estimated_out_a_to_b",
           "else": "$estimated_out_b_to_a"
         },
         {
           "name": "estimated_out_auto",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$estimated_out_spot"
           ]
         },
         {
           "name": "slippage_keep_bps",
-          "compute": "math.sub",
+          "kind": "math.sub",
           "values": [
             "10000",
             "$input.slippage_bps"
@@ -192,20 +192,20 @@
         },
         {
           "name": "estimated_out_override_provided",
-          "compute": "compare.gt",
+          "kind": "compare.gt",
           "left": "0",
           "right": "0"
         },
         {
           "name": "estimated_out_effective",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$estimated_out_override_provided",
           "then": "0",
           "else": "$estimated_out_auto"
         },
         {
           "name": "other_amount_threshold_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$estimated_out_effective",
             "$slippage_keep_bps"
@@ -213,62 +213,62 @@
         },
         {
           "name": "other_amount_threshold",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$other_amount_threshold_numerator",
           "divisor": "10000"
         },
         {
           "name": "whirlpool",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.whirlpool"
           ]
         },
         {
           "name": "token_in_mint",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.token_in_mint"
           ]
         },
         {
           "name": "token_out_mint",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.token_out_mint"
           ]
         },
         {
           "name": "amount_in",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.amount_in"
           ]
         },
         {
           "name": "slippage_bps",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.slippage_bps"
           ]
         },
         {
           "name": "estimated_out",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$estimated_out_effective"
           ]
         },
         {
           "name": "minimum_out",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$other_amount_threshold"
           ]
         },
         {
           "name": "pool_fee_bps",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$whirlpool_data.fee_rate"
           ]
@@ -1297,14 +1297,14 @@
           }
         ]
       },
-      "derive": [
+      "resolve": [
         {
           "name": "wallet",
-          "resolver": "wallet_pubkey"
+          "kind": "wallet_pubkey"
         },
         {
           "name": "whirlpool_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$input.whirlpool",
           "account_type": "Whirlpool"
         }
@@ -1312,20 +1312,20 @@
       "compute": [
         {
           "name": "a_to_b",
-          "compute": "compare.equals",
+          "kind": "compare.equals",
           "left": "$whirlpool_data.token_mint_a",
           "right": "$input.token_in_mint"
         },
         {
           "name": "tick_array_direction",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$a_to_b",
           "then": -1,
           "else": 1
         },
         {
           "name": "ticks_per_array",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$whirlpool_data.tick_spacing",
             88
@@ -1333,7 +1333,7 @@
         },
         {
           "name": "direction_step",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$ticks_per_array",
             "$tick_array_direction"
@@ -1341,13 +1341,13 @@
         },
         {
           "name": "current_array_index",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$whirlpool_data.tick_current_index",
           "divisor": "$ticks_per_array"
         },
         {
           "name": "current_start_index",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$current_array_index",
             "$ticks_per_array"
@@ -1355,14 +1355,14 @@
         },
         {
           "name": "tick_array_starts",
-          "compute": "list.range_map",
+          "kind": "list.range_map",
           "base": "$current_start_index",
           "step": "$direction_step",
           "count": 3
         },
         {
           "name": "tick_arrays",
-          "compute": "pda(seed_spec)",
+          "kind": "pda(seed_spec)",
           "program_id": "$protocol.programId",
           "map_over": "$tick_array_starts",
           "seeds": [
@@ -1381,7 +1381,7 @@
         },
         {
           "name": "spot_price_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$whirlpool_data.sqrt_price",
             "$whirlpool_data.sqrt_price"
@@ -1389,7 +1389,7 @@
         },
         {
           "name": "estimated_out_a_to_b_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$input.amount_in",
             "$spot_price_numerator"
@@ -1397,13 +1397,13 @@
         },
         {
           "name": "estimated_out_a_to_b",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$estimated_out_a_to_b_numerator",
           "divisor": "340282366920938463463374607431768211456"
         },
         {
           "name": "estimated_out_b_to_a_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$input.amount_in",
             "340282366920938463463374607431768211456"
@@ -1411,27 +1411,27 @@
         },
         {
           "name": "estimated_out_b_to_a",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$estimated_out_b_to_a_numerator",
           "divisor": "$spot_price_numerator"
         },
         {
           "name": "estimated_out_spot",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$a_to_b",
           "then": "$estimated_out_a_to_b",
           "else": "$estimated_out_b_to_a"
         },
         {
           "name": "estimated_out_auto",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$estimated_out_spot"
           ]
         },
         {
           "name": "slippage_keep_bps",
-          "compute": "math.sub",
+          "kind": "math.sub",
           "values": [
             "10000",
             "$input.slippage_bps"
@@ -1439,20 +1439,20 @@
         },
         {
           "name": "estimated_out_override_provided",
-          "compute": "compare.gt",
+          "kind": "compare.gt",
           "left": "$input.estimated_out",
           "right": "0"
         },
         {
           "name": "estimated_out_effective",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$estimated_out_override_provided",
           "then": "$input.estimated_out",
           "else": "$estimated_out_auto"
         },
         {
           "name": "other_amount_threshold_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$estimated_out_effective",
             "$slippage_keep_bps"
@@ -1460,62 +1460,62 @@
         },
         {
           "name": "other_amount_threshold",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$other_amount_threshold_numerator",
           "divisor": "10000"
         },
         {
           "name": "whirlpool",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.whirlpool"
           ]
         },
         {
           "name": "token_in_mint",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.token_in_mint"
           ]
         },
         {
           "name": "token_out_mint",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.token_out_mint"
           ]
         },
         {
           "name": "amount_in",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.amount_in"
           ]
         },
         {
           "name": "slippage_bps",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$input.slippage_bps"
           ]
         },
         {
           "name": "estimated_out",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$estimated_out_effective"
           ]
         },
         {
           "name": "minimum_out",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$other_amount_threshold"
           ]
         },
         {
           "name": "pool_fee_bps",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$whirlpool_data.fee_rate"
           ]

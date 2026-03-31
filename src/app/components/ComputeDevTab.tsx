@@ -29,7 +29,7 @@ function formatValue(value: unknown): string {
 
 function formatComputeStep(step: Record<string, unknown>): string {
   const name = typeof step.name === 'string' ? step.name : 'result';
-  const kind = typeof step.compute === 'string' ? step.compute : 'unknown';
+  const kind = typeof step.kind === 'string' ? step.kind : 'unknown';
   if (kind === 'math.add' || kind === 'math.mul' || kind === 'math.sum') {
     const values = Array.isArray(step.values) ? step.values.map(formatValue).join(', ') : '';
     return `const ${name} = ${kind}(${values});`;
@@ -75,35 +75,35 @@ function formatComputeStep(step: Record<string, unknown>): string {
   }
 
   const args = Object.entries(step)
-    .filter(([key]) => key !== 'name' && key !== 'compute')
+    .filter(([key]) => key !== 'name' && key !== 'kind')
     .map(([key, value]) => `${key}: ${formatValue(value)}`)
     .join(', ');
   return `const ${name} = ${kind}({ ${args} });`;
 }
 
 function normalizeComputeStep(rawStep: Record<string, unknown>): Record<string, unknown> {
-  if (typeof rawStep.compute === 'string') {
+  if (typeof rawStep.kind === 'string') {
     return rawStep;
   }
 
   const name = typeof rawStep.name === 'string' ? rawStep.name : 'result';
   if ('add' in rawStep) {
-    return { name, compute: 'math.add', values: rawStep.add };
+    return { name, kind: 'math.add', values: rawStep.add };
   }
   if ('sum' in rawStep) {
-    return { name, compute: 'math.sum', values: rawStep.sum };
+    return { name, kind: 'math.sum', values: rawStep.sum };
   }
   if ('mul' in rawStep) {
-    return { name, compute: 'math.mul', values: rawStep.mul };
+    return { name, kind: 'math.mul', values: rawStep.mul };
   }
   if ('sub' in rawStep) {
-    return { name, compute: 'math.sub', values: rawStep.sub };
+    return { name, kind: 'math.sub', values: rawStep.sub };
   }
   if ('floor_div' in rawStep) {
     const values = Array.isArray(rawStep.floor_div) ? rawStep.floor_div : [];
     return {
       name,
-      compute: 'math.floor_div',
+      kind: 'math.floor_div',
       dividend: values[0],
       divisor: values[1],
     };
@@ -112,7 +112,7 @@ function normalizeComputeStep(rawStep: Record<string, unknown>): Record<string, 
     const ifSpec = rawStep.if as Record<string, unknown>;
     return {
       name,
-      compute: 'logic.if',
+      kind: 'logic.if',
       condition: ifSpec.condition,
       then: ifSpec.then,
       else: ifSpec.else,
@@ -121,7 +121,7 @@ function normalizeComputeStep(rawStep: Record<string, unknown>): Record<string, 
   if ('coalesce' in rawStep) {
     return {
       name,
-      compute: 'coalesce',
+      kind: 'coalesce',
       values: rawStep.coalesce,
     };
   }
@@ -138,7 +138,7 @@ function normalizeComputeStep(rawStep: Record<string, unknown>): Record<string, 
     };
     return {
       name,
-      compute: key ? kindMap[key] : 'unknown',
+      kind: key ? kindMap[key] : 'unknown',
       left: values[0],
       right: values[1],
     };
@@ -149,15 +149,15 @@ function normalizeComputeStep(rawStep: Record<string, unknown>): Record<string, 
       : {};
     return {
       name,
-      compute: 'pda(seed_spec)',
+      kind: 'pda(seed_spec)',
       ...pda,
     };
   }
-  if ('compute' in rawStep) {
+  if ('kind' in rawStep) {
     return rawStep;
   }
 
-  return { ...rawStep, name, compute: 'unknown' };
+  return { ...rawStep, name, kind: 'unknown' };
 }
 
 function renderPseudoFunction(functionName: string, instruction: string | null, computeSteps: Record<string, unknown>[]): string {

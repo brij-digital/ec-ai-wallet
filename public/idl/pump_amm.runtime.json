@@ -37,20 +37,20 @@
           "required": true
         }
       },
-      "derive": [
+      "resolve": [
         {
           "name": "wallet",
-          "resolver": "wallet_pubkey"
+          "kind": "wallet_pubkey"
         },
         {
           "name": "pool_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$input.pool",
           "account_type": "Pool"
         },
         {
           "name": "global_config",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:global_config"
@@ -58,37 +58,37 @@
         },
         {
           "name": "global_config_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$global_config",
           "account_type": "GlobalConfig"
         },
         {
           "name": "base_token_program",
-          "resolver": "account_owner",
+          "kind": "account_owner",
           "address": "$pool_data.base_mint"
         },
         {
           "name": "quote_token_program",
-          "resolver": "account_owner",
+          "kind": "account_owner",
           "address": "$pool_data.quote_mint"
         },
         {
           "name": "user_base_token_account",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$wallet",
           "mint": "$pool_data.base_mint",
           "token_program": "$base_token_program"
         },
         {
           "name": "user_quote_token_account",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$wallet",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program"
         },
         {
           "name": "coin_creator_vault_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:creator_vault",
@@ -97,7 +97,7 @@
         },
         {
           "name": "coin_creator_vault_ata",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$coin_creator_vault_authority",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program",
@@ -105,7 +105,7 @@
         },
         {
           "name": "global_volume_accumulator",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:global_volume_accumulator"
@@ -113,7 +113,7 @@
         },
         {
           "name": "user_volume_accumulator",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:user_volume_accumulator",
@@ -122,7 +122,7 @@
         },
         {
           "name": "user_volume_accumulator_wsol_ata",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$user_volume_accumulator",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program",
@@ -130,7 +130,7 @@
         },
         {
           "name": "event_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:__event_authority"
@@ -138,7 +138,7 @@
         },
         {
           "name": "fee_config",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
           "seeds": [
             "utf8:fee_config",
@@ -147,13 +147,13 @@
         },
         {
           "name": "fee_config_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$fee_config",
           "account_type": "FeeConfig"
         },
         {
           "name": "pump_pool_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
           "seeds": [
             "utf8:pool-authority",
@@ -162,22 +162,22 @@
         },
         {
           "name": "pool_base_reserve_atomic",
-          "resolver": "token_account_balance",
+          "kind": "token_account_balance",
           "address": "$pool_data.pool_base_token_account"
         },
         {
           "name": "pool_quote_reserve_atomic",
-          "resolver": "token_account_balance",
+          "kind": "token_account_balance",
           "address": "$pool_data.pool_quote_token_account"
         },
         {
           "name": "base_mint_supply_atomic",
-          "resolver": "token_supply",
+          "kind": "token_supply",
           "mint": "$pool_data.base_mint"
         },
         {
           "name": "pool_v2",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:pool-v2",
@@ -188,13 +188,13 @@
       "compute": [
         {
           "name": "protocol_fee_recipient",
-          "compute": "list.get",
+          "kind": "list.get",
           "values": "$global_config_data.protocol_fee_recipients",
           "index": 0
         },
         {
           "name": "protocol_fee_recipient_token_account",
-          "compute": "pda(seed_spec)",
+          "kind": "pda(seed_spec)",
           "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
           "seeds": [
             {
@@ -213,7 +213,7 @@
         },
         {
           "name": "remaining_accounts",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$pool_data.is_cashback_coin",
           "then": [
             {
@@ -237,19 +237,19 @@
         },
         {
           "name": "creator_is_default",
-          "compute": "compare.equals",
+          "kind": "compare.equals",
           "left": "$pool_data.coin_creator",
           "right": "11111111111111111111111111111111"
         },
         {
           "name": "is_pump_pool",
-          "compute": "compare.equals",
+          "kind": "compare.equals",
           "left": "$pool_data.creator",
           "right": "$pump_pool_authority"
         },
         {
           "name": "market_cap_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$pool_quote_reserve_atomic",
             "$base_mint_supply_atomic"
@@ -257,13 +257,13 @@
         },
         {
           "name": "market_cap_lamports",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$market_cap_numerator",
           "divisor": "$pool_base_reserve_atomic"
         },
         {
           "name": "fee_tier_candidates",
-          "compute": "list.filter",
+          "kind": "list.filter",
           "items": "$fee_config_data.fee_tiers",
           "where": [
             {
@@ -275,21 +275,21 @@
         },
         {
           "name": "selected_fee_tier_primary",
-          "compute": "list.min_by",
+          "kind": "list.min_by",
           "items": "$fee_tier_candidates",
           "path": "market_cap_lamports_threshold",
           "allow_empty": true
         },
         {
           "name": "selected_fee_tier_default",
-          "compute": "list.max_by",
+          "kind": "list.max_by",
           "items": "$fee_config_data.fee_tiers",
           "path": "market_cap_lamports_threshold",
           "allow_empty": true
         },
         {
           "name": "selected_fee_tier",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$selected_fee_tier_primary",
             "$selected_fee_tier_default"
@@ -297,7 +297,7 @@
         },
         {
           "name": "selected_fees_if_pump",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$selected_fee_tier.fees",
             "$fee_config_data.flat_fees"
@@ -305,35 +305,35 @@
         },
         {
           "name": "lp_fee_bps",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$is_pump_pool",
           "then": "$selected_fees_if_pump.lp_fee_bps",
           "else": "$global_config_data.lp_fee_basis_points"
         },
         {
           "name": "protocol_fee_bps",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$is_pump_pool",
           "then": "$selected_fees_if_pump.protocol_fee_bps",
           "else": "$global_config_data.protocol_fee_basis_points"
         },
         {
           "name": "creator_fee_bps_raw",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$is_pump_pool",
           "then": "$selected_fees_if_pump.creator_fee_bps",
           "else": "$global_config_data.coin_creator_fee_basis_points"
         },
         {
           "name": "creator_fee_bps",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$creator_is_default",
           "then": "0",
           "else": "$creator_fee_bps_raw"
         },
         {
           "name": "total_fee_bps",
-          "compute": "math.add",
+          "kind": "math.add",
           "values": [
             "$lp_fee_bps",
             "$protocol_fee_bps",
@@ -342,7 +342,7 @@
         },
         {
           "name": "effective_quote_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$input.quote_amount_in",
             "10000"
@@ -350,7 +350,7 @@
         },
         {
           "name": "effective_quote_denominator",
-          "compute": "math.add",
+          "kind": "math.add",
           "values": [
             "10000",
             "$total_fee_bps"
@@ -358,13 +358,13 @@
         },
         {
           "name": "effective_quote",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$effective_quote_numerator",
           "divisor": "$effective_quote_denominator"
         },
         {
           "name": "base_amount_out_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$pool_base_reserve_atomic",
             "$effective_quote"
@@ -372,7 +372,7 @@
         },
         {
           "name": "base_amount_out_denominator",
-          "compute": "math.add",
+          "kind": "math.add",
           "values": [
             "$pool_quote_reserve_atomic",
             "$effective_quote"
@@ -380,13 +380,13 @@
         },
         {
           "name": "base_amount_out",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$base_amount_out_numerator",
           "divisor": "$base_amount_out_denominator"
         },
         {
           "name": "slippage_factor",
-          "compute": "math.add",
+          "kind": "math.add",
           "values": [
             "10000",
             "$input.slippage_bps"
@@ -394,7 +394,7 @@
         },
         {
           "name": "max_quote_amount_in_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$input.quote_amount_in",
             "$slippage_factor"
@@ -402,7 +402,7 @@
         },
         {
           "name": "max_quote_amount_in",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$max_quote_amount_in_numerator",
           "divisor": "10000"
         }
@@ -539,20 +539,20 @@
           "default": "1"
         }
       },
-      "derive": [
+      "resolve": [
         {
           "name": "wallet",
-          "resolver": "wallet_pubkey"
+          "kind": "wallet_pubkey"
         },
         {
           "name": "pool_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$input.pool",
           "account_type": "Pool"
         },
         {
           "name": "global_config",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:global_config"
@@ -560,37 +560,37 @@
         },
         {
           "name": "global_config_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$global_config",
           "account_type": "GlobalConfig"
         },
         {
           "name": "base_token_program",
-          "resolver": "account_owner",
+          "kind": "account_owner",
           "address": "$pool_data.base_mint"
         },
         {
           "name": "quote_token_program",
-          "resolver": "account_owner",
+          "kind": "account_owner",
           "address": "$pool_data.quote_mint"
         },
         {
           "name": "user_base_token_account",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$wallet",
           "mint": "$pool_data.base_mint",
           "token_program": "$base_token_program"
         },
         {
           "name": "user_quote_token_account",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$wallet",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program"
         },
         {
           "name": "coin_creator_vault_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:creator_vault",
@@ -599,7 +599,7 @@
         },
         {
           "name": "coin_creator_vault_ata",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$coin_creator_vault_authority",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program",
@@ -607,7 +607,7 @@
         },
         {
           "name": "event_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:__event_authority"
@@ -615,7 +615,7 @@
         },
         {
           "name": "fee_config",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
           "seeds": [
             "utf8:fee_config",
@@ -626,13 +626,13 @@
       "compute": [
         {
           "name": "protocol_fee_recipient",
-          "compute": "list.get",
+          "kind": "list.get",
           "values": "$global_config_data.protocol_fee_recipients",
           "index": 0
         },
         {
           "name": "protocol_fee_recipient_token_account",
-          "compute": "pda(seed_spec)",
+          "kind": "pda(seed_spec)",
           "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
           "seeds": [
             {
@@ -1639,20 +1639,20 @@
           "required": true
         }
       },
-      "derive": [
+      "resolve": [
         {
           "name": "wallet",
-          "resolver": "wallet_pubkey"
+          "kind": "wallet_pubkey"
         },
         {
           "name": "pool_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$input.pool",
           "account_type": "Pool"
         },
         {
           "name": "global_config",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:global_config"
@@ -1660,37 +1660,37 @@
         },
         {
           "name": "global_config_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$global_config",
           "account_type": "GlobalConfig"
         },
         {
           "name": "base_token_program",
-          "resolver": "account_owner",
+          "kind": "account_owner",
           "address": "$pool_data.base_mint"
         },
         {
           "name": "quote_token_program",
-          "resolver": "account_owner",
+          "kind": "account_owner",
           "address": "$pool_data.quote_mint"
         },
         {
           "name": "user_base_token_account",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$wallet",
           "mint": "$pool_data.base_mint",
           "token_program": "$base_token_program"
         },
         {
           "name": "user_quote_token_account",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$wallet",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program"
         },
         {
           "name": "coin_creator_vault_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:creator_vault",
@@ -1699,7 +1699,7 @@
         },
         {
           "name": "coin_creator_vault_ata",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$coin_creator_vault_authority",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program",
@@ -1707,7 +1707,7 @@
         },
         {
           "name": "global_volume_accumulator",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:global_volume_accumulator"
@@ -1715,7 +1715,7 @@
         },
         {
           "name": "user_volume_accumulator",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:user_volume_accumulator",
@@ -1724,7 +1724,7 @@
         },
         {
           "name": "user_volume_accumulator_wsol_ata",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$user_volume_accumulator",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program",
@@ -1732,7 +1732,7 @@
         },
         {
           "name": "event_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:__event_authority"
@@ -1740,7 +1740,7 @@
         },
         {
           "name": "fee_config",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
           "seeds": [
             "utf8:fee_config",
@@ -1749,13 +1749,13 @@
         },
         {
           "name": "fee_config_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$fee_config",
           "account_type": "FeeConfig"
         },
         {
           "name": "pump_pool_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
           "seeds": [
             "utf8:pool-authority",
@@ -1764,22 +1764,22 @@
         },
         {
           "name": "pool_base_reserve_atomic",
-          "resolver": "token_account_balance",
+          "kind": "token_account_balance",
           "address": "$pool_data.pool_base_token_account"
         },
         {
           "name": "pool_quote_reserve_atomic",
-          "resolver": "token_account_balance",
+          "kind": "token_account_balance",
           "address": "$pool_data.pool_quote_token_account"
         },
         {
           "name": "base_mint_supply_atomic",
-          "resolver": "token_supply",
+          "kind": "token_supply",
           "mint": "$pool_data.base_mint"
         },
         {
           "name": "pool_v2",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:pool-v2",
@@ -1790,13 +1790,13 @@
       "compute": [
         {
           "name": "protocol_fee_recipient",
-          "compute": "list.get",
+          "kind": "list.get",
           "values": "$global_config_data.protocol_fee_recipients",
           "index": 0
         },
         {
           "name": "protocol_fee_recipient_token_account",
-          "compute": "pda(seed_spec)",
+          "kind": "pda(seed_spec)",
           "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
           "seeds": [
             {
@@ -1815,7 +1815,7 @@
         },
         {
           "name": "remaining_accounts",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$pool_data.is_cashback_coin",
           "then": [
             {
@@ -1839,19 +1839,19 @@
         },
         {
           "name": "creator_is_default",
-          "compute": "compare.equals",
+          "kind": "compare.equals",
           "left": "$pool_data.coin_creator",
           "right": "11111111111111111111111111111111"
         },
         {
           "name": "is_pump_pool",
-          "compute": "compare.equals",
+          "kind": "compare.equals",
           "left": "$pool_data.creator",
           "right": "$pump_pool_authority"
         },
         {
           "name": "market_cap_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$pool_quote_reserve_atomic",
             "$base_mint_supply_atomic"
@@ -1859,13 +1859,13 @@
         },
         {
           "name": "market_cap_lamports",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$market_cap_numerator",
           "divisor": "$pool_base_reserve_atomic"
         },
         {
           "name": "fee_tier_candidates",
-          "compute": "list.filter",
+          "kind": "list.filter",
           "items": "$fee_config_data.fee_tiers",
           "where": [
             {
@@ -1877,21 +1877,21 @@
         },
         {
           "name": "selected_fee_tier_primary",
-          "compute": "list.min_by",
+          "kind": "list.min_by",
           "items": "$fee_tier_candidates",
           "path": "market_cap_lamports_threshold",
           "allow_empty": true
         },
         {
           "name": "selected_fee_tier_default",
-          "compute": "list.max_by",
+          "kind": "list.max_by",
           "items": "$fee_config_data.fee_tiers",
           "path": "market_cap_lamports_threshold",
           "allow_empty": true
         },
         {
           "name": "selected_fee_tier",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$selected_fee_tier_primary",
             "$selected_fee_tier_default"
@@ -1899,7 +1899,7 @@
         },
         {
           "name": "selected_fees_if_pump",
-          "compute": "coalesce",
+          "kind": "coalesce",
           "values": [
             "$selected_fee_tier.fees",
             "$fee_config_data.flat_fees"
@@ -1907,35 +1907,35 @@
         },
         {
           "name": "lp_fee_bps",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$is_pump_pool",
           "then": "$selected_fees_if_pump.lp_fee_bps",
           "else": "$global_config_data.lp_fee_basis_points"
         },
         {
           "name": "protocol_fee_bps",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$is_pump_pool",
           "then": "$selected_fees_if_pump.protocol_fee_bps",
           "else": "$global_config_data.protocol_fee_basis_points"
         },
         {
           "name": "creator_fee_bps_raw",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$is_pump_pool",
           "then": "$selected_fees_if_pump.creator_fee_bps",
           "else": "$global_config_data.coin_creator_fee_basis_points"
         },
         {
           "name": "creator_fee_bps",
-          "compute": "logic.if",
+          "kind": "logic.if",
           "condition": "$creator_is_default",
           "then": "0",
           "else": "$creator_fee_bps_raw"
         },
         {
           "name": "total_fee_bps",
-          "compute": "math.add",
+          "kind": "math.add",
           "values": [
             "$lp_fee_bps",
             "$protocol_fee_bps",
@@ -1944,7 +1944,7 @@
         },
         {
           "name": "effective_quote_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$input.quote_amount_in",
             "10000"
@@ -1952,7 +1952,7 @@
         },
         {
           "name": "effective_quote_denominator",
-          "compute": "math.add",
+          "kind": "math.add",
           "values": [
             "10000",
             "$total_fee_bps"
@@ -1960,13 +1960,13 @@
         },
         {
           "name": "effective_quote",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$effective_quote_numerator",
           "divisor": "$effective_quote_denominator"
         },
         {
           "name": "base_amount_out_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$pool_base_reserve_atomic",
             "$effective_quote"
@@ -1974,7 +1974,7 @@
         },
         {
           "name": "base_amount_out_denominator",
-          "compute": "math.add",
+          "kind": "math.add",
           "values": [
             "$pool_quote_reserve_atomic",
             "$effective_quote"
@@ -1982,13 +1982,13 @@
         },
         {
           "name": "base_amount_out",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$base_amount_out_numerator",
           "divisor": "$base_amount_out_denominator"
         },
         {
           "name": "slippage_factor",
-          "compute": "math.add",
+          "kind": "math.add",
           "values": [
             "10000",
             "$input.slippage_bps"
@@ -1996,7 +1996,7 @@
         },
         {
           "name": "max_quote_amount_in_numerator",
-          "compute": "math.mul",
+          "kind": "math.mul",
           "values": [
             "$input.quote_amount_in",
             "$slippage_factor"
@@ -2004,7 +2004,7 @@
         },
         {
           "name": "max_quote_amount_in",
-          "compute": "math.floor_div",
+          "kind": "math.floor_div",
           "dividend": "$max_quote_amount_in_numerator",
           "divisor": "10000"
         }
@@ -2096,20 +2096,20 @@
           "default": "1"
         }
       },
-      "derive": [
+      "resolve": [
         {
           "name": "wallet",
-          "resolver": "wallet_pubkey"
+          "kind": "wallet_pubkey"
         },
         {
           "name": "pool_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$input.pool",
           "account_type": "Pool"
         },
         {
           "name": "global_config",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:global_config"
@@ -2117,37 +2117,37 @@
         },
         {
           "name": "global_config_data",
-          "resolver": "decode_account",
+          "kind": "decode_account",
           "address": "$global_config",
           "account_type": "GlobalConfig"
         },
         {
           "name": "base_token_program",
-          "resolver": "account_owner",
+          "kind": "account_owner",
           "address": "$pool_data.base_mint"
         },
         {
           "name": "quote_token_program",
-          "resolver": "account_owner",
+          "kind": "account_owner",
           "address": "$pool_data.quote_mint"
         },
         {
           "name": "user_base_token_account",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$wallet",
           "mint": "$pool_data.base_mint",
           "token_program": "$base_token_program"
         },
         {
           "name": "user_quote_token_account",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$wallet",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program"
         },
         {
           "name": "coin_creator_vault_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:creator_vault",
@@ -2156,7 +2156,7 @@
         },
         {
           "name": "coin_creator_vault_ata",
-          "resolver": "ata",
+          "kind": "ata",
           "owner": "$coin_creator_vault_authority",
           "mint": "$pool_data.quote_mint",
           "token_program": "$quote_token_program",
@@ -2164,7 +2164,7 @@
         },
         {
           "name": "event_authority",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "$protocol.programId",
           "seeds": [
             "utf8:__event_authority"
@@ -2172,7 +2172,7 @@
         },
         {
           "name": "fee_config",
-          "resolver": "pda",
+          "kind": "pda",
           "program_id": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
           "seeds": [
             "utf8:fee_config",
@@ -2183,13 +2183,13 @@
       "compute": [
         {
           "name": "protocol_fee_recipient",
-          "compute": "list.get",
+          "kind": "list.get",
           "values": "$global_config_data.protocol_fee_recipients",
           "index": 0
         },
         {
           "name": "protocol_fee_recipient_token_account",
-          "compute": "pda(seed_spec)",
+          "kind": "pda(seed_spec)",
           "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
           "seeds": [
             {

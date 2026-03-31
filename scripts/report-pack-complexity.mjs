@@ -53,7 +53,7 @@ function toLocalPublicPath(assetPath, label) {
 
 function renderMarkdownTable(rows) {
   const header = [
-    '| Protocol | Ops | Max Derive/Op | Max Compute/Op | Budget |',
+    '| Protocol | Ops | Max Resolve/Op | Max Compute/Op | Budget |',
     '|---|---:|---:|---:|---|',
   ];
   const body = rows.map((row) =>
@@ -117,14 +117,14 @@ async function main() {
     ];
     const opEntries = sections;
     const opCount = opEntries.length;
-    let maxDerive = 0;
+    let maxResolve = 0;
     let maxCompute = 0;
     for (const [operationId, opRaw] of opEntries) {
       const op = asObject(opRaw, `${protocolId}.agentRuntime.operation.${operationId}`);
-      const derive = Array.isArray(op.derive) ? op.derive.length : 0;
+      const resolve = Array.isArray(op.resolve) ? op.resolve.length : 0;
       const compute = Array.isArray(op.compute) ? op.compute.length : 0;
-      if (derive > maxDerive) {
-        maxDerive = derive;
+      if (resolve > maxResolve) {
+        maxResolve = resolve;
       }
       if (compute > maxCompute) {
         maxCompute = compute;
@@ -135,8 +135,8 @@ async function main() {
     if (opCount > maxOperationsPerProtocol) {
       rowViolations.push(`ops ${opCount} > ${maxOperationsPerProtocol}`);
     }
-    if (maxDerive > maxDerivePerOperation) {
-      rowViolations.push(`max derive/op ${maxDerive} > ${maxDerivePerOperation}`);
+    if (maxResolve > maxDerivePerOperation) {
+      rowViolations.push(`max resolve/op ${maxResolve} > ${maxDerivePerOperation}`);
     }
     if (maxCompute > maxComputePerOperation) {
       rowViolations.push(`max compute/op ${maxCompute} > ${maxComputePerOperation}`);
@@ -149,7 +149,7 @@ async function main() {
     rows.push({
       protocolId,
       ops: opCount,
-      maxDerivePerOp: maxDerive,
+      maxDerivePerOp: maxResolve,
       maxComputePerOp: maxCompute,
       withinBudget,
     });
