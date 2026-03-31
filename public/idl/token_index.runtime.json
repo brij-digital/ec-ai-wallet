@@ -23,14 +23,31 @@
   },
   "index_views": {
     "tokens_index": {
+      "inputs": {},
       "read": {
         "kind": "search",
         "title": "Known tokens",
-        "description": "List manually indexed known tokens."
+        "description": "List manually indexed known tokens.",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "token-index-mainnet",
+          "record_kind": "account",
+          "record_name": "Token",
+          "notes": "Manual token directory seeded directly into canonical state."
+        },
+        "projection": {
+          "projection_kind": "search",
+          "sort_by": [
+            {
+              "field": "symbol",
+              "dir": "asc"
+            }
+          ]
+        }
       },
       "read_output": {
         "type": "array",
-        "source": "$items",
+        "source": "$rows",
         "title": "Known tokens",
         "item_schema": {
           "entity_type": "token",
