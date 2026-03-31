@@ -212,18 +212,6 @@ type VisibleTranscriptEntry =
       kind: 'assistant_text';
       key: string;
       text: string;
-    }
-  | {
-      kind: 'draft_card';
-      key: string;
-      draft: PreparedExecutionDraft;
-    }
-  | {
-      kind: 'interaction_card';
-      key: string;
-      interaction: Extract<AgentTranscriptEntry, { kind: 'interaction' }>;
-      draft: PreparedExecutionDraft | null;
-      result: Extract<AgentTranscriptEntry, { kind: 'interaction_result' }> | null;
     };
 
 export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
@@ -256,10 +244,6 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     }
     return [{ index, draft, draftId: getDraftId(entry.result) }];
   }), [transcript]);
-  const latestDraftIndex = useMemo(() => {
-    const latest = draftRecords.at(-1);
-    return latest ? latest.index : -1;
-  }, [draftRecords]);
   const latestDraft = useMemo<PreparedExecutionDraft | null>(() => {
     return draftRecords.at(-1)?.draft ?? null;
   }, [draftRecords]);
@@ -279,6 +263,27 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
       )),
     );
   }, [transcript]);
+  const latestInteraction = useMemo(() => {
+    for (let index = transcript.length - 1; index >= 0; index -= 1) {
+      const entry = transcript[index];
+      if (entry.role === 'system' && entry.kind === 'interaction') {
+        return entry;
+      }
+    }
+    return null;
+  }, [transcript]);
+  const latestInteractionResult = useMemo(() => {
+    if (!latestInteraction) {
+      return null;
+    }
+    return interactionResultById.get(latestInteraction.interactionId) ?? null;
+  }, [interactionResultById, latestInteraction]);
+  const latestInteractionDraft = useMemo(() => {
+    if (!latestInteraction) {
+      return latestDraft;
+    }
+    return draftById.get(latestInteraction.draftId) ?? latestDraft;
+  }, [draftById, latestDraft, latestInteraction]);
   const visibleTranscript = useMemo<VisibleTranscriptEntry[]>(() => transcript.reduce<VisibleTranscriptEntry[]>((items, entry, index) => {
     if (entry.role === 'assistant' && entry.kind === 'text') {
       items.push({
@@ -286,33 +291,10 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
         key: `assistant-${index}`,
         text: entry.text,
       });
-      return items;
-    }
-
-    if (entry.role === 'tool' && entry.kind === 'tool_result' && entry.toolName === 'draft_execution') {
-      const draft = parsePreparedExecutionDraft(entry.result);
-      if (draft && index === latestDraftIndex) {
-        items.push({
-          kind: 'draft_card',
-          key: `draft-${index}`,
-          draft,
-        });
-      }
-      return items;
-    }
-
-    if (entry.role === 'system' && entry.kind === 'interaction') {
-      items.push({
-        kind: 'interaction_card',
-        key: `interaction-${entry.interactionId}`,
-        interaction: entry,
-        draft: draftById.get(entry.draftId) ?? latestDraft,
-        result: interactionResultById.get(entry.interactionId) ?? null,
-      });
     }
 
     return items;
-  }, []), [draftById, interactionResultById, latestDraft, latestDraftIndex, transcript]);
+  }, []), [transcript]);
 
   useEffect(() => {
     setApiKey(readCookie(AGENT_API_KEY_COOKIE));
@@ -641,57 +623,49 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
                 return (
                   <article key={entry.key} className="agent-entry">
                     {entry.kind === 'assistant_text' ? <ExpandablePre text={entry.text} /> : null}
-                    {entry.kind === 'draft_card' ? (
-                      <div className="agent-actions">
-                        <button
-                          type="button"
-                          onClick={() => void handleSimulateDraft(entry.draft)}
-                          disabled={isLoading || isDraftActionLoading || !wallet.publicKey}
-                        >
-                          {isDraftActionLoading ? 'Working...' : 'Simulate Draft'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleSendDraft(entry.draft)}
-                          disabled={isLoading || isDraftActionLoading || !wallet.publicKey}
-                        >
-                          {isDraftActionLoading ? 'Working...' : 'Send Draft'}
-                        </button>
-                        <p>
-                          Draft ready: {entry.draft.operationId} / {entry.draft.instructionName ?? 'no instruction'}
-                        </p>
-                      </div>
-                    ) : null}
-                    {entry.kind === 'interaction_card' ? (
-                      <div className="agent-actions">
-                        {entry.result ? null : (
-                          <button
-                            type="button"
-                            onClick={() => void handleSendDraft(entry.draft, entry.interaction.interactionId)}
-                            disabled={isLoading || isDraftActionLoading || !wallet.publicKey || !entry.draft}
-                          >
-                            {isDraftActionLoading ? 'Opening Wallet...' : entry.interaction.label}
-                          </button>
-                        )}
-                        <p>
-                          {entry.result
-                            ? entry.result.status === 'confirmed'
-                              ? `Confirmed${entry.result.signature ? `: ${entry.result.signature}` : ''}`
-                              : `Failed: ${entry.result.error ?? 'unknown'}`
-                            : entry.interaction.message ?? 'Wallet approval is required.'}
-                        </p>
-                        {entry.result?.status === 'confirmed' && entry.result.explorerUrl ? (
-                          <a href={entry.result.explorerUrl} target="_blank" rel="noreferrer">
-                            View Explorer
-                          </a>
-                        ) : null}
-                      </div>
-                    ) : null}
                   </article>
                 );
               })
             )}
           </div>
+          {latestInteraction ? (
+            <div className="agent-actions">
+              {latestInteractionResult ? null : (
+                <button
+                  type="button"
+                  onClick={() => void handleSendDraft(latestInteractionDraft, latestInteraction.interactionId)}
+                  disabled={isLoading || isDraftActionLoading || !wallet.publicKey || !latestInteractionDraft}
+                >
+                  {isDraftActionLoading ? 'Opening Wallet...' : latestInteraction.label}
+                </button>
+              )}
+              <p>
+                {latestInteractionResult
+                  ? latestInteractionResult.status === 'confirmed'
+                    ? `Submitted${latestInteractionResult.signature ? `: ${latestInteractionResult.signature}` : ''}`
+                    : `Failed: ${latestInteractionResult.error ?? 'unknown'}`
+                  : latestInteraction.message ?? 'Wallet approval is required.'}
+              </p>
+              {latestInteractionResult?.status === 'confirmed' && latestInteractionResult.explorerUrl ? (
+                <a href={latestInteractionResult.explorerUrl} target="_blank" rel="noreferrer">
+                  View Explorer
+                </a>
+              ) : null}
+            </div>
+          ) : latestDraft ? (
+            <div className="agent-actions">
+              <button
+                type="button"
+                onClick={() => void handleSimulateDraft(latestDraft)}
+                disabled={isLoading || isDraftActionLoading || !wallet.publicKey}
+              >
+                {isDraftActionLoading ? 'Working...' : 'Simulate Draft'}
+              </button>
+              <p>
+                Draft ready: {latestDraft.operationId} / {latestDraft.instructionName ?? 'no instruction'}
+              </p>
+            </div>
+          ) : null}
           {showDebug ? (
             <div className="agent-debug">
               <h4>Debug Trace</h4>
