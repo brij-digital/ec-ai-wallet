@@ -9,7 +9,7 @@ import { ViewPlaygroundTab } from './app/components/ViewPlaygroundTab';
 import { AgentTab } from './app/components/AgentTab';
 import { RunnerTab } from './app/components/RunnerTab';
 
-const VIEW_API_BASE_URL = 'https://api.brijmail.com';
+const VIEW_API_BASE_URL = '';
 const RUNNER_VIEW_API_BASE_URL = '';
 
 type AppTab = 'indexViews' | 'pump' | 'raw' | 'compute' | 'tv' | 'agent' | 'runner';
