@@ -184,7 +184,6 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
   const [prompt, setPrompt] = useState('Find the best capability to inspect a market, then compute a preview before drafting an execution.');
   const [isLoading, setIsLoading] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
-  const [finalText, setFinalText] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<AgentTranscriptEntry[]>([]);
   const [usageText, setUsageText] = useState<string | null>(null);
   const [statusText, setStatusText] = useState<string | null>(null);
@@ -286,7 +285,6 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     setIsLoading(true);
     setErrorText(null);
     if (!sessionId) {
-      setFinalText(null);
       setUsageText(null);
       setTranscript([]);
       setStatusText('Starting new session...');
@@ -383,7 +381,6 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
           }
           if (event.type === 'final') {
             setSessionId(event.session_id);
-            setFinalText(event.final_text ?? null);
             setTranscript(Array.isArray(event.transcript) ? event.transcript : []);
             if (event.usage) {
               setUsageText(`input_tokens=${event.usage.input_tokens ?? 0} | output_tokens=${event.usage.output_tokens ?? 0}`);
@@ -411,7 +408,6 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
   const handleNewSession = () => {
     setSessionId(null);
     setErrorText(null);
-    setFinalText(null);
     setTranscript([]);
     setUsageText(null);
     setStatusText(null);
@@ -426,7 +422,6 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
         text,
       },
     ]);
-    setFinalText(text);
   };
 
   const handleSimulateDraft = async (draft = latestDraft) => {
@@ -558,10 +553,6 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
       {usageText ? <p className="view-playground-info">{usageText}</p> : null}
 
       <div className="agent-results">
-        <section className="agent-panel">
-          <h3>Final Answer</h3>
-          <ExpandablePre text={finalText ?? '// no final answer yet'} />
-        </section>
         <section className="agent-panel">
           <h3>Transcript</h3>
           <div className="agent-transcript">
