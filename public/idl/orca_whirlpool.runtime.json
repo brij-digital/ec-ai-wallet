@@ -150,15 +150,6 @@
             "resolver": "ata",
             "owner": "$wallet",
             "mint": "$whirlpool_data.token_mint_b"
-          },
-          {
-            "name": "oracle",
-            "resolver": "pda",
-            "program_id": "$protocol.programId",
-            "seeds": [
-              "utf8:oracle",
-              "$input.whirlpool"
-            ]
           }
         ],
         "args": {
@@ -172,7 +163,6 @@
         "accounts": {
           "token_program_a": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
           "token_program_b": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "memo_program": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
           "token_authority": "$wallet",
           "whirlpool": "$input.whirlpool",
           "token_mint_a": "$whirlpool_data.token_mint_a",
@@ -183,8 +173,7 @@
           "token_vault_b": "$whirlpool_data.token_vault_b",
           "tick_array0": "$tick_arrays.0",
           "tick_array1": "$tick_arrays.1",
-          "tick_array2": "$tick_arrays.2",
-          "oracle": "$oracle"
+          "tick_array2": "$tick_arrays.2"
         },
         "pre": [
           {

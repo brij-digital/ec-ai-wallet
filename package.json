@@ -29,7 +29,7 @@
     "smoke:runtime-import": "node -e \"const pkg=require('./node_modules/@brij-digital/apppack-runtime/package.json'); if (pkg.name !== '@brij-digital/apppack-runtime') throw new Error('runtime package mismatch'); console.log('runtime package ok', pkg.version)\""
   },
   "dependencies": {
-    "@brij-digital/apppack-runtime": "^0.1.54",
+    "@brij-digital/apppack-runtime": "^0.1.55",
     "@coral-xyz/anchor": "^0.32.1",
     "@solana/spl-token": "^0.4.14",
     "@solana/wallet-adapter-base": "^0.9.27",
