@@ -564,6 +564,18 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     ]);
   };
 
+  const upsertInteractionResult = (entry: Extract<AgentTranscriptEntry, { kind: 'interaction_result' }>) => {
+    setTranscript((current) => {
+      const next = current.filter((candidate) => !(
+        candidate.role === 'system'
+        && candidate.kind === 'interaction_result'
+        && candidate.interactionId === entry.interactionId
+      ));
+      next.push(entry);
+      return next;
+    });
+  };
+
   const reportInteractionResult = async (payload: {
     interactionId: string;
     status: 'confirmed' | 'failed';
@@ -596,7 +608,7 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     if (!response.ok || body?.ok === false || !body?.interaction_result) {
       throw new Error(body?.error ?? `Failed to record interaction result (${response.status}).`);
     }
-    setTranscript((current) => [...current, body.interaction_result as Extract<AgentTranscriptEntry, { kind: 'interaction_result' }>]);
+    upsertInteractionResult(body.interaction_result as Extract<AgentTranscriptEntry, { kind: 'interaction_result' }>);
   };
 
   const handleSimulateDraft = async (draft = latestDraft) => {
@@ -664,6 +676,17 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
         },
       });
       if (interactionId) {
+        upsertInteractionResult({
+          role: 'system',
+          kind: 'interaction_result',
+          interactionId,
+          interactionType: 'wallet_submit_draft',
+          status: 'confirmed',
+          signature: sent.signature,
+          explorerUrl: sent.explorerUrl,
+          error: null,
+        });
+        setSubmitProgress(null);
         await reportInteractionResult({
           interactionId,
           status: 'confirmed',
@@ -679,6 +702,16 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     } catch (error) {
       setSubmitProgress(null);
       if (interactionId) {
+        upsertInteractionResult({
+          role: 'system',
+          kind: 'interaction_result',
+          interactionId,
+          interactionType: 'wallet_submit_draft',
+          status: 'failed',
+          signature: null,
+          explorerUrl: null,
+          error: error instanceof Error ? error.message : 'Submission failed.',
+        });
         try {
           await reportInteractionResult({
             interactionId,
