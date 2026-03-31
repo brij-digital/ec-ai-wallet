@@ -175,6 +175,20 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
     }
     return null;
   }, [transcript]);
+  const submitApprovalRequested = useMemo(() => {
+    for (let index = transcript.length - 1; index >= 0; index -= 1) {
+      const entry = transcript[index];
+      if (!entry || entry.role !== 'tool' || entry.kind !== 'tool_result' || entry.toolName !== 'submit_execution') {
+        continue;
+      }
+      const result = entry.result;
+      if (!result || typeof result !== 'object' || Array.isArray(result)) {
+        continue;
+      }
+      return (result as Record<string, unknown>).requires_wallet_approval === true;
+    }
+    return false;
+  }, [transcript]);
 
   useEffect(() => {
     setApiKey(readCookie(AGENT_API_KEY_COOKIE));
@@ -492,9 +506,12 @@ export function AgentTab({ viewApiBaseUrl }: AgentTabProps) {
             {isDraftActionLoading ? 'Working...' : 'Simulate Draft'}
           </button>
           <button type="button" onClick={handleSendDraft} disabled={isLoading || isDraftActionLoading || !wallet.publicKey}>
-            {isDraftActionLoading ? 'Working...' : 'Send Draft'}
+            {isDraftActionLoading ? 'Working...' : submitApprovalRequested ? 'Approve Submit' : 'Send Draft'}
           </button>
-          <p>Latest draft: {latestDraft.operationId} / {latestDraft.instructionName ?? 'no instruction'}</p>
+          <p>
+            Latest draft: {latestDraft.operationId} / {latestDraft.instructionName ?? 'no instruction'}
+            {submitApprovalRequested ? ' | Claude requested wallet approval' : ''}
+          </p>
         </div>
       ) : null}
 
