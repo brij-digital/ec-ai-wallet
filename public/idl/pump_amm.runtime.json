@@ -1,65 +1,10 @@
 {
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
-  "version": "0.1.0",
   "protocol": {
     "protocolId": "pump-amm-mainnet",
-    "label": "Pump AMM Declarative Runtime",
     "programId": "$protocol.programId",
     "codamaPath": "/idl/pump_amm.codama.json"
-  },
-  "navigation": {
-    "entities": {
-      "token": {
-        "description": "Tradable Pump token mint.",
-        "identity_fields": [
-          "mint",
-          "base_mint"
-        ]
-      },
-      "pool": {
-        "description": "Pump AMM pool.",
-        "identity_fields": [
-          "pool"
-        ],
-        "codama_account": "Pool"
-      }
-    },
-    "entrypoints": {
-      "discover_tokens": "index_views.list_tokens",
-      "resolve_pool_for_mint": "index_views.resolve_pool",
-      "inspect_pool": "index_views.pool_snapshot",
-      "preview_buy": "computes.preview_buy",
-      "preview_sell": "computes.preview_sell",
-      "buy": "contract_writes.buy",
-      "sell": "contract_writes.sell"
-    },
-    "relations": [
-      {
-        "from": "token",
-        "to": "pool",
-        "via": "index_views.resolve_pool"
-      },
-      {
-        "from": "quote_market",
-        "to": "token",
-        "via": "index_views.list_tokens"
-      }
-    ],
-    "recipes": {
-      "buy_token": [
-        "index_views.resolve_pool",
-        "index_views.pool_snapshot",
-        "computes.preview_buy",
-        "contract_writes.buy"
-      ],
-      "sell_token": [
-        "index_views.resolve_pool",
-        "index_views.pool_snapshot",
-        "computes.preview_sell",
-        "contract_writes.sell"
-      ]
-    }
   },
   "computes": {
     "preview_buy": {
@@ -106,7 +51,6 @@
       "read_output": {
         "type": "object",
         "source": "$derived",
-        "title": "Buy preview",
         "object_schema": {
           "entity_type": "pump_preview_buy",
           "fields": {
@@ -189,7 +133,6 @@
       "read_output": {
         "type": "object",
         "source": "$derived",
-        "title": "Sell preview",
         "object_schema": {
           "entity_type": "pump_preview_sell",
           "fields": {
@@ -869,14 +812,6 @@
       "read_output": {
         "source": "$items",
         "type": "array",
-        "title": "Indexed Pump AMM tokens",
-        "itemLabelFields": [
-          "mint",
-          "pool",
-          "liquidityQuote"
-        ],
-        "maxItems": 20,
-        "emptyText": "No indexed Pump AMM token found for this quote mint.",
         "item_schema": {
           "entity_type": "pump_pool",
           "identity_fields": [
@@ -1006,14 +941,6 @@
       "read_output": {
         "source": "$items",
         "type": "array",
-        "title": "Indexed pool snapshot",
-        "itemLabelFields": [
-          "mint",
-          "pool",
-          "liquidityQuote"
-        ],
-        "maxItems": 1,
-        "emptyText": "Pool not found.",
         "item_schema": {
           "entity_type": "pump_pool",
           "identity_fields": [
@@ -1173,7 +1100,6 @@
       "read_output": {
         "type": "object",
         "source": "$items.0",
-        "title": "Resolved Pump pool",
         "object_schema": {
           "entity_type": "pump_pool",
           "identity_fields": [
@@ -1279,7 +1205,6 @@
       "read_output": {
         "type": "object",
         "source": "$items.0",
-        "title": "Pump pool snapshot",
         "object_schema": {
           "entity_type": "pump_pool",
           "identity_fields": [
@@ -1400,7 +1325,6 @@
       "read_output": {
         "type": "array",
         "source": "$items",
-        "title": "Recent Pump trades",
         "item_schema": {
           "entity_type": "pump_trade",
           "identity_fields": [
@@ -1566,7 +1490,6 @@
       "read_output": {
         "type": "array",
         "source": "$items",
-        "title": "Pump market series",
         "item_schema": {
           "entity_type": "pump_market_series_point",
           "identity_fields": [
@@ -1706,7 +1629,6 @@
       "read_output": {
         "type": "array",
         "source": "$items",
-        "title": "Ranked active Pump tokens",
         "item_schema": {
           "entity_type": "pump_ranked_token",
           "identity_fields": [

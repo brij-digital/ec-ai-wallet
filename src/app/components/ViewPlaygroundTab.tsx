@@ -30,15 +30,9 @@ type RuntimeOperation = {
   description?: string;
   inputs?: Record<string, RuntimeInputDef>;
   read?: RuntimeViewShape;
-  read_output?: {
-    title?: string;
-  };
 };
 
 type RuntimeSpec = {
-  protocol?: {
-    label?: string;
-  };
   index_views?: Record<string, RuntimeOperation>;
 };
 
@@ -145,10 +139,10 @@ export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTa
             }
             loaded.push({
               protocolId: protocol.id,
-              protocolLabel: protocol.name ?? runtime.protocol?.label ?? protocol.id,
+              protocolLabel: protocol.name ?? protocol.id,
               operationId: opId,
               operationLabel: operation.label ?? view.title ?? opId,
-              description: view.description ?? operation.description ?? operation.read_output?.title ?? '',
+              description: view.description ?? operation.description ?? '',
               inputTemplate: buildInputTemplate(operation.inputs),
               limit: defaultLimitForOperation(opId),
             });

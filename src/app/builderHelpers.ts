@@ -121,23 +121,8 @@ export function buildReadOnlyHighlightsFromSpec(
     `read_output.source: ${readOutput.source}`,
   ];
 
-  if (readOutput.title) {
-    lines.push(`title: ${readOutput.title}`);
-  }
-
   if (readOutput.type === 'array' && Array.isArray(value)) {
     lines.push(`items: ${value.length}`);
-    const first = value[0];
-    if (first && typeof first === 'object' && !Array.isArray(first) && readOutput.itemLabelFields?.length) {
-      const label = readOutput.itemLabelFields
-        .map((field) => readBuilderPath(first, field))
-        .filter((entry) => entry !== undefined && entry !== null)
-        .map((entry) => String(entry))
-        .join(' | ');
-      if (label) {
-        lines.push(`first: ${label}`);
-      }
-    }
     return lines;
   }
 
@@ -209,7 +194,6 @@ export function renderMetaExplain(explanation: RuntimeOperationExplain): string 
 
   return [
     `Runtime operation: ${explanation.protocolId}/${explanation.operationId}`,
-    `schema: ${explanation.schema ?? 'n/a'} | version: ${explanation.version}`,
     `instruction: ${explanation.instruction || 'read-only'}`,
     '',
     'Inputs:',

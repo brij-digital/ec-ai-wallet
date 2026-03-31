@@ -123,18 +123,10 @@ function createAgentRuntimeSkeleton({ protocolId, programId, codamaAssetPath }) 
   return {
     $schema: '/idl/solana_agent_runtime.schema.v1.json',
     schema: 'solana-agent-runtime.v1',
-    version: '0.1.0',
     protocol: {
       protocolId,
-      label: `${protocolId} Agent Runtime`,
       programId,
       codamaPath: codamaAssetPath,
-    },
-    navigation: {
-      entities: {},
-      entrypoints: {},
-      relations: [],
-      recipes: {},
     },
     index_views: {},
     computes: {},
@@ -244,7 +236,7 @@ async function main() {
   console.log('Next steps:');
   console.log('1. Make public/idl/<slug>.codama.json the protocol source of truth.');
   console.log('2. Fill public/idl/<slug>.indexing.json with sources, matchRules, pipelines, and projections.');
-  console.log('3. Fill public/idl/<slug>.runtime.json with agent index views, computes, contract writes, and navigation.');
+  console.log('3. Fill public/idl/<slug>.runtime.json with agent index views, computes, contract writes, and templates if needed.');
   console.log('4. Run: npm run codama:check');
   console.log('5. Run: npm run pack:doctor -- --protocol <protocol-id>');
   console.log('6. Run: npm run pack:check');

@@ -543,12 +543,6 @@ function compileAidl(source, sourceFile, computeLibraries) {
         inputSpec.label,
         `${sourceFile}.operations.${operationName}.inputs.${inputName}.label`,
       );
-      if (inputSpec.read_from !== undefined) {
-        asString(
-          inputSpec.read_from,
-          `${sourceFile}.operations.${operationName}.inputs.${inputName}.read_from`,
-        );
-      }
       if (inputSpec.ui_editable !== undefined) {
         fail(
           `${sourceFile}.operations.${operationName}.inputs.${inputName}.ui_editable is not supported. Use ui_mode: \"edit\"|\"readonly\"|\"hidden\".`,

@@ -1,34 +1,10 @@
 {
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
-  "version": "0.1.0",
   "protocol": {
     "protocolId": "pump-core-mainnet",
-    "label": "Pump Core Declarative Runtime",
     "programId": "$protocol.programId",
     "codamaPath": "/idl/pump_core.codama.json"
-  },
-  "navigation": {
-    "entities": {
-      "bonding_curve": {
-        "description": "Pump core bonding curve state.",
-        "identity_fields": [
-          "base_mint"
-        ],
-        "codama_account": "BondingCurve"
-      }
-    },
-    "entrypoints": {
-      "preview_buy_exact_sol_in": "computes.preview_buy_exact_sol_in",
-      "buy_exact_sol_in": "contract_writes.buy_exact_sol_in"
-    },
-    "relations": [],
-    "recipes": {
-      "buy_exact_sol_in": [
-        "computes.preview_buy_exact_sol_in",
-        "contract_writes.buy_exact_sol_in"
-      ]
-    }
   },
   "computes": {
     "preview_buy_exact_sol_in": {
@@ -271,7 +247,6 @@
       "read_output": {
         "type": "object",
         "source": "$derived",
-        "title": "Bonding curve buy preview",
         "object_schema": {
           "entity_type": "pump_core_preview_buy_exact_sol_in",
           "fields": {

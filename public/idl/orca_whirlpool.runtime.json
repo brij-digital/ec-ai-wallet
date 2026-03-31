@@ -1,56 +1,10 @@
 {
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
-  "version": "0.1.0",
   "protocol": {
     "protocolId": "orca-whirlpool-mainnet",
-    "label": "Orca Whirlpool Declarative Runtime",
     "programId": "$protocol.programId",
     "codamaPath": "/idl/orca_whirlpool.codama.json"
-  },
-  "navigation": {
-    "entities": {
-      "pool": {
-        "description": "Whirlpool liquidity pool.",
-        "identity_fields": [
-          "pool"
-        ],
-        "codama_account": "Whirlpool"
-      },
-      "token_pair": {
-        "description": "Ordered or unordered token mint pair.",
-        "identity_fields": [
-          "token_in_mint",
-          "token_out_mint"
-        ]
-      }
-    },
-    "entrypoints": {
-      "discover_pool_for_pair": "index_views.pools_index",
-      "inspect_pool": "index_views.pools_get",
-      "quote_swap_exact_in": "computes.quote_exact_in",
-      "swap_exact_in": "contract_writes.swap_exact_in"
-    },
-    "relations": [
-      {
-        "from": "token_pair",
-        "to": "pool",
-        "via": "index_views.pools_index"
-      },
-      {
-        "from": "pool",
-        "to": "pools_get",
-        "via": "index_views.pools_get"
-      }
-    ],
-    "recipes": {
-      "swap_token_pair": [
-        "index_views.pools_index",
-        "index_views.pools_get",
-        "computes.quote_exact_in",
-        "contract_writes.swap_exact_in"
-      ]
-    }
   },
   "computes": {
     "quote_exact_in": {
@@ -109,7 +63,6 @@
       "read_output": {
         "type": "object",
         "source": "$derived",
-        "title": "Swap quote preview",
         "object_schema": {
           "entity_type": "orca_quote_exact_in",
           "identity_fields": [
@@ -600,7 +553,6 @@
       "read_output": {
         "type": "array",
         "source": "$items",
-        "title": "Recent Whirlpool swaps",
         "item_schema": {
           "entity_type": "orca_swap",
           "identity_fields": [
@@ -749,7 +701,6 @@
       "read_output": {
         "type": "array",
         "source": "$items",
-        "title": "Whirlpool market series",
         "item_schema": {
           "entity_type": "orca_market_series_point",
           "identity_fields": [
@@ -824,7 +775,6 @@
       "read_output": {
         "type": "object",
         "source": "$items.0",
-        "title": "Indexed Whirlpool pool",
         "object_schema": {
           "entity_type": "orca_whirlpool",
           "identity_fields": [
@@ -947,14 +897,6 @@
       "read_output": {
         "type": "array",
         "source": "$items",
-        "title": "Pools found",
-        "emptyText": "No indexed Whirlpool pool found for this pair.",
-        "maxItems": 20,
-        "itemLabelFields": [
-          "pool",
-          "tickSpacing",
-          "liquidityQuote"
-        ],
         "item_schema": {
           "entity_type": "orca_whirlpool",
           "identity_fields": [

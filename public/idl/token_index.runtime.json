@@ -1,25 +1,10 @@
 {
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
-  "version": "0.1.0",
   "protocol": {
     "protocolId": "token-index-mainnet",
-    "label": "Manual Token Index",
     "programId": "11111111111111111111111111111111",
     "codamaPath": "/idl/token_index.indexing.json"
-  },
-  "navigation": {
-    "entities": {
-      "token": {
-        "description": "Known token metadata entry.",
-        "identity_fields": [
-          "mint"
-        ],
-        "aliases": [
-          "asset"
-        ]
-      }
-    }
   },
   "index_views": {
     "tokens_index": {
@@ -48,7 +33,6 @@
       "read_output": {
         "type": "array",
         "source": "$rows",
-        "title": "Known tokens",
         "item_schema": {
           "entity_type": "token",
           "identity_fields": [

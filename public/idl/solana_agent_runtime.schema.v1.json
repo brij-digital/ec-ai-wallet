@@ -3,19 +3,13 @@
   "$id": "/idl/solana_agent_runtime.schema.v1.json",
   "title": "Solana Agent Runtime Spec V1",
   "type": "object",
-  "required": ["schema", "protocol", "navigation", "index_views", "computes", "contract_writes"],
+  "required": ["schema", "protocol", "index_views", "computes", "contract_writes"],
   "properties": {
     "schema": {
       "const": "solana-agent-runtime.v1"
     },
-    "version": {
-      "type": "string"
-    },
     "protocol": {
       "$ref": "#/$defs/protocolSpec"
-    },
-    "navigation": {
-      "$ref": "#/$defs/navigationSpec"
     },
     "index_views": {
       "type": "object",
@@ -64,34 +58,8 @@
       "required": ["protocolId", "programId", "codamaPath"],
       "properties": {
         "protocolId": { "type": "string" },
-        "label": { "type": "string" },
         "programId": { "type": "string" },
         "codamaPath": { "type": "string" }
-      },
-      "additionalProperties": true
-    },
-    "navigationSpec": {
-      "type": "object",
-      "properties": {
-        "entities": {
-          "type": "object",
-          "additionalProperties": { "type": "object", "additionalProperties": true }
-        },
-        "entrypoints": {
-          "type": "object",
-          "additionalProperties": { "type": "string" }
-        },
-        "relations": {
-          "type": "array",
-          "items": { "type": "object", "additionalProperties": true }
-        },
-        "recipes": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": { "type": "string" }
-          }
-        }
       },
       "additionalProperties": true
     },
@@ -146,19 +114,6 @@
           "enum": ["array", "object", "scalar", "list"]
         },
         "source": { "type": "string" },
-        "title": { "type": "string" },
-        "empty_text": { "type": "string" },
-        "emptyText": { "type": "string" },
-        "max_items": { "type": "integer", "minimum": 1 },
-        "maxItems": { "type": "integer", "minimum": 1 },
-        "item_label_fields": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "itemLabelFields": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
         "object_schema": {
           "$ref": "#/$defs/outputObjectSchemaSpec"
         },
