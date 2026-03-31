@@ -4,7 +4,7 @@
   "protocol": {
     "protocolId": "token-index-mainnet",
     "programId": "11111111111111111111111111111111",
-    "codamaPath": "/idl/token_index.indexing.json"
+    "codamaPath": "/idl/token_index.codama.json"
   },
   "index_views": {
     "tokens_index": {

@@ -5,7 +5,14 @@
   "protocolId": "token-index-mainnet",
   "label": "Manual Token Index",
   "programId": "11111111111111111111111111111111",
-  "decoderArtifacts": {},
+  "decoderArtifacts": {
+    "default": {
+      "kind": "generated_idl_decoder",
+      "family": "codama",
+      "artifact": "token_index",
+      "codamaPath": "/idl/token_index.codama.json"
+    }
+  },
   "sources": {},
   "matchRules": [],
   "pipelines": {},

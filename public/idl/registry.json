@@ -16,7 +16,7 @@
       "name": "Token Index",
       "network": "mainnet-beta",
       "programId": "11111111111111111111111111111111",
-      "codamaIdlPath": "/idl/token_index.indexing.json",
+      "codamaIdlPath": "/idl/token_index.codama.json",
       "agentRuntimePath": "/idl/token_index.runtime.json",
       "indexingSpecPath": "/idl/token_index.indexing.json",
       "transport": "local-token-index",

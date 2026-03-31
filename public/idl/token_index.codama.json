@@ -1,0 +1,20 @@
+{
+  "kind": "rootNode",
+  "standard": "codama",
+  "version": "1.0.0",
+  "program": {
+    "kind": "programNode",
+    "name": "token_index",
+    "publicKey": "11111111111111111111111111111111",
+    "version": "0.1.0",
+    "origin": "manual",
+    "docs": [
+      "Manual Codama scaffold for the token-index protocol."
+    ],
+    "accounts": [],
+    "instructions": [],
+    "definedTypes": [],
+    "pdas": [],
+    "errors": []
+  }
+}
