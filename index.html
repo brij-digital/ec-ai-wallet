@@ -8,6 +8,42 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        const endpoint = 'https://api.brijmail.com/client-error';
+        function post(payload) {
+          try {
+            fetch(endpoint, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(payload),
+            }).catch(function () {});
+          } catch (_) {}
+        }
+        window.addEventListener('error', function (event) {
+          post({
+            kind: 'error',
+            message: event.message,
+            source: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            stack: event.error && event.error.stack ? String(event.error.stack) : null,
+            href: window.location.href,
+            userAgent: navigator.userAgent,
+          });
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+          const reason = event.reason;
+          post({
+            kind: 'unhandledrejection',
+            message: reason && reason.message ? String(reason.message) : String(reason),
+            stack: reason && reason.stack ? String(reason.stack) : null,
+            href: window.location.href,
+            userAgent: navigator.userAgent,
+          });
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
