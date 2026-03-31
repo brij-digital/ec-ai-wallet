@@ -111,10 +111,9 @@ async function main() {
       `${protocolId}.agentRuntime`,
     );
     const sections = [
-      ...Object.entries(asObject(runtimePack.reads?.contract ?? {}, `${protocolId}.agentRuntime.reads.contract`)),
-      ...Object.entries(asObject(runtimePack.reads?.index ?? {}, `${protocolId}.agentRuntime.reads.index`)),
+      ...Object.entries(asObject(runtimePack.index_views ?? {}, `${protocolId}.agentRuntime.index_views`)),
       ...Object.entries(asObject(runtimePack.computes ?? {}, `${protocolId}.agentRuntime.computes`)),
-      ...Object.entries(asObject(runtimePack.executions ?? {}, `${protocolId}.agentRuntime.executions`)),
+      ...Object.entries(asObject(runtimePack.contract_writes ?? {}, `${protocolId}.agentRuntime.contract_writes`)),
     ];
     const opEntries = sections;
     const opCount = opEntries.length;

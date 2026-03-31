@@ -79,6 +79,34 @@ function normalizePubkey(value, label) {
   }
 }
 
+function validateOutputSchemaFields(fields, label) {
+  const fieldMap = asObject(fields, `${label}.fields`);
+  const names = Object.keys(fieldMap);
+  if (names.length === 0) {
+    fail(`${label}.fields must declare at least one field.`);
+  }
+  for (const [fieldName, fieldRaw] of Object.entries(fieldMap)) {
+    const fieldSpec = asObject(fieldRaw, `${label}.fields.${fieldName}`);
+    asString(fieldSpec.type, `${label}.fields.${fieldName}.type`);
+    if (fieldSpec.description !== undefined) {
+      asString(fieldSpec.description, `${label}.fields.${fieldName}.description`);
+    }
+  }
+}
+
+function validateOutputSchema(schema, label) {
+  const objectSchema = asObject(schema, label);
+  if (objectSchema.entity_type !== undefined) {
+    asString(objectSchema.entity_type, `${label}.entity_type`);
+  }
+  if (objectSchema.identity_fields !== undefined) {
+    asArray(objectSchema.identity_fields, `${label}.identity_fields`).forEach((entry, index) => {
+      asString(entry, `${label}.identity_fields[${index}]`);
+    });
+  }
+  validateOutputSchemaFields(objectSchema.fields, label);
+}
+
 function collectInstructionNamesFromCodama(codama, label) {
   const program = asObject(codama.program, `${label}.program`);
   const instructions = asArray(program.instructions ?? [], `${label}.program.instructions`);
@@ -110,16 +138,38 @@ function validateRuntimeInputs(protocolId, sectionLabel, operationId, operation)
 
   if (op.read_output !== undefined) {
     const readOutput = asObject(op.read_output, `${protocolId}.${sectionLabel}.${operationId}.read_output`);
+    asString(readOutput.type, `${protocolId}.${sectionLabel}.${operationId}.read_output.type`);
     asString(readOutput.source, `${protocolId}.${sectionLabel}.${operationId}.read_output.source`);
+    if (readOutput.object_schema !== undefined) {
+      validateOutputSchema(
+        readOutput.object_schema,
+        `${protocolId}.${sectionLabel}.${operationId}.read_output.object_schema`,
+      );
+    }
+    if (readOutput.item_schema !== undefined) {
+      validateOutputSchema(
+        readOutput.item_schema,
+        `${protocolId}.${sectionLabel}.${operationId}.read_output.item_schema`,
+      );
+    }
+    if (readOutput.scalar_type !== undefined) {
+      asString(readOutput.scalar_type, `${protocolId}.${sectionLabel}.${operationId}.read_output.scalar_type`);
+    }
+    const outputType = readOutput.type;
+    if ((outputType === 'object' && readOutput.object_schema === undefined)
+      || ((outputType === 'array' || outputType === 'list') && readOutput.item_schema === undefined)
+      || (outputType === 'scalar' && readOutput.scalar_type === undefined)) {
+      fail(`${protocolId}.${sectionLabel}.${operationId}.read_output is missing typed schema for ${outputType}.`);
+    }
   }
 
   return op;
 }
 
 function validateExecution(protocolId, executionId, execution, instructionNames) {
-  const op = validateRuntimeInputs(protocolId, 'agentRuntime.executions', executionId, execution);
+  const op = validateRuntimeInputs(protocolId, 'agentRuntime.contract_writes', executionId, execution);
   if (op.instruction !== undefined) {
-    const instruction = asString(op.instruction, `${protocolId}.agentRuntime.executions.${executionId}.instruction`);
+    const instruction = asString(op.instruction, `${protocolId}.agentRuntime.contract_writes.${executionId}.instruction`);
     if (!instructionNames.has(instruction)) {
       fail(`${protocolId}: execution ${executionId} references missing instruction ${instruction}.`);
     }
@@ -127,8 +177,8 @@ function validateExecution(protocolId, executionId, execution, instructionNames)
 }
 
 function validateRead(protocolId, bucket, operationId, operation) {
-  const op = validateRuntimeInputs(protocolId, `agentRuntime.reads.${bucket}`, operationId, operation);
-  asObject(op.read, `${protocolId}.agentRuntime.reads.${bucket}.${operationId}.read`);
+  const op = validateRuntimeInputs(protocolId, `agentRuntime.${bucket}`, operationId, operation);
+  asObject(op.read, `${protocolId}.agentRuntime.${bucket}.${operationId}.read`);
 }
 
 function validateCompute(protocolId, operationId, operation) {
@@ -236,24 +286,19 @@ async function main() {
       }
     }
 
-    const contractReads = asOptionalObject(agentRuntime.reads?.contract, `${protocolId}.agentRuntime.reads.contract`);
-    const indexReads = asOptionalObject(agentRuntime.reads?.index, `${protocolId}.agentRuntime.reads.index`);
+    const indexViews = asOptionalObject(agentRuntime.index_views, `${protocolId}.agentRuntime.index_views`);
     const computes = asOptionalObject(agentRuntime.computes, `${protocolId}.agentRuntime.computes`);
-    const executions = asOptionalObject(agentRuntime.executions, `${protocolId}.agentRuntime.executions`);
+    const contract_writes = asOptionalObject(agentRuntime.contract_writes, `${protocolId}.agentRuntime.contract_writes`);
 
-    for (const [operationId, operationRaw] of Object.entries(contractReads)) {
-      validateRead(protocolId, 'contract', operationId, operationRaw);
-      operationCount += 1;
-    }
-    for (const [operationId, operationRaw] of Object.entries(indexReads)) {
-      validateRead(protocolId, 'index', operationId, operationRaw);
+    for (const [operationId, operationRaw] of Object.entries(indexViews)) {
+      validateRead(protocolId, 'index_views', operationId, operationRaw);
       operationCount += 1;
     }
     for (const [operationId, operationRaw] of Object.entries(computes)) {
       validateCompute(protocolId, operationId, operationRaw);
       operationCount += 1;
     }
-    for (const [operationId, operationRaw] of Object.entries(executions)) {
+    for (const [operationId, operationRaw] of Object.entries(contract_writes)) {
       validateExecution(protocolId, operationId, operationRaw, instructionNames);
       operationCount += 1;
     }

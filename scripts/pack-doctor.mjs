@@ -166,12 +166,10 @@ async function main() {
         if (asString(protocol.protocolId, `${id}.agentRuntime.protocol.protocolId`) !== id) {
           protocolErrors.push(`agent runtime protocolId mismatch: ${String(protocol.protocolId)} != ${id}`);
         }
-        const reads = asObject(runtime.reads ?? {}, `${id}.agentRuntime.reads`);
-        const contractReads = asObject(reads.contract ?? {}, `${id}.agentRuntime.reads.contract`);
-        const indexReads = asObject(reads.index ?? {}, `${id}.agentRuntime.reads.index`);
+        const indexViews = asObject(runtime.index_views ?? {}, `${id}.agentRuntime.index_views`);
         const computes = asObject(runtime.computes ?? {}, `${id}.agentRuntime.computes`);
-        const executions = asObject(runtime.executions ?? {}, `${id}.agentRuntime.executions`);
-        if (Object.keys(contractReads).length + Object.keys(indexReads).length + Object.keys(computes).length + Object.keys(executions).length === 0) {
+        const contract_writes = asObject(runtime.contract_writes ?? {}, `${id}.agentRuntime.contract_writes`);
+        if (Object.keys(indexViews).length + Object.keys(computes).length + Object.keys(contract_writes).length === 0) {
           protocolWarnings.push('No agent runtime capabilities declared.');
         }
       } catch (error) {

@@ -26,304 +26,30 @@
       }
     },
     "entrypoints": {
-      "discover_pool_for_pair": "reads.index.pools_index",
-      "inspect_pool": "reads.index.pools_get",
+      "discover_pool_for_pair": "index_views.pools_index",
+      "inspect_pool": "index_views.pools_get",
       "quote_swap_exact_in": "computes.quote_exact_in",
-      "swap_exact_in": "executions.swap_exact_in"
+      "swap_exact_in": "contract_writes.swap_exact_in"
     },
     "relations": [
       {
         "from": "token_pair",
         "to": "pool",
-        "via": "reads.index.pools_index"
+        "via": "index_views.pools_index"
       },
       {
         "from": "pool",
         "to": "pools_get",
-        "via": "reads.index.pools_get"
+        "via": "index_views.pools_get"
       }
     ],
     "recipes": {
       "swap_token_pair": [
-        "reads.index.pools_index",
-        "reads.index.pools_get",
+        "index_views.pools_index",
+        "index_views.pools_get",
         "computes.quote_exact_in",
-        "executions.swap_exact_in"
+        "contract_writes.swap_exact_in"
       ]
-    }
-  },
-  "reads": {
-    "index": {
-      "trade_feed": {
-        "inputs": {
-          "pool": {
-            "type": "pubkey",
-            "required": true
-          },
-          "limit": {
-            "type": "u16",
-            "required": false,
-            "default": 50
-          }
-        },
-        "read": {
-          "kind": "feed",
-          "freshness": {
-            "class": "near_realtime",
-            "target_ms": 1000,
-            "max_staleness_ms": 5000
-          },
-          "entity_type": "orca_swap",
-          "title": "Trade feed",
-          "description": "Recent Orca Whirlpool swaps.",
-          "canonical": {
-            "source": "indexed_idl_records",
-            "protocol_id": "orca-whirlpool-mainnet",
-            "record_kind": "event",
-            "record_name": "SwapEvent",
-            "subject_input": "pool",
-            "resource_input": "pool",
-            "resource_field": "resource_id",
-            "time_field": "event_time",
-            "notes": "Recent canonical Orca swap records ordered by event time."
-          },
-          "projection": {
-            "projection_kind": "feed",
-            "group_by": [
-              "subject_id"
-            ],
-            "sort_by": [
-              {
-                "field": "event_time",
-                "dir": "desc"
-              }
-            ]
-          }
-        }
-      },
-      "market_cap_series": {
-        "inputs": {
-          "pool": {
-            "type": "pubkey",
-            "required": true
-          },
-          "limit": {
-            "type": "u16",
-            "required": false,
-            "default": 240
-          },
-          "from": {
-            "type": "string",
-            "required": false
-          },
-          "to": {
-            "type": "string",
-            "required": false
-          },
-          "interval": {
-            "type": "string",
-            "required": false,
-            "default": "1m"
-          },
-          "mode": {
-            "type": "string",
-            "required": false,
-            "default": "sparse"
-          }
-        },
-        "read": {
-          "kind": "series",
-          "freshness": {
-            "class": "near_realtime",
-            "target_ms": 5000,
-            "max_staleness_ms": 30000
-          },
-          "entity_type": "orca_market_series",
-          "title": "Market series",
-          "description": "Materialized Orca Whirlpool price series with 1m base buckets, interval rollups, and optional dense fill.",
-          "canonical": {
-            "source": "indexed_series_1m",
-            "protocol_id": "orca-whirlpool-mainnet",
-            "series_id": "orca.whirlpool.market.1m",
-            "subject_input": "pool",
-            "resource_input": "pool",
-            "time_field": "bucket_start",
-            "notes": "Canonical 1m Orca Whirlpool market series projected from canonical swap records."
-          },
-          "projection": {
-            "projection_kind": "series",
-            "source_operation": "trade_feed",
-            "group_by": [
-              "subject_id"
-            ],
-            "bucket": "1m",
-            "fill_mode": "sparse",
-            "aggregations": [
-              {
-                "name": "open",
-                "field": "priceQuote",
-                "fn": "first"
-              },
-              {
-                "name": "high",
-                "field": "priceQuote",
-                "fn": "max"
-              },
-              {
-                "name": "low",
-                "field": "priceQuote",
-                "fn": "min"
-              },
-              {
-                "name": "close",
-                "field": "priceQuote",
-                "fn": "last"
-              },
-              {
-                "name": "volumeQuote",
-                "field": "quoteNotionalUi",
-                "fn": "sum"
-              },
-              {
-                "name": "tradeCount",
-                "field": "*",
-                "fn": "count"
-              }
-            ]
-          }
-        }
-      },
-      "pools_get": {
-        "inputs": {
-          "pool": {
-            "type": "pubkey",
-            "required": true
-          }
-        },
-        "read": {
-          "kind": "account",
-          "freshness": {
-            "class": "near_realtime",
-            "target_ms": 5000,
-            "max_staleness_ms": 20000
-          },
-          "entity_type": "orca_whirlpool",
-          "title": "Pools get",
-          "description": "Read the current Orca Whirlpool state for a known pool address.",
-          "canonical": {
-            "source": "indexed_idl_state",
-            "protocol_id": "orca-whirlpool-mainnet",
-            "record_kind": "account",
-            "record_name": "Whirlpool",
-            "resource_input": "pool",
-            "resource_field": "resource_id",
-            "notes": "Read the latest canonical Whirlpool state by pool address."
-          },
-          "projection": {
-            "projection_kind": "snapshot",
-            "group_by": [
-              "resource_id"
-            ]
-          }
-        }
-      },
-      "pools_index": {
-        "inputs": {
-          "token_in_mint": {
-            "type": "token_mint",
-            "required": true
-          },
-          "token_out_mint": {
-            "type": "token_mint",
-            "required": true
-          }
-        },
-        "validate": {
-          "cross": [
-            {
-              "kind": "not_equal",
-              "left": "$input.token_in_mint",
-              "right": "$input.token_out_mint",
-              "message": "token_in_mint and token_out_mint must be different."
-            }
-          ]
-        },
-        "read_output": {
-          "type": "array",
-          "source": "$items",
-          "title": "Pools found",
-          "emptyText": "No indexed Whirlpool pool found for this pair.",
-          "maxItems": 20,
-          "itemLabelFields": [
-            "pool",
-            "tickSpacing",
-            "liquidityQuote"
-          ]
-        },
-        "read": {
-          "kind": "search",
-          "freshness": {
-            "class": "near_realtime",
-            "target_ms": 10000,
-            "max_staleness_ms": 60000
-          },
-          "entity_type": "whirlpool_pool",
-          "title": "Pools index",
-          "description": "Find indexed Whirlpool pools for a token pair.",
-          "canonical": {
-            "source": "indexed_idl_state",
-            "protocol_id": "orca-whirlpool-mainnet",
-            "record_kind": "account",
-            "record_name": "Whirlpool",
-            "notes": "Canonical Whirlpool pool directory ordered by indexed liquidity."
-          },
-          "projection": {
-            "projection_kind": "search",
-            "filters": {
-              "any": [
-                {
-                  "all": [
-                    {
-                      "field": "tokenMintA",
-                      "op": "=",
-                      "value": "$input.token_in_mint"
-                    },
-                    {
-                      "field": "tokenMintB",
-                      "op": "=",
-                      "value": "$input.token_out_mint"
-                    }
-                  ]
-                },
-                {
-                  "all": [
-                    {
-                      "field": "tokenMintA",
-                      "op": "=",
-                      "value": "$input.token_out_mint"
-                    },
-                    {
-                      "field": "tokenMintB",
-                      "op": "=",
-                      "value": "$input.token_in_mint"
-                    }
-                  ]
-                }
-              ]
-            },
-            "sort_by": [
-              {
-                "field": "liquidityQuote",
-                "dir": "desc"
-              },
-              {
-                "field": "updatedAt",
-                "dir": "desc"
-              }
-            ]
-          }
-        }
-      }
     }
   },
   "computes": {
@@ -383,75 +109,52 @@
       "read_output": {
         "type": "object",
         "source": "$derived",
-        "title": "Swap quote preview"
+        "title": "Swap quote preview",
+        "object_schema": {
+          "entity_type": "orca_quote_exact_in",
+          "identity_fields": [
+            "whirlpool"
+          ],
+          "fields": {
+            "whirlpool": {
+              "type": "pubkey",
+              "required": true
+            },
+            "token_in_mint": {
+              "type": "pubkey",
+              "required": true
+            },
+            "token_out_mint": {
+              "type": "pubkey",
+              "required": true
+            },
+            "amount_in": {
+              "type": "u64",
+              "required": true
+            },
+            "slippage_bps": {
+              "type": "u16",
+              "required": true
+            },
+            "estimated_out": {
+              "type": "u64",
+              "required": true
+            },
+            "minimum_out": {
+              "type": "u64",
+              "required": true
+            },
+            "a_to_b": {
+              "type": "bool",
+              "required": true
+            },
+            "pool_fee_bps": {
+              "type": "number",
+              "required": false
+            }
+          }
+        }
       }
-    }
-  },
-  "executions": {
-    "swap_exact_in": {
-      "inputs": {
-        "token_in_mint": {
-          "type": "token_mint",
-          "required": true
-        },
-        "token_out_mint": {
-          "type": "token_mint",
-          "required": true
-        },
-        "amount_in": {
-          "type": "u64",
-          "required": true,
-          "validate": {
-            "min": "1",
-            "message": "amount_in must be greater than 0."
-          }
-        },
-        "slippage_bps": {
-          "type": "u16",
-          "required": true,
-          "validate": {
-            "min": 0,
-            "max": 5000,
-            "message": "slippage_bps must be between 0 and 5000."
-          }
-        },
-        "estimated_out": {
-          "type": "u64",
-          "required": false,
-          "default": "0",
-          "bind_from": "$derived.estimated_out_auto"
-        },
-        "whirlpool": {
-          "type": "pubkey",
-          "required": true
-        },
-        "unwrap_sol_output": {
-          "type": "bool",
-          "required": false,
-          "default": true
-        }
-      },
-      "validate": {
-        "cross": [
-          {
-            "kind": "not_equal",
-            "left": "$input.token_in_mint",
-            "right": "$input.token_out_mint",
-            "message": "token_in_mint and token_out_mint must be different."
-          }
-        ]
-      },
-      "use": [
-        {
-          "template": "orca.swap_exact_in.v2",
-          "with": {
-            "token_in_mint": "$input.token_in_mint",
-            "amount_in": "$input.amount_in",
-            "slippage_bps": "$input.slippage_bps",
-            "estimated_out": "$input.estimated_out"
-          }
-        }
-      ]
     }
   },
   "templates": {
@@ -845,6 +548,640 @@
           }
         ]
       }
+    }
+  },
+  "index_views": {
+    "trade_feed": {
+      "inputs": {
+        "pool": {
+          "type": "pubkey",
+          "required": true
+        },
+        "limit": {
+          "type": "u16",
+          "required": false,
+          "default": 50
+        }
+      },
+      "read": {
+        "kind": "feed",
+        "freshness": {
+          "class": "near_realtime",
+          "target_ms": 1000,
+          "max_staleness_ms": 5000
+        },
+        "entity_type": "orca_swap",
+        "title": "Trade feed",
+        "description": "Recent Orca Whirlpool swaps.",
+        "canonical": {
+          "source": "indexed_idl_records",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "event",
+          "record_name": "SwapEvent",
+          "subject_input": "pool",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "time_field": "event_time",
+          "notes": "Recent canonical Orca swap records ordered by event time."
+        },
+        "projection": {
+          "projection_kind": "feed",
+          "group_by": [
+            "subject_id"
+          ],
+          "sort_by": [
+            {
+              "field": "event_time",
+              "dir": "desc"
+            }
+          ]
+        }
+      },
+      "read_output": {
+        "type": "array",
+        "source": "$items",
+        "title": "Recent Whirlpool swaps",
+        "item_schema": {
+          "entity_type": "orca_swap",
+          "identity_fields": [
+            "signature"
+          ],
+          "fields": {
+            "signature": {
+              "type": "string",
+              "required": true
+            },
+            "pool": {
+              "type": "pubkey",
+              "required": true
+            },
+            "trader": {
+              "type": "pubkey",
+              "required": false
+            },
+            "side": {
+              "type": "string",
+              "required": true
+            },
+            "eventTime": {
+              "type": "timestamp",
+              "required": true
+            },
+            "tokenInMint": {
+              "type": "pubkey",
+              "required": false
+            },
+            "tokenOutMint": {
+              "type": "pubkey",
+              "required": false
+            },
+            "amountInUi": {
+              "type": "number",
+              "required": false
+            },
+            "amountOutUi": {
+              "type": "number",
+              "required": false
+            },
+            "quoteNotionalUi": {
+              "type": "number",
+              "required": true
+            },
+            "priceQuote": {
+              "type": "number",
+              "required": true
+            }
+          }
+        }
+      }
+    },
+    "market_cap_series": {
+      "inputs": {
+        "pool": {
+          "type": "pubkey",
+          "required": true
+        },
+        "limit": {
+          "type": "u16",
+          "required": false,
+          "default": 240
+        },
+        "from": {
+          "type": "string",
+          "required": false
+        },
+        "to": {
+          "type": "string",
+          "required": false
+        },
+        "interval": {
+          "type": "string",
+          "required": false,
+          "default": "1m"
+        },
+        "mode": {
+          "type": "string",
+          "required": false,
+          "default": "sparse"
+        }
+      },
+      "read": {
+        "kind": "series",
+        "freshness": {
+          "class": "near_realtime",
+          "target_ms": 5000,
+          "max_staleness_ms": 30000
+        },
+        "entity_type": "orca_market_series",
+        "title": "Market series",
+        "description": "Materialized Orca Whirlpool price series with 1m base buckets, interval rollups, and optional dense fill.",
+        "canonical": {
+          "source": "indexed_series_1m",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "series_id": "orca.whirlpool.market.1m",
+          "subject_input": "pool",
+          "resource_input": "pool",
+          "time_field": "bucket_start",
+          "notes": "Canonical 1m Orca Whirlpool market series projected from canonical swap records."
+        },
+        "projection": {
+          "projection_kind": "series",
+          "source_operation": "trade_feed",
+          "group_by": [
+            "subject_id"
+          ],
+          "bucket": "1m",
+          "fill_mode": "sparse",
+          "aggregations": [
+            {
+              "name": "open",
+              "field": "priceQuote",
+              "fn": "first"
+            },
+            {
+              "name": "high",
+              "field": "priceQuote",
+              "fn": "max"
+            },
+            {
+              "name": "low",
+              "field": "priceQuote",
+              "fn": "min"
+            },
+            {
+              "name": "close",
+              "field": "priceQuote",
+              "fn": "last"
+            },
+            {
+              "name": "volumeQuote",
+              "field": "quoteNotionalUi",
+              "fn": "sum"
+            },
+            {
+              "name": "tradeCount",
+              "field": "*",
+              "fn": "count"
+            }
+          ]
+        }
+      },
+      "read_output": {
+        "type": "array",
+        "source": "$items",
+        "title": "Whirlpool market series",
+        "item_schema": {
+          "entity_type": "orca_market_series_point",
+          "identity_fields": [
+            "bucketStart"
+          ],
+          "fields": {
+            "bucketStart": {
+              "type": "timestamp",
+              "required": true
+            },
+            "open": {
+              "type": "number",
+              "required": true
+            },
+            "high": {
+              "type": "number",
+              "required": true
+            },
+            "low": {
+              "type": "number",
+              "required": true
+            },
+            "close": {
+              "type": "number",
+              "required": true
+            },
+            "volumeQuote": {
+              "type": "number",
+              "required": true
+            },
+            "tradeCount": {
+              "type": "u32",
+              "required": true
+            }
+          }
+        }
+      }
+    },
+    "pools_get": {
+      "inputs": {
+        "pool": {
+          "type": "pubkey",
+          "required": true
+        }
+      },
+      "read": {
+        "kind": "get",
+        "freshness": {
+          "class": "near_realtime",
+          "target_ms": 5000,
+          "max_staleness_ms": 20000
+        },
+        "entity_type": "orca_whirlpool",
+        "title": "Pools get",
+        "description": "Read the current Orca Whirlpool state for a known pool address.",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "notes": "Read the latest canonical Whirlpool state by pool address."
+        },
+        "projection": {
+          "projection_kind": "snapshot",
+          "group_by": [
+            "resource_id"
+          ]
+        }
+      },
+      "read_output": {
+        "type": "object",
+        "source": "$items.0",
+        "title": "Indexed Whirlpool pool",
+        "object_schema": {
+          "entity_type": "orca_whirlpool",
+          "identity_fields": [
+            "pool"
+          ],
+          "fields": {
+            "subjectId": {
+              "type": "pubkey",
+              "required": true
+            },
+            "resourceId": {
+              "type": "pubkey",
+              "required": true
+            },
+            "pool": {
+              "type": "pubkey",
+              "required": true
+            },
+            "marketType": {
+              "type": "string",
+              "required": true
+            },
+            "tokenMintA": {
+              "type": "pubkey",
+              "required": true
+            },
+            "tokenMintB": {
+              "type": "pubkey",
+              "required": true
+            },
+            "tokenVaultA": {
+              "type": "pubkey",
+              "required": true
+            },
+            "tokenVaultB": {
+              "type": "pubkey",
+              "required": true
+            },
+            "tokenDecimalsA": {
+              "type": "u8",
+              "required": true
+            },
+            "tokenDecimalsB": {
+              "type": "u8",
+              "required": true
+            },
+            "tickSpacing": {
+              "type": "u16",
+              "required": true
+            },
+            "feeRateBps": {
+              "type": "number",
+              "required": true
+            },
+            "liquidity": {
+              "type": "u128",
+              "required": true
+            },
+            "tickCurrentIndex": {
+              "type": "i32",
+              "required": true
+            },
+            "priceQuote": {
+              "type": "number",
+              "required": true
+            },
+            "inversePriceQuote": {
+              "type": "number",
+              "required": true
+            },
+            "vaultBalanceAUi": {
+              "type": "number",
+              "required": true
+            },
+            "vaultBalanceBUi": {
+              "type": "number",
+              "required": true
+            },
+            "liquidityQuote": {
+              "type": "number",
+              "required": true
+            },
+            "observedAt": {
+              "type": "timestamp",
+              "required": true
+            },
+            "updatedAt": {
+              "type": "timestamp",
+              "required": false
+            },
+            "lastEventTime": {
+              "type": "timestamp",
+              "required": false
+            }
+          }
+        }
+      }
+    },
+    "pools_index": {
+      "inputs": {
+        "token_in_mint": {
+          "type": "token_mint",
+          "required": true
+        },
+        "token_out_mint": {
+          "type": "token_mint",
+          "required": true
+        }
+      },
+      "validate": {
+        "cross": [
+          {
+            "kind": "not_equal",
+            "left": "$input.token_in_mint",
+            "right": "$input.token_out_mint",
+            "message": "token_in_mint and token_out_mint must be different."
+          }
+        ]
+      },
+      "read_output": {
+        "type": "array",
+        "source": "$items",
+        "title": "Pools found",
+        "emptyText": "No indexed Whirlpool pool found for this pair.",
+        "maxItems": 20,
+        "itemLabelFields": [
+          "pool",
+          "tickSpacing",
+          "liquidityQuote"
+        ],
+        "item_schema": {
+          "entity_type": "orca_whirlpool",
+          "identity_fields": [
+            "pool"
+          ],
+          "fields": {
+            "subjectId": {
+              "type": "pubkey",
+              "required": true
+            },
+            "resourceId": {
+              "type": "pubkey",
+              "required": true
+            },
+            "pool": {
+              "type": "pubkey",
+              "required": true
+            },
+            "marketType": {
+              "type": "string",
+              "required": true
+            },
+            "tokenMintA": {
+              "type": "pubkey",
+              "required": true
+            },
+            "tokenMintB": {
+              "type": "pubkey",
+              "required": true
+            },
+            "tokenVaultA": {
+              "type": "pubkey",
+              "required": true
+            },
+            "tokenVaultB": {
+              "type": "pubkey",
+              "required": true
+            },
+            "tokenDecimalsA": {
+              "type": "u8",
+              "required": true
+            },
+            "tokenDecimalsB": {
+              "type": "u8",
+              "required": true
+            },
+            "tickSpacing": {
+              "type": "u16",
+              "required": true
+            },
+            "feeRateBps": {
+              "type": "number",
+              "required": true
+            },
+            "liquidity": {
+              "type": "u128",
+              "required": true
+            },
+            "tickCurrentIndex": {
+              "type": "i32",
+              "required": true
+            },
+            "priceQuote": {
+              "type": "number",
+              "required": true
+            },
+            "inversePriceQuote": {
+              "type": "number",
+              "required": true
+            },
+            "vaultBalanceAUi": {
+              "type": "number",
+              "required": true
+            },
+            "vaultBalanceBUi": {
+              "type": "number",
+              "required": true
+            },
+            "liquidityQuote": {
+              "type": "number",
+              "required": true
+            },
+            "observedAt": {
+              "type": "timestamp",
+              "required": true
+            },
+            "updatedAt": {
+              "type": "timestamp",
+              "required": false
+            },
+            "lastEventTime": {
+              "type": "timestamp",
+              "required": false
+            }
+          }
+        }
+      },
+      "read": {
+        "kind": "index",
+        "freshness": {
+          "class": "near_realtime",
+          "target_ms": 10000,
+          "max_staleness_ms": 60000
+        },
+        "entity_type": "whirlpool_pool",
+        "title": "Pools index",
+        "description": "Find indexed Whirlpool pools for a token pair.",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "notes": "Canonical Whirlpool pool directory ordered by indexed liquidity."
+        },
+        "projection": {
+          "projection_kind": "search",
+          "filters": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  }
+                ]
+              }
+            ]
+          },
+          "sort_by": [
+            {
+              "field": "liquidityQuote",
+              "dir": "desc"
+            },
+            {
+              "field": "updatedAt",
+              "dir": "desc"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "contract_writes": {
+    "swap_exact_in": {
+      "inputs": {
+        "token_in_mint": {
+          "type": "token_mint",
+          "required": true
+        },
+        "token_out_mint": {
+          "type": "token_mint",
+          "required": true
+        },
+        "amount_in": {
+          "type": "u64",
+          "required": true,
+          "validate": {
+            "min": "1",
+            "message": "amount_in must be greater than 0."
+          }
+        },
+        "slippage_bps": {
+          "type": "u16",
+          "required": true,
+          "validate": {
+            "min": 0,
+            "max": 5000,
+            "message": "slippage_bps must be between 0 and 5000."
+          }
+        },
+        "estimated_out": {
+          "type": "u64",
+          "required": false,
+          "default": "0",
+          "bind_from": "$derived.estimated_out_auto"
+        },
+        "whirlpool": {
+          "type": "pubkey",
+          "required": true
+        },
+        "unwrap_sol_output": {
+          "type": "bool",
+          "required": false,
+          "default": true
+        }
+      },
+      "validate": {
+        "cross": [
+          {
+            "kind": "not_equal",
+            "left": "$input.token_in_mint",
+            "right": "$input.token_out_mint",
+            "message": "token_in_mint and token_out_mint must be different."
+          }
+        ]
+      },
+      "use": [
+        {
+          "template": "orca.swap_exact_in.v2",
+          "with": {
+            "token_in_mint": "$input.token_in_mint",
+            "amount_in": "$input.amount_in",
+            "slippage_bps": "$input.slippage_bps",
+            "estimated_out": "$input.estimated_out"
+          }
+        }
+      ]
     }
   }
 }

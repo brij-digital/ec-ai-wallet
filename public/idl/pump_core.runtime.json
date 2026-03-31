@@ -20,18 +20,15 @@
     },
     "entrypoints": {
       "preview_buy_exact_sol_in": "computes.preview_buy_exact_sol_in",
-      "buy_exact_sol_in": "executions.buy_exact_sol_in"
+      "buy_exact_sol_in": "contract_writes.buy_exact_sol_in"
     },
     "relations": [],
     "recipes": {
       "buy_exact_sol_in": [
         "computes.preview_buy_exact_sol_in",
-        "executions.buy_exact_sol_in"
+        "contract_writes.buy_exact_sol_in"
       ]
     }
-  },
-  "reads": {
-    "index": {}
   },
   "computes": {
     "preview_buy_exact_sol_in": {
@@ -279,11 +276,42 @@
       "read_output": {
         "type": "object",
         "source": "$derived",
-        "title": "Bonding curve buy preview"
+        "title": "Bonding curve buy preview",
+        "object_schema": {
+          "entity_type": "pump_core_preview_buy_exact_sol_in",
+          "fields": {
+            "base_mint": {
+              "type": "pubkey",
+              "required": false
+            },
+            "spendable_sol_in": {
+              "type": "u64",
+              "required": false
+            },
+            "slippage_bps": {
+              "type": "u16",
+              "required": false
+            },
+            "estimated_out_auto": {
+              "type": "u64",
+              "required": false
+            },
+            "min_tokens_out_auto": {
+              "type": "u64",
+              "required": false
+            },
+            "total_fee_bps": {
+              "type": "u16",
+              "required": false
+            }
+          }
+        }
       }
     }
   },
-  "executions": {
+  "templates": {},
+  "index_views": {},
+  "contract_writes": {
     "buy_exact_sol_in": {
       "instruction": "buy_exact_sol_in",
       "inputs": {
@@ -562,6 +590,5 @@
         }
       ]
     }
-  },
-  "templates": {}
+  }
 }

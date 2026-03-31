@@ -30,6 +30,29 @@ function asNonEmptyString(value, label) {
   return value.trim();
 }
 
+function validateOutputSchema(schema, label) {
+  const objectSchema = asObject(schema, label);
+  const fields = asObject(objectSchema.fields, `${label}.fields`);
+  if (Object.keys(fields).length === 0) {
+    fail(`${label}.fields must not be empty.`);
+  }
+  if (objectSchema.entity_type !== undefined) {
+    asNonEmptyString(objectSchema.entity_type, `${label}.entity_type`);
+  }
+  if (objectSchema.identity_fields !== undefined) {
+    asArray(objectSchema.identity_fields, `${label}.identity_fields`).forEach((entry, index) => {
+      asNonEmptyString(entry, `${label}.identity_fields[${index}]`);
+    });
+  }
+  for (const [fieldName, fieldRaw] of Object.entries(fields)) {
+    const field = asObject(fieldRaw, `${label}.fields.${fieldName}`);
+    asNonEmptyString(field.type, `${label}.fields.${fieldName}.type`);
+    if (field.description !== undefined) {
+      asNonEmptyString(field.description, `${label}.fields.${fieldName}.description`);
+    }
+  }
+}
+
 async function readJson(filePath, label) {
   const raw = await fs.readFile(filePath, 'utf8').catch(() => null);
   if (raw === null) {
@@ -78,10 +101,9 @@ async function main() {
     }
 
     const sections = [
-      ['reads.contract', asObject(runtimePack.reads?.contract ?? {}, `${protocolId}.agentRuntime.reads.contract`)],
-      ['reads.index', asObject(runtimePack.reads?.index ?? {}, `${protocolId}.agentRuntime.reads.index`)],
+      ['index_views', asObject(runtimePack.index_views ?? {}, `${protocolId}.agentRuntime.index_views`)],
       ['computes', asObject(runtimePack.computes ?? {}, `${protocolId}.agentRuntime.computes`)],
-      ['executions', asObject(runtimePack.executions ?? {}, `${protocolId}.agentRuntime.executions`)],
+      ['contract_writes', asObject(runtimePack.contract_writes ?? {}, `${protocolId}.agentRuntime.contract_writes`)],
     ];
     let lintedOperations = 0;
     for (const [sectionName, operations] of sections) {
@@ -110,9 +132,31 @@ async function main() {
             `${protocolId}.agentRuntime.${sectionName}.${operationId}.read_output`,
           );
           asNonEmptyString(
+            readOutput.type,
+            `${protocolId}.agentRuntime.${sectionName}.${operationId}.read_output.type`,
+          );
+          asNonEmptyString(
             readOutput.source,
             `${protocolId}.agentRuntime.${sectionName}.${operationId}.read_output.source`,
           );
+          if (readOutput.object_schema !== undefined) {
+            validateOutputSchema(
+              readOutput.object_schema,
+              `${protocolId}.agentRuntime.${sectionName}.${operationId}.read_output.object_schema`,
+            );
+          }
+          if (readOutput.item_schema !== undefined) {
+            validateOutputSchema(
+              readOutput.item_schema,
+              `${protocolId}.agentRuntime.${sectionName}.${operationId}.read_output.item_schema`,
+            );
+          }
+          if (readOutput.scalar_type !== undefined) {
+            asNonEmptyString(
+              readOutput.scalar_type,
+              `${protocolId}.agentRuntime.${sectionName}.${operationId}.read_output.scalar_type`,
+            );
+          }
         }
         lintedOperations += 1;
       }

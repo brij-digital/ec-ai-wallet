@@ -39,10 +39,7 @@ type RuntimeSpec = {
   protocol?: {
     label?: string;
   };
-  reads?: {
-    contract?: Record<string, RuntimeOperation>;
-    index?: Record<string, RuntimeOperation>;
-  };
+  index_views?: Record<string, RuntimeOperation>;
 };
 
 type CatalogEntry = {
@@ -140,7 +137,7 @@ export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTa
             continue;
           }
           const runtime = (await runtimeResponse.json()) as RuntimeSpec;
-          const readOperations = runtime.reads?.index ?? {};
+          const readOperations = runtime.index_views ?? {};
           for (const [opId, operation] of Object.entries(readOperations)) {
             const view = operation.read;
             if (!view) {

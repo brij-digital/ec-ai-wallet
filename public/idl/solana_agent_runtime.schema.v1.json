@@ -3,7 +3,7 @@
   "$id": "/idl/solana_agent_runtime.schema.v1.json",
   "title": "Solana Agent Runtime Spec V1",
   "type": "object",
-  "required": ["schema", "protocol", "navigation", "reads", "computes", "executions"],
+  "required": ["schema", "protocol", "navigation", "index_views", "computes", "contract_writes"],
   "properties": {
     "schema": {
       "const": "solana-agent-runtime.v1"
@@ -17,8 +17,11 @@
     "navigation": {
       "$ref": "#/$defs/navigationSpec"
     },
-    "reads": {
-      "$ref": "#/$defs/readsSpec"
+    "index_views": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/indexViewSpec"
+      }
     },
     "computes": {
       "type": "object",
@@ -26,7 +29,7 @@
         "$ref": "#/$defs/computeSpec"
       }
     },
-    "executions": {
+    "contract_writes": {
       "type": "object",
       "additionalProperties": {
         "$ref": "#/$defs/executionSpec"
@@ -107,6 +110,34 @@
       },
       "additionalProperties": true
     },
+    "outputFieldSpec": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "required": { "type": "boolean" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "outputObjectSchemaSpec": {
+      "type": "object",
+      "required": ["fields"],
+      "properties": {
+        "entity_type": { "type": "string" },
+        "identity_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/outputFieldSpec"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "readOutputSpec": {
       "type": "object",
       "required": ["type", "source"],
@@ -115,11 +146,31 @@
           "type": "string",
           "enum": ["array", "object", "scalar", "list"]
         },
-        "source": { "type": "string" }
+        "source": { "type": "string" },
+        "title": { "type": "string" },
+        "empty_text": { "type": "string" },
+        "emptyText": { "type": "string" },
+        "max_items": { "type": "integer", "minimum": 1 },
+        "maxItems": { "type": "integer", "minimum": 1 },
+        "item_label_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "itemLabelFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "object_schema": {
+          "$ref": "#/$defs/outputObjectSchemaSpec"
+        },
+        "item_schema": {
+          "$ref": "#/$defs/outputObjectSchemaSpec"
+        },
+        "scalar_type": { "type": "string" }
       },
       "additionalProperties": true
     },
-    "indexReadSpec": {
+    "indexViewSpec": {
       "type": "object",
       "properties": {
         "inputs": {
@@ -141,7 +192,7 @@
           "properties": {
             "kind": {
               "type": "string",
-              "enum": ["search", "account", "feed", "series", "ranking", "context"]
+              "enum": ["index", "get", "resolve", "feed", "series", "ranking", "context"]
             }
           },
           "additionalProperties": true
@@ -149,19 +200,6 @@
       },
       "required": ["read"],
       "additionalProperties": true
-    },
-    "readsSpec": {
-      "type": "object",
-      "required": ["index"],
-      "properties": {
-        "index": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/indexReadSpec"
-          }
-        }
-      },
-      "additionalProperties": false
     },
     "computeSpec": {
       "type": "object",

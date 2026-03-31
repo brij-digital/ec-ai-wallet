@@ -136,12 +136,9 @@ function createAgentRuntimeSkeleton({ protocolId, programId, codamaAssetPath }) 
       relations: [],
       recipes: {},
     },
-    reads: {
-      contract: {},
-      index: {},
-    },
+    index_views: {},
     computes: {},
-    executions: {},
+    contract_writes: {},
     templates: {},
   };
 }
@@ -247,7 +244,7 @@ async function main() {
   console.log('Next steps:');
   console.log('1. Make public/idl/<slug>.codama.json the protocol source of truth.');
   console.log('2. Fill public/idl/<slug>.indexing.json with sources, matchRules, pipelines, and projections.');
-  console.log('3. Fill public/idl/<slug>.runtime.json with agent reads, computes, executions, and navigation.');
+  console.log('3. Fill public/idl/<slug>.runtime.json with agent index views, computes, contract writes, and navigation.');
   console.log('4. Run: npm run codama:check');
   console.log('5. Run: npm run pack:doctor -- --protocol <protocol-id>');
   console.log('6. Run: npm run pack:check');

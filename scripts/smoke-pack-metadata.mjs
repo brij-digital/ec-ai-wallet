@@ -45,9 +45,9 @@ async function main() {
       fail(`${agentRuntimeFilePath} did not parse as a JSON object.`);
     }
     const hasCapabilities =
-      (agentRuntime.reads && typeof agentRuntime.reads === 'object' && !Array.isArray(agentRuntime.reads)) ||
+      (agentRuntime.index_views && typeof agentRuntime.index_views === 'object' && !Array.isArray(agentRuntime.index_views)) ||
       (agentRuntime.computes && typeof agentRuntime.computes === 'object' && !Array.isArray(agentRuntime.computes)) ||
-      (agentRuntime.executions && typeof agentRuntime.executions === 'object' && !Array.isArray(agentRuntime.executions));
+      (agentRuntime.contract_writes && typeof agentRuntime.contract_writes === 'object' && !Array.isArray(agentRuntime.contract_writes));
     if (!hasCapabilities) {
       fail(`${agentRuntimeFilePath} is missing agent runtime capabilities.`);
     }
