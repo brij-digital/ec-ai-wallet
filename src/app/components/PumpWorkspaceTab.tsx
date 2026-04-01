@@ -204,7 +204,6 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
   const [chartStatus, setChartStatus] = useState<string | null>(null);
   const [chartError, setChartError] = useState<string | null>(null);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
-  const [workspaceNotice, setWorkspaceNotice] = useState<string | null>(null);
   const [selectedCandle, setSelectedCandle] = useState<CandleInspect | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -252,15 +251,7 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
   }, []);
 
   async function loadRankedTokens(): Promise<void> {
-    const toRankedItems = (rawItems: unknown[]): RankedToken[] => rawItems.filter((item): item is RankedToken => {
-      if (!item || typeof item !== 'object' || Array.isArray(item)) {
-        return false;
-      }
-      const row = item as Record<string, unknown>;
-      return typeof row.mint === 'string' && typeof row.pool === 'string';
-    });
-
-    const primaryResponse = await runView(
+    const response = await runView(
       baseUrl,
       'pump-amm-mainnet',
       'ranked_active_tokens',
@@ -271,36 +262,17 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
       },
       12,
     );
-    if (!primaryResponse.ok || !Array.isArray(primaryResponse.items)) {
-      throw new Error(primaryResponse.error ?? 'Failed to load ranked Pump tokens.');
+    if (!response.ok || !Array.isArray(response.items)) {
+      throw new Error(response.error ?? 'Failed to load ranked Pump tokens.');
     }
-
-    let items = toRankedItems(primaryResponse.items);
-    let notice: string | null = null;
-
-    if (items.length === 0) {
-      const fallbackResponse = await runView(
-        baseUrl,
-        'pump-amm-mainnet',
-        'ranked_active_tokens',
-        {
-          quote_mint: DEFAULT_QUOTE_MINT,
-          window_hours: 24,
-          max_activity_age_minutes: 1440,
-        },
-        12,
-      );
-      if (!fallbackResponse.ok || !Array.isArray(fallbackResponse.items)) {
-        throw new Error(fallbackResponse.error ?? 'Failed to load ranked Pump tokens.');
+    const items = response.items.filter((item): item is RankedToken => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return false;
       }
-      items = toRankedItems(fallbackResponse.items);
-      if (items.length > 0) {
-        notice = 'No Pump tokens matched the last 30 minutes. Showing the freshest candidates seen in the last 24 hours.';
-      }
-    }
-
+      const row = item as Record<string, unknown>;
+      return typeof row.mint === 'string' && typeof row.pool === 'string';
+    });
     setRankedTokens(items);
-    setWorkspaceNotice(notice);
     if (!selectedMint && items[0]?.mint) {
       setSelectedMint(items[0].mint);
     } else if (selectedMint && !items.some((item) => item.mint === selectedMint) && items[0]?.mint) {
@@ -547,7 +519,7 @@ export function PumpWorkspaceTab({ viewApiBaseUrl }: PumpWorkspaceTabProps) {
       <div className="pump-workspace-toolbar">
         <div className="pump-workspace-toolbar-copy">
           <strong>Primary flow</strong>
-          <span>{workspaceNotice ?? 'Discover active mints, qualify them, inspect the chart, then act.'}</span>
+          <span>Discover active mints, qualify them, inspect the chart, then act.</span>
         </div>
         <button type="button" onClick={() => void refreshAll(selectedMint ?? undefined)} disabled={isRefreshing}>
           {isRefreshing ? 'Refreshing…' : 'Refresh Workspace'}
