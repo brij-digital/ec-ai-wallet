@@ -113,15 +113,15 @@
         "name": "market_cap_numerator",
         "kind": "math.mul",
         "values": [
-          "$pool_quote_reserve_atomic",
-          "$base_mint_supply_atomic"
+          "$pool_quote_reserve_data.amount",
+          "$base_mint_data.supply"
         ]
       },
       {
         "name": "market_cap_lamports",
         "kind": "math.floor_div",
         "dividend": "$market_cap_numerator",
-        "divisor": "$pool_base_reserve_atomic"
+        "divisor": "$pool_base_reserve_data.amount"
       },
       {
         "name": "fee_tier_candidates",
@@ -228,7 +228,7 @@
         "name": "base_amount_out_numerator",
         "kind": "math.mul",
         "values": [
-          "$pool_base_reserve_atomic",
+          "$pool_base_reserve_data.amount",
           "$effective_quote"
         ]
       },
@@ -236,7 +236,7 @@
         "name": "base_amount_out_denominator",
         "kind": "math.add",
         "values": [
-          "$pool_quote_reserve_atomic",
+          "$pool_quote_reserve_data.amount",
           "$effective_quote"
         ]
       },
@@ -362,15 +362,15 @@
         "name": "market_cap_numerator",
         "kind": "math.mul",
         "values": [
-          "$pool_quote_reserve_atomic",
-          "$base_mint_supply_atomic"
+          "$pool_quote_reserve_data.amount",
+          "$base_mint_data.supply"
         ]
       },
       {
         "name": "market_cap_lamports",
         "kind": "math.floor_div",
         "dividend": "$market_cap_numerator",
-        "divisor": "$pool_base_reserve_atomic"
+        "divisor": "$pool_base_reserve_data.amount"
       },
       {
         "name": "fee_tier_candidates",
@@ -477,7 +477,7 @@
         "name": "base_amount_out_numerator",
         "kind": "math.mul",
         "values": [
-          "$pool_base_reserve_atomic",
+          "$pool_base_reserve_data.amount",
           "$effective_quote"
         ]
       },
@@ -485,7 +485,7 @@
         "name": "base_amount_out_denominator",
         "kind": "math.add",
         "values": [
-          "$pool_quote_reserve_atomic",
+          "$pool_quote_reserve_data.amount",
           "$effective_quote"
         ]
       },
@@ -680,19 +680,22 @@
           ]
         },
         {
-          "name": "pool_base_reserve_atomic",
-          "kind": "token_account_balance",
-          "address": "$pool_data.pool_base_token_account"
+          "name": "pool_base_reserve_data",
+          "kind": "decode_account",
+          "address": "$pool_data.pool_base_token_account",
+          "account_type": "TokenAccount"
         },
         {
-          "name": "pool_quote_reserve_atomic",
-          "kind": "token_account_balance",
-          "address": "$pool_data.pool_quote_token_account"
+          "name": "pool_quote_reserve_data",
+          "kind": "decode_account",
+          "address": "$pool_data.pool_quote_token_account",
+          "account_type": "TokenAccount"
         },
         {
-          "name": "base_mint_supply_atomic",
-          "kind": "token_supply",
-          "mint": "$pool_data.base_mint"
+          "name": "base_mint_data",
+          "kind": "decode_account",
+          "address": "$pool_data.base_mint",
+          "account_type": "Mint"
         },
         {
           "name": "pool_v2",

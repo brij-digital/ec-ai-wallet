@@ -278,10 +278,8 @@
           <thead><tr><th><code>kind</code></th><th>Required attributes</th><th>Optional attributes</th></tr></thead>
           <tbody>
             <tr><td><code>wallet_pubkey</code></td><td><code>name</code>, <code>kind</code></td><td>none</td></tr>
-            <tr><td><code>decode_account</code></td><td><code>name</code>, <code>kind</code>, <code>address</code>, <code>account_type</code></td><td>none</td></tr>
+            <tr><td><code>decode_account</code></td><td><code>name</code>, <code>kind</code>, <code>address</code>, <code>account_type</code></td><td>Supports protocol account types from Codama and standard types like <code>Mint</code> and <code>TokenAccount</code></td></tr>
             <tr><td><code>account_owner</code></td><td><code>name</code>, <code>kind</code>, <code>address</code></td><td>none</td></tr>
-            <tr><td><code>token_account_balance</code></td><td><code>name</code>, <code>kind</code>, <code>address</code></td><td><code>allow_missing</code>, <code>default</code></td></tr>
-            <tr><td><code>token_supply</code></td><td><code>name</code>, <code>kind</code>, <code>mint</code></td><td>none</td></tr>
             <tr><td><code>ata</code></td><td><code>name</code>, <code>kind</code>, <code>owner</code>, <code>mint</code></td><td><code>token_program</code>, <code>allow_owner_off_curve</code></td></tr>
             <tr><td><code>pda</code></td><td><code>name</code>, <code>kind</code>, <code>program_id</code></td><td><code>seeds</code></td></tr>
           </tbody>

@@ -390,52 +390,6 @@
           "required": [
             "name",
             "kind",
-            "address"
-          ],
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "kind": {
-              "const": "token_account_balance"
-            },
-            "address": {
-              "$ref": "#/$defs/jsonValue"
-            },
-            "allow_missing": {
-              "$ref": "#/$defs/jsonValue"
-            },
-            "default": {
-              "$ref": "#/$defs/jsonValue"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "name",
-            "kind",
-            "mint"
-          ],
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "kind": {
-              "const": "token_supply"
-            },
-            "mint": {
-              "$ref": "#/$defs/jsonValue"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "name",
-            "kind",
             "owner",
             "mint"
           ],
