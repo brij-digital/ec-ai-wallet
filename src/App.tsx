@@ -30,18 +30,25 @@ const TAB_HASHES: Record<AppTab, string> = {
 
 function parseTabFromLocationHash(): AppTab {
   if (typeof window === 'undefined') {
-    return 'agent';
+    return 'runner';
   }
   const hash = window.location.hash.replace(/^#/, '').trim();
   const match = (Object.entries(TAB_HASHES) as Array<[AppTab, string]>).find(([, value]) => value === hash);
-  return match?.[0] ?? 'agent';
+  return match?.[0] ?? 'runner';
 }
 
 function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(parseTabFromLocationHash);
-  const [appMode, setAppMode] = useState<AppMode>(() =>
-    NORMAL_TABS.includes(parseTabFromLocationHash()) ? 'normal' : 'advanced',
-  );
+  const [appMode, setAppMode] = useState<AppMode>(() => {
+    if (typeof window === 'undefined') {
+      return 'normal';
+    }
+    const hash = window.location.hash.replace(/^#/, '').trim();
+    if (!hash) {
+      return 'normal';
+    }
+    return NORMAL_TABS.includes(parseTabFromLocationHash()) ? 'normal' : 'advanced';
+  });
 
   const switchTab = (nextTab: AppTab) => {
     setActiveTab(nextTab);
