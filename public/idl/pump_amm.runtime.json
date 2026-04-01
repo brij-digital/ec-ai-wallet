@@ -181,226 +181,7 @@
         }
       ],
       "transform": [
-        {
-          "name": "protocol_fee_recipient",
-          "kind": "list.get",
-          "values": "$global_config_data.protocol_fee_recipients",
-          "index": 0
-        },
-        {
-          "name": "protocol_fee_recipient_token_account",
-          "kind": "pda(seed_spec)",
-          "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-          "seeds": [
-            {
-              "kind": "pubkey",
-              "value": "$protocol_fee_recipient"
-            },
-            {
-              "kind": "pubkey",
-              "value": "$quote_token_program"
-            },
-            {
-              "kind": "pubkey",
-              "value": "$pool_data.quote_mint"
-            }
-          ]
-        },
-        {
-          "name": "remaining_accounts",
-          "kind": "logic.if",
-          "condition": "$pool_data.is_cashback_coin",
-          "then": [
-            {
-              "pubkey": "$user_volume_accumulator_wsol_ata",
-              "isSigner": false,
-              "isWritable": true
-            },
-            {
-              "pubkey": "$pool_v2",
-              "isSigner": false,
-              "isWritable": false
-            }
-          ],
-          "else": [
-            {
-              "pubkey": "$pool_v2",
-              "isSigner": false,
-              "isWritable": false
-            }
-          ]
-        },
-        {
-          "name": "creator_is_default",
-          "kind": "compare.equals",
-          "left": "$pool_data.coin_creator",
-          "right": "11111111111111111111111111111111"
-        },
-        {
-          "name": "is_pump_pool",
-          "kind": "compare.equals",
-          "left": "$pool_data.creator",
-          "right": "$pump_pool_authority"
-        },
-        {
-          "name": "market_cap_numerator",
-          "kind": "math.mul",
-          "values": [
-            "$pool_quote_reserve_atomic",
-            "$base_mint_supply_atomic"
-          ]
-        },
-        {
-          "name": "market_cap_lamports",
-          "kind": "math.floor_div",
-          "dividend": "$market_cap_numerator",
-          "divisor": "$pool_base_reserve_atomic"
-        },
-        {
-          "name": "fee_tier_candidates",
-          "kind": "list.filter",
-          "items": "$fee_config_data.fee_tiers",
-          "where": [
-            {
-              "path": "market_cap_lamports_threshold",
-              "op": ">=",
-              "value": "$market_cap_lamports"
-            }
-          ]
-        },
-        {
-          "name": "selected_fee_tier_primary",
-          "kind": "list.min_by",
-          "items": "$fee_tier_candidates",
-          "path": "market_cap_lamports_threshold",
-          "allow_empty": true
-        },
-        {
-          "name": "selected_fee_tier_default",
-          "kind": "list.max_by",
-          "items": "$fee_config_data.fee_tiers",
-          "path": "market_cap_lamports_threshold",
-          "allow_empty": true
-        },
-        {
-          "name": "selected_fee_tier",
-          "kind": "coalesce",
-          "values": [
-            "$selected_fee_tier_primary",
-            "$selected_fee_tier_default"
-          ]
-        },
-        {
-          "name": "selected_fees_if_pump",
-          "kind": "coalesce",
-          "values": [
-            "$selected_fee_tier.fees",
-            "$fee_config_data.flat_fees"
-          ]
-        },
-        {
-          "name": "lp_fee_bps",
-          "kind": "logic.if",
-          "condition": "$is_pump_pool",
-          "then": "$selected_fees_if_pump.lp_fee_bps",
-          "else": "$global_config_data.lp_fee_basis_points"
-        },
-        {
-          "name": "protocol_fee_bps",
-          "kind": "logic.if",
-          "condition": "$is_pump_pool",
-          "then": "$selected_fees_if_pump.protocol_fee_bps",
-          "else": "$global_config_data.protocol_fee_basis_points"
-        },
-        {
-          "name": "creator_fee_bps_raw",
-          "kind": "logic.if",
-          "condition": "$is_pump_pool",
-          "then": "$selected_fees_if_pump.creator_fee_bps",
-          "else": "$global_config_data.coin_creator_fee_basis_points"
-        },
-        {
-          "name": "creator_fee_bps",
-          "kind": "logic.if",
-          "condition": "$creator_is_default",
-          "then": "0",
-          "else": "$creator_fee_bps_raw"
-        },
-        {
-          "name": "total_fee_bps",
-          "kind": "math.add",
-          "values": [
-            "$lp_fee_bps",
-            "$protocol_fee_bps",
-            "$creator_fee_bps"
-          ]
-        },
-        {
-          "name": "effective_quote_numerator",
-          "kind": "math.mul",
-          "values": [
-            "$input.quote_amount_in",
-            "10000"
-          ]
-        },
-        {
-          "name": "effective_quote_denominator",
-          "kind": "math.add",
-          "values": [
-            "10000",
-            "$total_fee_bps"
-          ]
-        },
-        {
-          "name": "effective_quote",
-          "kind": "math.floor_div",
-          "dividend": "$effective_quote_numerator",
-          "divisor": "$effective_quote_denominator"
-        },
-        {
-          "name": "base_amount_out_numerator",
-          "kind": "math.mul",
-          "values": [
-            "$pool_base_reserve_atomic",
-            "$effective_quote"
-          ]
-        },
-        {
-          "name": "base_amount_out_denominator",
-          "kind": "math.add",
-          "values": [
-            "$pool_quote_reserve_atomic",
-            "$effective_quote"
-          ]
-        },
-        {
-          "name": "base_amount_out",
-          "kind": "math.floor_div",
-          "dividend": "$base_amount_out_numerator",
-          "divisor": "$base_amount_out_denominator"
-        },
-        {
-          "name": "slippage_factor",
-          "kind": "math.add",
-          "values": [
-            "10000",
-            "$input.slippage_bps"
-          ]
-        },
-        {
-          "name": "max_quote_amount_in_numerator",
-          "kind": "math.mul",
-          "values": [
-            "$input.quote_amount_in",
-            "$slippage_factor"
-          ]
-        },
-        {
-          "name": "max_quote_amount_in",
-          "kind": "math.floor_div",
-          "dividend": "$max_quote_amount_in_numerator",
-          "divisor": "10000"
-        }
+        "preview_buy__transform"
       ],
       "args": {
         "base_amount_out": "$base_amount_out",
@@ -619,31 +400,7 @@
         }
       ],
       "transform": [
-        {
-          "name": "protocol_fee_recipient",
-          "kind": "list.get",
-          "values": "$global_config_data.protocol_fee_recipients",
-          "index": 0
-        },
-        {
-          "name": "protocol_fee_recipient_token_account",
-          "kind": "pda(seed_spec)",
-          "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-          "seeds": [
-            {
-              "kind": "pubkey",
-              "value": "$protocol_fee_recipient"
-            },
-            {
-              "kind": "pubkey",
-              "value": "$quote_token_program"
-            },
-            {
-              "kind": "pubkey",
-              "value": "$pool_data.quote_mint"
-            }
-          ]
-        }
+        "preview_sell__transform"
       ],
       "args": {
         "base_amount_in": "$input.base_amount_in",
@@ -886,226 +643,7 @@
         }
       ],
       "transform": [
-        {
-          "name": "protocol_fee_recipient",
-          "kind": "list.get",
-          "values": "$global_config_data.protocol_fee_recipients",
-          "index": 0
-        },
-        {
-          "name": "protocol_fee_recipient_token_account",
-          "kind": "pda(seed_spec)",
-          "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-          "seeds": [
-            {
-              "kind": "pubkey",
-              "value": "$protocol_fee_recipient"
-            },
-            {
-              "kind": "pubkey",
-              "value": "$quote_token_program"
-            },
-            {
-              "kind": "pubkey",
-              "value": "$pool_data.quote_mint"
-            }
-          ]
-        },
-        {
-          "name": "remaining_accounts",
-          "kind": "logic.if",
-          "condition": "$pool_data.is_cashback_coin",
-          "then": [
-            {
-              "pubkey": "$user_volume_accumulator_wsol_ata",
-              "isSigner": false,
-              "isWritable": true
-            },
-            {
-              "pubkey": "$pool_v2",
-              "isSigner": false,
-              "isWritable": false
-            }
-          ],
-          "else": [
-            {
-              "pubkey": "$pool_v2",
-              "isSigner": false,
-              "isWritable": false
-            }
-          ]
-        },
-        {
-          "name": "creator_is_default",
-          "kind": "compare.equals",
-          "left": "$pool_data.coin_creator",
-          "right": "11111111111111111111111111111111"
-        },
-        {
-          "name": "is_pump_pool",
-          "kind": "compare.equals",
-          "left": "$pool_data.creator",
-          "right": "$pump_pool_authority"
-        },
-        {
-          "name": "market_cap_numerator",
-          "kind": "math.mul",
-          "values": [
-            "$pool_quote_reserve_atomic",
-            "$base_mint_supply_atomic"
-          ]
-        },
-        {
-          "name": "market_cap_lamports",
-          "kind": "math.floor_div",
-          "dividend": "$market_cap_numerator",
-          "divisor": "$pool_base_reserve_atomic"
-        },
-        {
-          "name": "fee_tier_candidates",
-          "kind": "list.filter",
-          "items": "$fee_config_data.fee_tiers",
-          "where": [
-            {
-              "path": "market_cap_lamports_threshold",
-              "op": ">=",
-              "value": "$market_cap_lamports"
-            }
-          ]
-        },
-        {
-          "name": "selected_fee_tier_primary",
-          "kind": "list.min_by",
-          "items": "$fee_tier_candidates",
-          "path": "market_cap_lamports_threshold",
-          "allow_empty": true
-        },
-        {
-          "name": "selected_fee_tier_default",
-          "kind": "list.max_by",
-          "items": "$fee_config_data.fee_tiers",
-          "path": "market_cap_lamports_threshold",
-          "allow_empty": true
-        },
-        {
-          "name": "selected_fee_tier",
-          "kind": "coalesce",
-          "values": [
-            "$selected_fee_tier_primary",
-            "$selected_fee_tier_default"
-          ]
-        },
-        {
-          "name": "selected_fees_if_pump",
-          "kind": "coalesce",
-          "values": [
-            "$selected_fee_tier.fees",
-            "$fee_config_data.flat_fees"
-          ]
-        },
-        {
-          "name": "lp_fee_bps",
-          "kind": "logic.if",
-          "condition": "$is_pump_pool",
-          "then": "$selected_fees_if_pump.lp_fee_bps",
-          "else": "$global_config_data.lp_fee_basis_points"
-        },
-        {
-          "name": "protocol_fee_bps",
-          "kind": "logic.if",
-          "condition": "$is_pump_pool",
-          "then": "$selected_fees_if_pump.protocol_fee_bps",
-          "else": "$global_config_data.protocol_fee_basis_points"
-        },
-        {
-          "name": "creator_fee_bps_raw",
-          "kind": "logic.if",
-          "condition": "$is_pump_pool",
-          "then": "$selected_fees_if_pump.creator_fee_bps",
-          "else": "$global_config_data.coin_creator_fee_basis_points"
-        },
-        {
-          "name": "creator_fee_bps",
-          "kind": "logic.if",
-          "condition": "$creator_is_default",
-          "then": "0",
-          "else": "$creator_fee_bps_raw"
-        },
-        {
-          "name": "total_fee_bps",
-          "kind": "math.add",
-          "values": [
-            "$lp_fee_bps",
-            "$protocol_fee_bps",
-            "$creator_fee_bps"
-          ]
-        },
-        {
-          "name": "effective_quote_numerator",
-          "kind": "math.mul",
-          "values": [
-            "$input.quote_amount_in",
-            "10000"
-          ]
-        },
-        {
-          "name": "effective_quote_denominator",
-          "kind": "math.add",
-          "values": [
-            "10000",
-            "$total_fee_bps"
-          ]
-        },
-        {
-          "name": "effective_quote",
-          "kind": "math.floor_div",
-          "dividend": "$effective_quote_numerator",
-          "divisor": "$effective_quote_denominator"
-        },
-        {
-          "name": "base_amount_out_numerator",
-          "kind": "math.mul",
-          "values": [
-            "$pool_base_reserve_atomic",
-            "$effective_quote"
-          ]
-        },
-        {
-          "name": "base_amount_out_denominator",
-          "kind": "math.add",
-          "values": [
-            "$pool_quote_reserve_atomic",
-            "$effective_quote"
-          ]
-        },
-        {
-          "name": "base_amount_out",
-          "kind": "math.floor_div",
-          "dividend": "$base_amount_out_numerator",
-          "divisor": "$base_amount_out_denominator"
-        },
-        {
-          "name": "slippage_factor",
-          "kind": "math.add",
-          "values": [
-            "10000",
-            "$input.slippage_bps"
-          ]
-        },
-        {
-          "name": "max_quote_amount_in_numerator",
-          "kind": "math.mul",
-          "values": [
-            "$input.quote_amount_in",
-            "$slippage_factor"
-          ]
-        },
-        {
-          "name": "max_quote_amount_in",
-          "kind": "math.floor_div",
-          "dividend": "$max_quote_amount_in_numerator",
-          "divisor": "10000"
-        }
+        "buy__transform"
       ],
       "args": {
         "base_amount_out": "$base_amount_out",
@@ -1279,31 +817,7 @@
         }
       ],
       "transform": [
-        {
-          "name": "protocol_fee_recipient",
-          "kind": "list.get",
-          "values": "$global_config_data.protocol_fee_recipients",
-          "index": 0
-        },
-        {
-          "name": "protocol_fee_recipient_token_account",
-          "kind": "pda(seed_spec)",
-          "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-          "seeds": [
-            {
-              "kind": "pubkey",
-              "value": "$protocol_fee_recipient"
-            },
-            {
-              "kind": "pubkey",
-              "value": "$quote_token_program"
-            },
-            {
-              "kind": "pubkey",
-              "value": "$pool_data.quote_mint"
-            }
-          ]
-        }
+        "sell__transform"
       ],
       "args": {
         "base_amount_in": "$input.base_amount_in",
@@ -1325,5 +839,504 @@
       }
     }
   },
-  "transforms": {}
+  "transforms": {
+    "preview_buy__transform": [
+      {
+        "name": "protocol_fee_recipient",
+        "kind": "list.get",
+        "values": "$global_config_data.protocol_fee_recipients",
+        "index": 0
+      },
+      {
+        "name": "protocol_fee_recipient_token_account",
+        "kind": "pda(seed_spec)",
+        "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "$protocol_fee_recipient"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$quote_token_program"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$pool_data.quote_mint"
+          }
+        ]
+      },
+      {
+        "name": "remaining_accounts",
+        "kind": "logic.if",
+        "condition": "$pool_data.is_cashback_coin",
+        "then": [
+          {
+            "pubkey": "$user_volume_accumulator_wsol_ata",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "$pool_v2",
+            "isSigner": false,
+            "isWritable": false
+          }
+        ],
+        "else": [
+          {
+            "pubkey": "$pool_v2",
+            "isSigner": false,
+            "isWritable": false
+          }
+        ]
+      },
+      {
+        "name": "creator_is_default",
+        "kind": "compare.equals",
+        "left": "$pool_data.coin_creator",
+        "right": "11111111111111111111111111111111"
+      },
+      {
+        "name": "is_pump_pool",
+        "kind": "compare.equals",
+        "left": "$pool_data.creator",
+        "right": "$pump_pool_authority"
+      },
+      {
+        "name": "market_cap_numerator",
+        "kind": "math.mul",
+        "values": [
+          "$pool_quote_reserve_atomic",
+          "$base_mint_supply_atomic"
+        ]
+      },
+      {
+        "name": "market_cap_lamports",
+        "kind": "math.floor_div",
+        "dividend": "$market_cap_numerator",
+        "divisor": "$pool_base_reserve_atomic"
+      },
+      {
+        "name": "fee_tier_candidates",
+        "kind": "list.filter",
+        "items": "$fee_config_data.fee_tiers",
+        "where": [
+          {
+            "path": "market_cap_lamports_threshold",
+            "op": ">=",
+            "value": "$market_cap_lamports"
+          }
+        ]
+      },
+      {
+        "name": "selected_fee_tier_primary",
+        "kind": "list.min_by",
+        "items": "$fee_tier_candidates",
+        "path": "market_cap_lamports_threshold",
+        "allow_empty": true
+      },
+      {
+        "name": "selected_fee_tier_default",
+        "kind": "list.max_by",
+        "items": "$fee_config_data.fee_tiers",
+        "path": "market_cap_lamports_threshold",
+        "allow_empty": true
+      },
+      {
+        "name": "selected_fee_tier",
+        "kind": "coalesce",
+        "values": [
+          "$selected_fee_tier_primary",
+          "$selected_fee_tier_default"
+        ]
+      },
+      {
+        "name": "selected_fees_if_pump",
+        "kind": "coalesce",
+        "values": [
+          "$selected_fee_tier.fees",
+          "$fee_config_data.flat_fees"
+        ]
+      },
+      {
+        "name": "lp_fee_bps",
+        "kind": "logic.if",
+        "condition": "$is_pump_pool",
+        "then": "$selected_fees_if_pump.lp_fee_bps",
+        "else": "$global_config_data.lp_fee_basis_points"
+      },
+      {
+        "name": "protocol_fee_bps",
+        "kind": "logic.if",
+        "condition": "$is_pump_pool",
+        "then": "$selected_fees_if_pump.protocol_fee_bps",
+        "else": "$global_config_data.protocol_fee_basis_points"
+      },
+      {
+        "name": "creator_fee_bps_raw",
+        "kind": "logic.if",
+        "condition": "$is_pump_pool",
+        "then": "$selected_fees_if_pump.creator_fee_bps",
+        "else": "$global_config_data.coin_creator_fee_basis_points"
+      },
+      {
+        "name": "creator_fee_bps",
+        "kind": "logic.if",
+        "condition": "$creator_is_default",
+        "then": "0",
+        "else": "$creator_fee_bps_raw"
+      },
+      {
+        "name": "total_fee_bps",
+        "kind": "math.add",
+        "values": [
+          "$lp_fee_bps",
+          "$protocol_fee_bps",
+          "$creator_fee_bps"
+        ]
+      },
+      {
+        "name": "effective_quote_numerator",
+        "kind": "math.mul",
+        "values": [
+          "$input.quote_amount_in",
+          "10000"
+        ]
+      },
+      {
+        "name": "effective_quote_denominator",
+        "kind": "math.add",
+        "values": [
+          "10000",
+          "$total_fee_bps"
+        ]
+      },
+      {
+        "name": "effective_quote",
+        "kind": "math.floor_div",
+        "dividend": "$effective_quote_numerator",
+        "divisor": "$effective_quote_denominator"
+      },
+      {
+        "name": "base_amount_out_numerator",
+        "kind": "math.mul",
+        "values": [
+          "$pool_base_reserve_atomic",
+          "$effective_quote"
+        ]
+      },
+      {
+        "name": "base_amount_out_denominator",
+        "kind": "math.add",
+        "values": [
+          "$pool_quote_reserve_atomic",
+          "$effective_quote"
+        ]
+      },
+      {
+        "name": "base_amount_out",
+        "kind": "math.floor_div",
+        "dividend": "$base_amount_out_numerator",
+        "divisor": "$base_amount_out_denominator"
+      },
+      {
+        "name": "slippage_factor",
+        "kind": "math.add",
+        "values": [
+          "10000",
+          "$input.slippage_bps"
+        ]
+      },
+      {
+        "name": "max_quote_amount_in_numerator",
+        "kind": "math.mul",
+        "values": [
+          "$input.quote_amount_in",
+          "$slippage_factor"
+        ]
+      },
+      {
+        "name": "max_quote_amount_in",
+        "kind": "math.floor_div",
+        "dividend": "$max_quote_amount_in_numerator",
+        "divisor": "10000"
+      }
+    ],
+    "preview_sell__transform": [
+      {
+        "name": "protocol_fee_recipient",
+        "kind": "list.get",
+        "values": "$global_config_data.protocol_fee_recipients",
+        "index": 0
+      },
+      {
+        "name": "protocol_fee_recipient_token_account",
+        "kind": "pda(seed_spec)",
+        "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "$protocol_fee_recipient"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$quote_token_program"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$pool_data.quote_mint"
+          }
+        ]
+      }
+    ],
+    "buy__transform": [
+      {
+        "name": "protocol_fee_recipient",
+        "kind": "list.get",
+        "values": "$global_config_data.protocol_fee_recipients",
+        "index": 0
+      },
+      {
+        "name": "protocol_fee_recipient_token_account",
+        "kind": "pda(seed_spec)",
+        "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "$protocol_fee_recipient"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$quote_token_program"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$pool_data.quote_mint"
+          }
+        ]
+      },
+      {
+        "name": "remaining_accounts",
+        "kind": "logic.if",
+        "condition": "$pool_data.is_cashback_coin",
+        "then": [
+          {
+            "pubkey": "$user_volume_accumulator_wsol_ata",
+            "isSigner": false,
+            "isWritable": true
+          },
+          {
+            "pubkey": "$pool_v2",
+            "isSigner": false,
+            "isWritable": false
+          }
+        ],
+        "else": [
+          {
+            "pubkey": "$pool_v2",
+            "isSigner": false,
+            "isWritable": false
+          }
+        ]
+      },
+      {
+        "name": "creator_is_default",
+        "kind": "compare.equals",
+        "left": "$pool_data.coin_creator",
+        "right": "11111111111111111111111111111111"
+      },
+      {
+        "name": "is_pump_pool",
+        "kind": "compare.equals",
+        "left": "$pool_data.creator",
+        "right": "$pump_pool_authority"
+      },
+      {
+        "name": "market_cap_numerator",
+        "kind": "math.mul",
+        "values": [
+          "$pool_quote_reserve_atomic",
+          "$base_mint_supply_atomic"
+        ]
+      },
+      {
+        "name": "market_cap_lamports",
+        "kind": "math.floor_div",
+        "dividend": "$market_cap_numerator",
+        "divisor": "$pool_base_reserve_atomic"
+      },
+      {
+        "name": "fee_tier_candidates",
+        "kind": "list.filter",
+        "items": "$fee_config_data.fee_tiers",
+        "where": [
+          {
+            "path": "market_cap_lamports_threshold",
+            "op": ">=",
+            "value": "$market_cap_lamports"
+          }
+        ]
+      },
+      {
+        "name": "selected_fee_tier_primary",
+        "kind": "list.min_by",
+        "items": "$fee_tier_candidates",
+        "path": "market_cap_lamports_threshold",
+        "allow_empty": true
+      },
+      {
+        "name": "selected_fee_tier_default",
+        "kind": "list.max_by",
+        "items": "$fee_config_data.fee_tiers",
+        "path": "market_cap_lamports_threshold",
+        "allow_empty": true
+      },
+      {
+        "name": "selected_fee_tier",
+        "kind": "coalesce",
+        "values": [
+          "$selected_fee_tier_primary",
+          "$selected_fee_tier_default"
+        ]
+      },
+      {
+        "name": "selected_fees_if_pump",
+        "kind": "coalesce",
+        "values": [
+          "$selected_fee_tier.fees",
+          "$fee_config_data.flat_fees"
+        ]
+      },
+      {
+        "name": "lp_fee_bps",
+        "kind": "logic.if",
+        "condition": "$is_pump_pool",
+        "then": "$selected_fees_if_pump.lp_fee_bps",
+        "else": "$global_config_data.lp_fee_basis_points"
+      },
+      {
+        "name": "protocol_fee_bps",
+        "kind": "logic.if",
+        "condition": "$is_pump_pool",
+        "then": "$selected_fees_if_pump.protocol_fee_bps",
+        "else": "$global_config_data.protocol_fee_basis_points"
+      },
+      {
+        "name": "creator_fee_bps_raw",
+        "kind": "logic.if",
+        "condition": "$is_pump_pool",
+        "then": "$selected_fees_if_pump.creator_fee_bps",
+        "else": "$global_config_data.coin_creator_fee_basis_points"
+      },
+      {
+        "name": "creator_fee_bps",
+        "kind": "logic.if",
+        "condition": "$creator_is_default",
+        "then": "0",
+        "else": "$creator_fee_bps_raw"
+      },
+      {
+        "name": "total_fee_bps",
+        "kind": "math.add",
+        "values": [
+          "$lp_fee_bps",
+          "$protocol_fee_bps",
+          "$creator_fee_bps"
+        ]
+      },
+      {
+        "name": "effective_quote_numerator",
+        "kind": "math.mul",
+        "values": [
+          "$input.quote_amount_in",
+          "10000"
+        ]
+      },
+      {
+        "name": "effective_quote_denominator",
+        "kind": "math.add",
+        "values": [
+          "10000",
+          "$total_fee_bps"
+        ]
+      },
+      {
+        "name": "effective_quote",
+        "kind": "math.floor_div",
+        "dividend": "$effective_quote_numerator",
+        "divisor": "$effective_quote_denominator"
+      },
+      {
+        "name": "base_amount_out_numerator",
+        "kind": "math.mul",
+        "values": [
+          "$pool_base_reserve_atomic",
+          "$effective_quote"
+        ]
+      },
+      {
+        "name": "base_amount_out_denominator",
+        "kind": "math.add",
+        "values": [
+          "$pool_quote_reserve_atomic",
+          "$effective_quote"
+        ]
+      },
+      {
+        "name": "base_amount_out",
+        "kind": "math.floor_div",
+        "dividend": "$base_amount_out_numerator",
+        "divisor": "$base_amount_out_denominator"
+      },
+      {
+        "name": "slippage_factor",
+        "kind": "math.add",
+        "values": [
+          "10000",
+          "$input.slippage_bps"
+        ]
+      },
+      {
+        "name": "max_quote_amount_in_numerator",
+        "kind": "math.mul",
+        "values": [
+          "$input.quote_amount_in",
+          "$slippage_factor"
+        ]
+      },
+      {
+        "name": "max_quote_amount_in",
+        "kind": "math.floor_div",
+        "dividend": "$max_quote_amount_in_numerator",
+        "divisor": "10000"
+      }
+    ],
+    "sell__transform": [
+      {
+        "name": "protocol_fee_recipient",
+        "kind": "list.get",
+        "values": "$global_config_data.protocol_fee_recipients",
+        "index": 0
+      },
+      {
+        "name": "protocol_fee_recipient_token_account",
+        "kind": "pda(seed_spec)",
+        "program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "$protocol_fee_recipient"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$quote_token_program"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$pool_data.quote_mint"
+          }
+        ]
+      }
+    ]
+  }
 }

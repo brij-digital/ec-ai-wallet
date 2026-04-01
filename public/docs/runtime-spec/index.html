@@ -235,7 +235,7 @@
             <tr><td><code>instruction</code></td><td>No</td><td>string</td><td>Instruction name for contextual alignment with Codama.</td></tr>
             <tr><td><code>inputs</code></td><td>No</td><td>object</td><td>Map of input name to <code>inputSpec</code>.</td></tr>
             <tr><td><code>load</code></td><td>No</td><td>array</td><td>Array of <code>loadStepSpec</code>.</td></tr>
-            <tr><td><code>transform</code></td><td>No</td><td>array</td><td>Array of inline <code>transformStepSpec</code> or string references to top-level <code>transforms</code>.</td></tr>
+            <tr><td><code>transform</code></td><td>No</td><td>array</td><td>Array of string references to top-level <code>transforms</code>.</td></tr>
           </tbody>
         </table>
         <p>
@@ -262,7 +262,7 @@
             <tr><td><code>instruction</code></td><td>No</td><td>string</td><td>Target instruction name in Codama.</td></tr>
             <tr><td><code>inputs</code></td><td>No</td><td>object</td><td>Map of input name to <code>inputSpec</code>.</td></tr>
             <tr><td><code>load</code></td><td>No</td><td>array</td><td>Array of <code>loadStepSpec</code>.</td></tr>
-            <tr><td><code>transform</code></td><td>No</td><td>array</td><td>Array of inline <code>transformStepSpec</code> or string references to top-level <code>transforms</code>.</td></tr>
+            <tr><td><code>transform</code></td><td>No</td><td>array</td><td>Array of string references to top-level <code>transforms</code>.</td></tr>
             <tr><td><code>args</code></td><td>No</td><td>object</td><td>Map of arg name to scalar binding.</td></tr>
             <tr><td><code>accounts</code></td><td>No</td><td>object</td><td>Map of account name to string binding.</td></tr>
             <tr><td><code>remaining_accounts</code></td><td>No</td><td>string or array</td><td>String reference or explicit meta list.</td></tr>
@@ -276,8 +276,8 @@
       <section class="card">
         <h2><code>transformSpec</code></h2>
         <p>
-          Top-level <code>transforms</code> is a reusable catalog. Each entry is an array of
-          <code>transformStepSpec</code> that can be referenced from any read or write operation by name.
+          Top-level <code>transforms</code> is the only place where transform steps are declared.
+          Each entry is an array of <code>transformStepSpec</code> referenced from reads or writes by name.
         </p>
       </section>
 

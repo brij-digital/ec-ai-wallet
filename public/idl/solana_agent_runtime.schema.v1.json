@@ -201,14 +201,7 @@
       ]
     },
     "transformUseSpec": {
-      "oneOf": [
-        {
-          "type": "string"
-        },
-        {
-          "$ref": "#/$defs/transformStepSpec"
-        }
-      ]
+      "type": "string"
     },
     "transformSpec": {
       "type": "array",

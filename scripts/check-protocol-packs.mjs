@@ -176,15 +176,10 @@ function validateTransformRefs(protocolId, sectionLabel, operationId, operation,
     ? []
     : asArray(operation.transform, `${protocolId}.${sectionLabel}.${operationId}.transform`);
   for (let index = 0; index < transform.length; index += 1) {
-    const entry = transform[index];
-    if (typeof entry === 'string') {
-      const ref = asString(entry, `${protocolId}.${sectionLabel}.${operationId}.transform[${index}]`);
-      if (!transformNames.has(ref)) {
-        fail(`${protocolId}.${sectionLabel}.${operationId}.transform[${index}] references unknown transform ${ref}.`);
-      }
-      continue;
+    const ref = asString(transform[index], `${protocolId}.${sectionLabel}.${operationId}.transform[${index}]`);
+    if (!transformNames.has(ref)) {
+      fail(`${protocolId}.${sectionLabel}.${operationId}.transform[${index}] references unknown transform ${ref}.`);
     }
-    asObject(entry, `${protocolId}.${sectionLabel}.${operationId}.transform[${index}]`);
   }
 }
 
