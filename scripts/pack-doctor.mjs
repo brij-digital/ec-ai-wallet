@@ -162,6 +162,15 @@ async function main() {
         if (runtime.schema !== 'solana-agent-runtime.v1') {
           protocolErrors.push(`Unsupported agent runtime schema: ${String(runtime.schema ?? '')}`);
         }
+        if (asString(runtime.protocol_id, `${id}.agentRuntime.protocol_id`) !== id) {
+          protocolErrors.push(`agent runtime protocol_id mismatch: ${String(runtime.protocol_id)} != ${id}`);
+        }
+        if (checkPubkey(runtime.program_id, `${id}.agentRuntime.program_id`) !== programId) {
+          protocolErrors.push(`agent runtime program_id mismatch: ${String(runtime.program_id)} != ${programId}`);
+        }
+        if (asString(runtime.codama_path, `${id}.agentRuntime.codama_path`) !== manifest.codamaIdlPath) {
+          protocolErrors.push(`agent runtime codama_path mismatch: ${String(runtime.codama_path)} != ${manifest.codamaIdlPath}`);
+        }
         const views = asObject(runtime.views ?? {}, `${id}.agentRuntime.views`);
         const writes = asObject(runtime.writes ?? {}, `${id}.agentRuntime.writes`);
         const transforms = asObject(runtime.transforms ?? {}, `${id}.agentRuntime.transforms`);

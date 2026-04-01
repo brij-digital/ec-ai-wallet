@@ -1,6 +1,10 @@
 {
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
+  "protocol_id": "pump-amm-mainnet",
+  "program_id": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+  "codama_path": "/idl/pump_amm.codama.json",
+  "label": "Pump AMM",
   "writes": {
     "buy": {
       "instruction": "buy",

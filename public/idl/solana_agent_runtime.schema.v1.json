@@ -5,6 +5,9 @@
   "type": "object",
   "required": [
     "schema",
+    "protocol_id",
+    "program_id",
+    "codama_path",
     "views",
     "writes",
     "transforms"
@@ -12,6 +15,18 @@
   "properties": {
     "schema": {
       "const": "solana-agent-runtime.v1"
+    },
+    "protocol_id": {
+      "type": "string"
+    },
+    "program_id": {
+      "type": "string"
+    },
+    "codama_path": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string"
     },
     "views": {
       "type": "object",
@@ -35,6 +50,7 @@
       }
     }
   },
+  "additionalProperties": false,
   "$defs": {
     "jsonValue": {
       "oneOf": [

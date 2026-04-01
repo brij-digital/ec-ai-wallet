@@ -1,6 +1,10 @@
 {
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
+  "protocol_id": "token-index-mainnet",
+  "program_id": "11111111111111111111111111111111",
+  "codama_path": "/idl/token_index.codama.json",
+  "label": "Token Index",
   "writes": {},
   "transforms": {},
   "views": {}

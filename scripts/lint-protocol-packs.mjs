@@ -99,6 +99,17 @@ async function main() {
     if (runtimePack.schema !== 'solana-agent-runtime.v1') {
       fail(`${protocolId}.agentRuntime.schema must be solana-agent-runtime.v1.`);
     }
+    if (asNonEmptyString(runtimePack.protocol_id, `${protocolId}.agentRuntime.protocol_id`) !== protocolId) {
+      fail(`${protocolId}.agentRuntime.protocol_id must match registry.protocol.id.`);
+    }
+    asNonEmptyString(runtimePack.program_id, `${protocolId}.agentRuntime.program_id`);
+    if (protocol.codamaIdlPath) {
+      if (asNonEmptyString(runtimePack.codama_path, `${protocolId}.agentRuntime.codama_path`) !== protocol.codamaIdlPath) {
+        fail(`${protocolId}.agentRuntime.codama_path must match registry.protocol.codamaIdlPath.`);
+      }
+    } else {
+      asNonEmptyString(runtimePack.codama_path, `${protocolId}.agentRuntime.codama_path`);
+    }
 
     asObject(runtimePack.transforms ?? {}, `${protocolId}.agentRuntime.transforms`);
     const sections = [

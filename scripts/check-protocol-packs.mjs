@@ -306,6 +306,15 @@ async function main() {
     if (agentRuntime.schema !== 'solana-agent-runtime.v1') {
       fail(`${protocolId}: agentRuntimePath must point to solana-agent-runtime.v1.`);
     }
+    if (asString(agentRuntime.protocol_id, `${protocolId}.agentRuntime.protocol_id`) !== protocolId) {
+      fail(`${protocolId}: agentRuntime.protocol_id must match registry id.`);
+    }
+    if (normalizePubkey(agentRuntime.program_id, `${protocolId}.agentRuntime.program_id`) !== normalizePubkey(manifest.programId, `${protocolId}.programId`)) {
+      fail(`${protocolId}: agentRuntime.program_id must match registry programId.`);
+    }
+    if (asString(agentRuntime.codama_path, `${protocolId}.agentRuntime.codama_path`) !== asString(manifest.codamaIdlPath, `${protocolId}.codamaIdlPath`)) {
+      fail(`${protocolId}: agentRuntime.codama_path must match registry codamaIdlPath.`);
+    }
 
     const indexingPath = resolvePublicAssetPath(manifest.indexingSpecPath, `${protocolId}.indexingSpecPath`);
     const indexing = asObject(await readJson(indexingPath, `${protocolId} indexing spec`), `${protocolId} indexing spec`);

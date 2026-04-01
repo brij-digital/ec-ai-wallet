@@ -173,6 +173,10 @@
         <pre>{
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
+  "protocol_id": "orca-whirlpool-mainnet",
+  "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+  "codama_path": "/idl/orca_whirlpool.codama.json",
+  "label": "Orca Whirlpools",
   "views": {},
   "writes": {},
   "transforms": {}
@@ -184,6 +188,10 @@
           <tbody>
             <tr><td><code>$schema</code></td><td>No</td><td>string</td><td>JSON schema path.</td></tr>
             <tr><td><code>schema</code></td><td>Yes</td><td>string</td><td>Must be <code>solana-agent-runtime.v1</code>.</td></tr>
+            <tr><td><code>protocol_id</code></td><td>Yes</td><td>string</td><td>Logical protocol identifier for the runtime pack.</td></tr>
+            <tr><td><code>program_id</code></td><td>Yes</td><td>string</td><td>Solana program id targeted by the runtime pack.</td></tr>
+            <tr><td><code>codama_path</code></td><td>Yes</td><td>string</td><td><code>/idl/*</code> path to the Codama IDL used by the runtime pack.</td></tr>
+            <tr><td><code>label</code></td><td>No</td><td>string</td><td>Human-friendly protocol label.</td></tr>
             <tr><td><code>views</code></td><td>Yes</td><td>object</td><td>Map of operation id to <code>viewSpec</code>.</td></tr>
             <tr><td><code>writes</code></td><td>Yes</td><td>object</td><td>Map of operation id to <code>writeSpec</code>.</td></tr>
             <tr><td><code>transforms</code></td><td>Yes</td><td>object</td><td>Map of transform id to an array of <code>transformStepSpec</code>.</td></tr>
@@ -341,6 +349,9 @@
           Codama-shaped write inputs and materializes the final instruction args and accounts.
         </p>
         <pre>{
+  "protocol_id": "orca-whirlpool-mainnet",
+  "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+  "codama_path": "/idl/orca_whirlpool.codama.json",
   "transforms": {
     "quote_exact_in__transform": []
   },

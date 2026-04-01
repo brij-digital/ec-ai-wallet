@@ -44,6 +44,15 @@ async function main() {
     if (!agentRuntime || typeof agentRuntime !== 'object' || Array.isArray(agentRuntime)) {
       fail(`${agentRuntimeFilePath} did not parse as a JSON object.`);
     }
+    if (typeof agentRuntime.protocol_id !== 'string' || agentRuntime.protocol_id.trim() !== protocol.id) {
+      fail(`${agentRuntimeFilePath} has invalid protocol_id.`);
+    }
+    if (typeof agentRuntime.program_id !== 'string' || agentRuntime.program_id.trim().length === 0) {
+      fail(`${agentRuntimeFilePath} is missing program_id.`);
+    }
+    if (typeof agentRuntime.codama_path !== 'string' || !agentRuntime.codama_path.startsWith('/idl/')) {
+      fail(`${agentRuntimeFilePath} is missing codama_path.`);
+    }
     const hasCapabilities =
       (agentRuntime.views && typeof agentRuntime.views === 'object' && !Array.isArray(agentRuntime.views)) ||
       (agentRuntime.writes && typeof agentRuntime.writes === 'object' && !Array.isArray(agentRuntime.writes));

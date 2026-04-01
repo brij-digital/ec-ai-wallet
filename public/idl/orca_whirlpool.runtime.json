@@ -1,6 +1,10 @@
 {
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
+  "protocol_id": "orca-whirlpool-mainnet",
+  "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+  "codama_path": "/idl/orca_whirlpool.codama.json",
+  "label": "Orca Whirlpools",
   "writes": {
     "swap_exact_in": {
       "instruction": "swap_v2",
