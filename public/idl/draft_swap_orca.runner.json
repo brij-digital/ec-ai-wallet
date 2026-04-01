@@ -85,7 +85,7 @@
       "input": {
         "amount": "$input.amount_in",
         "other_amount_threshold": "$quote.output.minimum_out",
-        "sqrt_price_limit": "0",
+        "sqrt_price_limit": "$quote.meta.derived.sqrt_price_limit",
         "amount_specified_is_input": true,
         "a_to_b": "$quote.output.a_to_b",
         "token_program_a": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",

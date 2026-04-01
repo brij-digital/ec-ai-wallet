@@ -169,6 +169,13 @@
         "else": "$estimated_out_auto"
       },
       {
+        "name": "sqrt_price_limit",
+        "kind": "logic.if",
+        "condition": "$a_to_b",
+        "then": "4295048016",
+        "else": "79226673515401279992447579055"
+      },
+      {
         "name": "other_amount_threshold_numerator",
         "kind": "math.mul",
         "values": [
@@ -481,7 +488,7 @@
       "args": {
         "amount": "$input.amount_in",
         "other_amount_threshold": "$other_amount_threshold",
-        "sqrt_price_limit": "0",
+        "sqrt_price_limit": "$sqrt_price_limit",
         "amount_specified_is_input": true,
         "a_to_b": "$a_to_b",
         "remaining_accounts_info": null
