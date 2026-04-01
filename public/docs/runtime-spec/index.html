@@ -138,13 +138,12 @@
         <h1>Program-specific runtime logic in AppPack</h1>
         <p>
           This page documents the current <code>solana-agent-runtime.v1</code> contract and where
-          the program-specific logic lives after moving instruction truth into Codama and indexed
-          reads into the indexing spec.
+          the program-specific logic lives on the runtime side.
         </p>
       </section>
 
       <section class="card">
-        <h2>Pack split</h2>
+        <h2>Scope boundary</h2>
         <div class="grid">
           <div class="box">
             <strong>Codama</strong>
@@ -154,16 +153,6 @@
               <li>signers</li>
               <li>fixed/default accounts</li>
               <li>PDA-backed defaults when declared</li>
-            </ul>
-          </div>
-          <div class="box">
-            <strong>Indexing spec</strong>
-            <ul>
-              <li>search</li>
-              <li>feeds</li>
-              <li>ranking</li>
-              <li>series</li>
-              <li>all indexed read semantics</li>
             </ul>
           </div>
           <div class="box">
