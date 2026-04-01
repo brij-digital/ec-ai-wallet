@@ -46,7 +46,7 @@ async function main() {
     }
     const hasCapabilities =
       (agentRuntime.computes && typeof agentRuntime.computes === 'object' && !Array.isArray(agentRuntime.computes)) ||
-      (agentRuntime.contract_writes && typeof agentRuntime.contract_writes === 'object' && !Array.isArray(agentRuntime.contract_writes));
+      (agentRuntime.writes && typeof agentRuntime.writes === 'object' && !Array.isArray(agentRuntime.writes));
     if (!hasCapabilities) {
       fail(`${agentRuntimeFilePath} is missing agent runtime capabilities.`);
     }

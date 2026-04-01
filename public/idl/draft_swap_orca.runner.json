@@ -78,7 +78,7 @@
     },
     {
       "id": "draft",
-      "kind": "contract_write",
+      "kind": "write",
       "protocolId": "orca-whirlpool-mainnet",
       "operationId": "swap_exact_in",
       "input": {

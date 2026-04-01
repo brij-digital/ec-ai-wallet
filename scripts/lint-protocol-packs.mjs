@@ -102,7 +102,7 @@ async function main() {
 
     const sections = [
       ['computes', asObject(runtimePack.computes ?? {}, `${protocolId}.agentRuntime.computes`)],
-      ['contract_writes', asObject(runtimePack.contract_writes ?? {}, `${protocolId}.agentRuntime.contract_writes`)],
+      ['writes', asObject(runtimePack.writes ?? {}, `${protocolId}.agentRuntime.writes`)],
     ];
     let lintedOperations = 0;
     for (const [sectionName, operations] of sections) {

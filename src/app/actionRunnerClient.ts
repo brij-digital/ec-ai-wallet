@@ -91,6 +91,10 @@ export async function runActionRunnerSpec(options: {
         };
       }
 
+      if (step.kind !== 'write') {
+        throw new Error(`Unsupported runner step kind ${step.kind}.`);
+      }
+
       const prepared = await prepareRuntimeOperation({
         protocolId: step.protocolId,
         operationId: step.operationId,

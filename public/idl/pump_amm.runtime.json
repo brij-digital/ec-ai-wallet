@@ -32,7 +32,7 @@
           "required": true
         }
       },
-      "resolve": [
+      "load": [
         {
           "name": "wallet",
           "kind": "wallet_pubkey"
@@ -180,7 +180,7 @@
           ]
         }
       ],
-      "compute": [
+      "transform": [
         {
           "name": "protocol_fee_recipient",
           "kind": "list.get",
@@ -534,7 +534,7 @@
           "default": "1"
         }
       },
-      "resolve": [
+      "load": [
         {
           "name": "wallet",
           "kind": "wallet_pubkey"
@@ -618,7 +618,7 @@
           ]
         }
       ],
-      "compute": [
+      "transform": [
         {
           "name": "protocol_fee_recipient",
           "kind": "list.get",
@@ -706,7 +706,7 @@
       }
     }
   },
-  "contract_writes": {
+  "writes": {
     "buy": {
       "instruction": "buy",
       "inputs": {
@@ -737,7 +737,7 @@
           "required": true
         }
       },
-      "resolve": [
+      "load": [
         {
           "name": "wallet",
           "kind": "wallet_pubkey"
@@ -885,7 +885,7 @@
           ]
         }
       ],
-      "compute": [
+      "transform": [
         {
           "name": "protocol_fee_recipient",
           "kind": "list.get",
@@ -1194,7 +1194,7 @@
           "default": "1"
         }
       },
-      "resolve": [
+      "load": [
         {
           "name": "wallet",
           "kind": "wallet_pubkey"
@@ -1278,7 +1278,7 @@
           ]
         }
       ],
-      "compute": [
+      "transform": [
         {
           "name": "protocol_fee_recipient",
           "kind": "list.get",

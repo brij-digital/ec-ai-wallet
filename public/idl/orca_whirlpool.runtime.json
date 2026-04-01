@@ -26,7 +26,7 @@
           "required": true
         }
       },
-      "resolve": [
+      "load": [
         {
           "name": "wallet",
           "kind": "wallet_pubkey"
@@ -38,7 +38,7 @@
           "account_type": "Whirlpool"
         }
       ],
-      "compute": [
+      "transform": [
         {
           "name": "a_to_b",
           "kind": "compare.equals",
@@ -478,7 +478,7 @@
       }
     }
   },
-  "contract_writes": {
+  "writes": {
     "swap_exact_in": {
       "instruction": "swap_v2",
       "inputs": {
@@ -513,7 +513,7 @@
           "default": true
         }
       },
-      "resolve": [
+      "load": [
         {
           "name": "wallet",
           "kind": "wallet_pubkey"
@@ -525,7 +525,7 @@
           "account_type": "Whirlpool"
         }
       ],
-      "compute": [
+      "transform": [
         {
           "name": "a_to_b",
           "kind": "compare.equals",

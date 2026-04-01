@@ -160,38 +160,38 @@ function validateRuntimeInputs(protocolId, sectionLabel, operationId, operation)
   return op;
 }
 
-function validateExecution(protocolId, executionId, execution, instructionNames) {
-  const op = validateRuntimeInputs(protocolId, 'agentRuntime.contract_writes', executionId, execution);
+function validateWrite(protocolId, executionId, execution, instructionNames) {
+  const op = validateRuntimeInputs(protocolId, 'agentRuntime.writes', executionId, execution);
   if (op.instruction !== undefined) {
-    const instruction = asString(op.instruction, `${protocolId}.agentRuntime.contract_writes.${executionId}.instruction`);
+    const instruction = asString(op.instruction, `${protocolId}.agentRuntime.writes.${executionId}.instruction`);
     if (!instructionNames.has(instruction)) {
       fail(`${protocolId}: execution ${executionId} references missing instruction ${instruction}.`);
     }
   }
-  const args = asOptionalObject(op.args, `${protocolId}.agentRuntime.contract_writes.${executionId}.args`);
+  const args = asOptionalObject(op.args, `${protocolId}.agentRuntime.writes.${executionId}.args`);
   for (const [argName, binding] of Object.entries(args)) {
     const kind = binding === null ? 'null' : typeof binding;
     if (!['string', 'number', 'boolean', 'null'].includes(kind)) {
-      fail(`${protocolId}.agentRuntime.contract_writes.${executionId}.args.${argName} must be a scalar binding.`);
+      fail(`${protocolId}.agentRuntime.writes.${executionId}.args.${argName} must be a scalar binding.`);
     }
   }
-  const accounts = asOptionalObject(op.accounts, `${protocolId}.agentRuntime.contract_writes.${executionId}.accounts`);
+  const accounts = asOptionalObject(op.accounts, `${protocolId}.agentRuntime.writes.${executionId}.accounts`);
   for (const [accountName, binding] of Object.entries(accounts)) {
-    asString(binding, `${protocolId}.agentRuntime.contract_writes.${executionId}.accounts.${accountName}`);
+    asString(binding, `${protocolId}.agentRuntime.writes.${executionId}.accounts.${accountName}`);
   }
   if (op.remaining_accounts !== undefined) {
     if (typeof op.remaining_accounts === 'string') {
-      asString(op.remaining_accounts, `${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts`);
+      asString(op.remaining_accounts, `${protocolId}.agentRuntime.writes.${executionId}.remaining_accounts`);
     } else {
-      const metas = asArray(op.remaining_accounts, `${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts`);
+      const metas = asArray(op.remaining_accounts, `${protocolId}.agentRuntime.writes.${executionId}.remaining_accounts`);
       for (let index = 0; index < metas.length; index += 1) {
-        const meta = asObject(metas[index], `${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts[${index}]`);
-        asString(meta.pubkey, `${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts[${index}].pubkey`);
+        const meta = asObject(metas[index], `${protocolId}.agentRuntime.writes.${executionId}.remaining_accounts[${index}]`);
+        asString(meta.pubkey, `${protocolId}.agentRuntime.writes.${executionId}.remaining_accounts[${index}].pubkey`);
         if (meta.isSigner !== undefined && typeof meta.isSigner !== 'boolean') {
-          fail(`${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts[${index}].isSigner must be boolean.`);
+          fail(`${protocolId}.agentRuntime.writes.${executionId}.remaining_accounts[${index}].isSigner must be boolean.`);
         }
         if (meta.isWritable !== undefined && typeof meta.isWritable !== 'boolean') {
-          fail(`${protocolId}.agentRuntime.contract_writes.${executionId}.remaining_accounts[${index}].isWritable must be boolean.`);
+          fail(`${protocolId}.agentRuntime.writes.${executionId}.remaining_accounts[${index}].isWritable must be boolean.`);
         }
       }
     }
@@ -311,7 +311,7 @@ async function main() {
     }
 
     const computes = asOptionalObject(agentRuntime.computes, `${protocolId}.agentRuntime.computes`);
-    const contract_writes = asOptionalObject(agentRuntime.contract_writes, `${protocolId}.agentRuntime.contract_writes`);
+    const writes = asOptionalObject(agentRuntime.writes, `${protocolId}.agentRuntime.writes`);
 
     const indexingOperations = asOptionalObject(indexing.operations, `${protocolId}.indexing.operations`);
     for (const [operationId, operationRaw] of Object.entries(indexingOperations)) {
@@ -326,8 +326,8 @@ async function main() {
       validateCompute(protocolId, operationId, operationRaw);
       operationCount += 1;
     }
-    for (const [operationId, operationRaw] of Object.entries(contract_writes)) {
-      validateExecution(protocolId, operationId, operationRaw, instructionNames);
+    for (const [operationId, operationRaw] of Object.entries(writes)) {
+      validateWrite(protocolId, operationId, operationRaw, instructionNames);
       operationCount += 1;
     }
   }

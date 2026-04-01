@@ -2,5 +2,5 @@
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
   "computes": {},
-  "contract_writes": {}
+  "writes": {}
 }

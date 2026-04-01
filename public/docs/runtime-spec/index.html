@@ -158,9 +158,9 @@
           <div class="box">
             <strong>Runtime spec</strong>
             <ul>
-              <li>deterministic compute</li>
+              <li>deterministic compute operations</li>
               <li>write preparation</li>
-              <li>resolve steps outside Codama</li>
+              <li>load steps outside Codama</li>
               <li>small transaction-envelope logic</li>
             </ul>
           </div>
@@ -173,7 +173,7 @@
   "$schema": "/idl/solana_agent_runtime.schema.v1.json",
   "schema": "solana-agent-runtime.v1",
   "computes": {},
-  "contract_writes": {}
+  "writes": {}
 }</pre>
         <table>
           <thead>
@@ -183,7 +183,7 @@
             <tr><td><code>$schema</code></td><td>No</td><td>string</td><td>JSON schema path.</td></tr>
             <tr><td><code>schema</code></td><td>Yes</td><td>string</td><td>Must be <code>solana-agent-runtime.v1</code>.</td></tr>
             <tr><td><code>computes</code></td><td>Yes</td><td>object</td><td>Map of operation id to <code>computeSpec</code>.</td></tr>
-            <tr><td><code>contract_writes</code></td><td>Yes</td><td>object</td><td>Map of operation id to <code>executionSpec</code>.</td></tr>
+            <tr><td><code>writes</code></td><td>Yes</td><td>object</td><td>Map of operation id to <code>writeSpec</code>.</td></tr>
           </tbody>
         </table>
       </section>
@@ -231,22 +231,22 @@
           <tbody>
             <tr><td><code>instruction</code></td><td>No</td><td>string</td><td>Instruction name for contextual alignment with Codama.</td></tr>
             <tr><td><code>inputs</code></td><td>No</td><td>object</td><td>Map of input name to <code>inputSpec</code>.</td></tr>
-            <tr><td><code>resolve</code></td><td>No</td><td>array</td><td>Array of <code>resolveStepSpec</code>.</td></tr>
-            <tr><td><code>compute</code></td><td>No</td><td>array</td><td>Array of <code>computeStepSpec</code>.</td></tr>
+            <tr><td><code>load</code></td><td>No</td><td>array</td><td>Array of <code>loadStepSpec</code>.</td></tr>
+            <tr><td><code>transform</code></td><td>No</td><td>array</td><td>Array of <code>transformStepSpec</code>.</td></tr>
             <tr><td><code>read_output</code></td><td>No</td><td>object</td><td>Typed output contract.</td></tr>
           </tbody>
         </table>
       </section>
 
       <section class="card">
-        <h2><code>executionSpec</code></h2>
+        <h2><code>writeSpec</code></h2>
         <table>
           <thead><tr><th>Attribute</th><th>Required</th><th>Type</th><th>Meaning</th></tr></thead>
           <tbody>
             <tr><td><code>instruction</code></td><td>No</td><td>string</td><td>Target instruction name in Codama.</td></tr>
             <tr><td><code>inputs</code></td><td>No</td><td>object</td><td>Map of input name to <code>inputSpec</code>.</td></tr>
-            <tr><td><code>resolve</code></td><td>No</td><td>array</td><td>Array of <code>resolveStepSpec</code>.</td></tr>
-            <tr><td><code>compute</code></td><td>No</td><td>array</td><td>Array of <code>computeStepSpec</code>.</td></tr>
+            <tr><td><code>load</code></td><td>No</td><td>array</td><td>Array of <code>loadStepSpec</code>.</td></tr>
+            <tr><td><code>transform</code></td><td>No</td><td>array</td><td>Array of <code>transformStepSpec</code>.</td></tr>
             <tr><td><code>args</code></td><td>No</td><td>object</td><td>Map of arg name to scalar binding.</td></tr>
             <tr><td><code>accounts</code></td><td>No</td><td>object</td><td>Map of account name to string binding.</td></tr>
             <tr><td><code>remaining_accounts</code></td><td>No</td><td>string or array</td><td>String reference or explicit meta list.</td></tr>
@@ -258,7 +258,7 @@
       </section>
 
       <section class="card">
-        <h2><code>resolveStepSpec</code></h2>
+        <h2><code>loadStepSpec</code></h2>
         <table>
           <thead><tr><th><code>kind</code></th><th>Required attributes</th><th>Optional attributes</th></tr></thead>
           <tbody>
@@ -274,7 +274,7 @@
       </section>
 
       <section class="card">
-        <h2><code>computeStepSpec</code></h2>
+        <h2><code>transformStepSpec</code></h2>
         <table>
           <thead><tr><th>Kind group</th><th>Kinds</th><th>Main attributes</th></tr></thead>
           <tbody>
@@ -327,7 +327,7 @@
         </p>
         <pre>{
   "instruction": "swap_v2",
-  "resolve": [
+  "load": [
     {
       "name": "wallet",
       "kind": "wallet_pubkey"
@@ -339,7 +339,7 @@
       "account_type": "Whirlpool"
     }
   ],
-  "compute": [
+  "transform": [
     {
       "name": "a_to_b",
       "kind": "compare.equals",

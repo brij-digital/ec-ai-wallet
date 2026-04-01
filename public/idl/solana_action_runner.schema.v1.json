@@ -65,7 +65,7 @@
           "minLength": 1
         },
         "kind": {
-          "enum": ["index_view", "compute", "contract_write"]
+          "enum": ["index_view", "compute", "write"]
         },
         "protocolId": {
           "type": "string",

@@ -22,7 +22,7 @@
           "default": false
         }
       },
-      "resolve": [
+      "load": [
         {
           "name": "wallet",
           "kind": "wallet_pubkey"
@@ -129,7 +129,7 @@
           ]
         }
       ],
-      "compute": [
+      "transform": [
         {
           "name": "creator_is_default",
           "kind": "compare.equals",
@@ -274,7 +274,7 @@
       }
     }
   },
-  "contract_writes": {
+  "writes": {
     "buy_exact_sol_in": {
       "instruction": "buy_exact_sol_in",
       "inputs": {
@@ -296,7 +296,7 @@
           "default": false
         }
       },
-      "resolve": [
+      "load": [
         {
           "name": "wallet",
           "kind": "wallet_pubkey"
@@ -403,7 +403,7 @@
           ]
         }
       ],
-      "compute": [
+      "transform": [
         {
           "name": "creator_is_default",
           "kind": "compare.equals",

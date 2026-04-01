@@ -53,11 +53,11 @@ function toLocalPublicPath(assetPath, label) {
 
 function renderMarkdownTable(rows) {
   const header = [
-    '| Protocol | Ops | Max Resolve/Op | Max Compute/Op | Budget |',
+    '| Protocol | Ops | Max Load/Op | Max Transform/Op | Budget |',
     '|---|---:|---:|---:|---|',
   ];
   const body = rows.map((row) =>
-    `| ${row.protocolId} | ${row.ops} | ${row.maxDerivePerOp} | ${row.maxComputePerOp} | ${row.withinBudget ? 'OK' : 'FAIL'} |`,
+    `| ${row.protocolId} | ${row.ops} | ${row.maxLoadPerOp} | ${row.maxTransformPerOp} | ${row.withinBudget ? 'OK' : 'FAIL'} |`,
   );
   return [...header, ...body].join('\n');
 }
@@ -86,8 +86,8 @@ async function main() {
   const budgetConfig = asObject(await readJson(BUDGET_PATH, 'complexity budget'), 'budget');
   const global = asObject(budgetConfig.global, 'budget.global');
   const maxOperationsPerProtocol = Number(global.max_operations_per_protocol);
-  const maxDerivePerOperation = Number(global.max_derive_per_operation);
-  const maxComputePerOperation = Number(global.max_compute_per_operation);
+  const maxLoadPerOperation = Number(global.max_derive_per_operation);
+  const maxTransformPerOperation = Number(global.max_compute_per_operation);
 
   const protocols = asArray(registry.protocols, 'registry.protocols');
   const rows = [];
@@ -112,21 +112,21 @@ async function main() {
     );
     const sections = [
       ...Object.entries(asObject(runtimePack.computes ?? {}, `${protocolId}.agentRuntime.computes`)),
-      ...Object.entries(asObject(runtimePack.contract_writes ?? {}, `${protocolId}.agentRuntime.contract_writes`)),
+      ...Object.entries(asObject(runtimePack.writes ?? {}, `${protocolId}.agentRuntime.writes`)),
     ];
     const opEntries = sections;
     const opCount = opEntries.length;
-    let maxResolve = 0;
-    let maxCompute = 0;
+    let maxLoad = 0;
+    let maxTransform = 0;
     for (const [operationId, opRaw] of opEntries) {
       const op = asObject(opRaw, `${protocolId}.agentRuntime.operation.${operationId}`);
-      const resolve = Array.isArray(op.resolve) ? op.resolve.length : 0;
-      const compute = Array.isArray(op.compute) ? op.compute.length : 0;
-      if (resolve > maxResolve) {
-        maxResolve = resolve;
+      const load = Array.isArray(op.load) ? op.load.length : 0;
+      const transform = Array.isArray(op.transform) ? op.transform.length : 0;
+      if (load > maxLoad) {
+        maxLoad = load;
       }
-      if (compute > maxCompute) {
-        maxCompute = compute;
+      if (transform > maxTransform) {
+        maxTransform = transform;
       }
     }
 
@@ -134,11 +134,11 @@ async function main() {
     if (opCount > maxOperationsPerProtocol) {
       rowViolations.push(`ops ${opCount} > ${maxOperationsPerProtocol}`);
     }
-    if (maxResolve > maxDerivePerOperation) {
-      rowViolations.push(`max resolve/op ${maxResolve} > ${maxDerivePerOperation}`);
+    if (maxLoad > maxLoadPerOperation) {
+      rowViolations.push(`max load/op ${maxLoad} > ${maxLoadPerOperation}`);
     }
-    if (maxCompute > maxComputePerOperation) {
-      rowViolations.push(`max compute/op ${maxCompute} > ${maxComputePerOperation}`);
+    if (maxTransform > maxTransformPerOperation) {
+      rowViolations.push(`max transform/op ${maxTransform} > ${maxTransformPerOperation}`);
     }
     const withinBudget = rowViolations.length === 0;
     if (!withinBudget) {
@@ -148,8 +148,8 @@ async function main() {
     rows.push({
       protocolId,
       ops: opCount,
-      maxDerivePerOp: maxResolve,
-      maxComputePerOp: maxCompute,
+      maxLoadPerOp: maxLoad,
+      maxTransformPerOp: maxTransform,
       withinBudget,
     });
   }

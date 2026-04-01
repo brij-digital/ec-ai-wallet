@@ -6,7 +6,7 @@
   "required": [
     "schema",
     "computes",
-    "contract_writes"
+    "writes"
   ],
   "properties": {
     "schema": {
@@ -18,10 +18,10 @@
         "$ref": "#/$defs/computeSpec"
       }
     },
-    "contract_writes": {
+    "writes": {
       "type": "object",
       "additionalProperties": {
-        "$ref": "#/$defs/executionSpec"
+        "$ref": "#/$defs/writeSpec"
       }
     }
   },
@@ -205,16 +205,16 @@
             "$ref": "#/$defs/inputSpec"
           }
         },
-        "resolve": {
+        "load": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/resolveStepSpec"
+            "$ref": "#/$defs/loadStepSpec"
           }
         },
-        "compute": {
+        "transform": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/computeStepSpec"
+            "$ref": "#/$defs/transformStepSpec"
           }
         },
         "read_output": {
@@ -223,7 +223,7 @@
       },
       "additionalProperties": false
     },
-    "executionSpec": {
+    "writeSpec": {
       "type": "object",
       "properties": {
         "instruction": {
@@ -235,16 +235,16 @@
             "$ref": "#/$defs/inputSpec"
           }
         },
-        "resolve": {
+        "load": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/resolveStepSpec"
+            "$ref": "#/$defs/loadStepSpec"
           }
         },
-        "compute": {
+        "transform": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/computeStepSpec"
+            "$ref": "#/$defs/transformStepSpec"
           }
         },
         "args": {
@@ -353,7 +353,7 @@
         }
       ]
     },
-    "resolveStepSpec": {
+    "loadStepSpec": {
       "oneOf": [
         {
           "type": "object",
@@ -623,7 +623,7 @@
         }
       ]
     },
-    "computeStepSpec": {
+    "transformStepSpec": {
       "oneOf": [
         {
           "type": "object",

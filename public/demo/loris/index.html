@@ -424,12 +424,12 @@ draft swap payload</code>
             <p>Runs deterministic quote logic and produces values such as <code>estimated_out</code> and <code>minimum_out</code>.</p>
           </div>
           <div class="example-box">
-            <strong><code>contract_writes</code></strong>
+            <strong><code>writes</code></strong>
             <code>swap_exact_in</code>
             <p>Uses Codama’s instruction metadata plus the computed values to prepare the final swap draft.</p>
           </div>
           <div class="example-box">
-            <strong><code>resolve</code></strong>
+            <strong><code>load</code></strong>
             <code>decode_account, ata, pda</code>
             <p>Loads only the extra runtime context that is still needed and not already implied by Codama.</p>
           </div>

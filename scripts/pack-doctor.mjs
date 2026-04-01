@@ -163,8 +163,8 @@ async function main() {
           protocolErrors.push(`Unsupported agent runtime schema: ${String(runtime.schema ?? '')}`);
         }
         const computes = asObject(runtime.computes ?? {}, `${id}.agentRuntime.computes`);
-        const contract_writes = asObject(runtime.contract_writes ?? {}, `${id}.agentRuntime.contract_writes`);
-        if (Object.keys(computes).length + Object.keys(contract_writes).length === 0) {
+        const writes = asObject(runtime.writes ?? {}, `${id}.agentRuntime.writes`);
+        if (Object.keys(computes).length + Object.keys(writes).length === 0) {
           protocolWarnings.push('No agent runtime capabilities declared.');
         }
       } catch (error) {

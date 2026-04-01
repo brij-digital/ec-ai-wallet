@@ -160,25 +160,25 @@ function normalizeComputeStep(rawStep: Record<string, unknown>): Record<string, 
   return { ...rawStep, name, kind: 'unknown' };
 }
 
-function renderPseudoFunction(functionName: string, instruction: string | null, computeSteps: Record<string, unknown>[]): string {
+function renderPseudoFunction(functionName: string, instruction: string | null, transformSteps: Record<string, unknown>[]): string {
   const lines: string[] = [];
   lines.push(`function ${functionName}(ctx) {`);
   lines.push(`  // instruction: ${instruction ?? 'read-only'}`);
 
-  if (computeSteps.length === 0) {
-    lines.push('  // no compute steps');
+  if (transformSteps.length === 0) {
+    lines.push('  // no transform steps');
     lines.push('  return {};');
     lines.push('}');
     return lines.join('\n');
   }
 
   lines.push('');
-  for (const rawStep of computeSteps) {
+  for (const rawStep of transformSteps) {
     const step = normalizeComputeStep(rawStep);
     lines.push(`  ${formatComputeStep(step)}`);
   }
   lines.push('');
-  const names = computeSteps
+  const names = transformSteps
     .map((rawStep) =>
       rawStep && typeof rawStep === 'object' && !Array.isArray(rawStep) && typeof (rawStep as Record<string, unknown>).name === 'string'
         ? (rawStep as Record<string, unknown>).name as string
@@ -254,7 +254,7 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
         const countEntries = await Promise.all(
           computeOperations.map(async (operation) => {
             const details = await explainRuntimeOperation({ protocolId, operationId: operation.operationId });
-            return [operation.operationId, Array.isArray(details.compute) ? details.compute.length : 0] as const;
+            return [operation.operationId, Array.isArray(details.transform) ? details.transform.length : 0] as const;
           }),
         );
         if (cancelled) {
@@ -322,10 +322,10 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
       return '';
     }
     const functionName = `${explain.protocolId.replace(/[^a-zA-Z0-9]+/g, '_')}_${explain.operationId}`;
-    const compute = Array.isArray(explain.compute)
-      ? explain.compute.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && !Array.isArray(entry))
+    const transform = Array.isArray(explain.transform)
+      ? explain.transform.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && !Array.isArray(entry))
       : [];
-    return renderPseudoFunction(functionName, explain.instruction ?? null, compute);
+    return renderPseudoFunction(functionName, explain.instruction ?? null, transform);
   }, [explain]);
 
   return (
@@ -346,7 +346,7 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
           <select value={operationId} onChange={(event) => setOperationId(event.target.value)} disabled={isWorking || loading || operations.length === 0}>
             {operations.map((operation) => (
               <option key={operation.operationId} value={operation.operationId}>
-                {operation.operationId} ({operationComputeCounts[operation.operationId] ?? 0} compute)
+                {operation.operationId} ({operationComputeCounts[operation.operationId] ?? 0} transform)
               </option>
             ))}
           </select>
@@ -366,8 +366,8 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
             <pre>{operationPseudoFunction}</pre>
           </article>
           <article className="compute-panel">
-            <h3>Operation Raw Compute</h3>
-            <pre>{JSON.stringify(explain.compute, null, 2)}</pre>
+            <h3>Operation Raw Transform</h3>
+            <pre>{JSON.stringify(explain.transform, null, 2)}</pre>
           </article>
         </div>
       ) : (

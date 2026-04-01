@@ -183,11 +183,11 @@ export function renderMetaExplain(explanation: RuntimeOperationExplain): string 
     ([name, spec]) => `- ${name}: ${String(spec.type ?? 'unknown')} (${formatRequired(spec as Record<string, unknown>)})`,
   );
 
-  const resolveLines = explanation.resolve.map((step, index) => {
+  const loadLines = explanation.load.map((step, index) => {
     const record = step && typeof step === 'object' && !Array.isArray(step) ? (step as Record<string, unknown>) : {};
     return `${index + 1}. ${String(record.name ?? `step_${index + 1}`)} -> ${String(record.kind ?? 'unknown')}`;
   });
-  const computeLines = explanation.compute.map((step, index) => {
+  const transformLines = explanation.transform.map((step, index) => {
     const record = step && typeof step === 'object' && !Array.isArray(step) ? (step as Record<string, unknown>) : {};
     return `${index + 1}. ${String(record.name ?? `step_${index + 1}`)} -> ${String(record.kind ?? 'unknown')}`;
   });
@@ -199,11 +199,11 @@ export function renderMetaExplain(explanation: RuntimeOperationExplain): string 
     'Inputs:',
     ...(inputLines.length > 0 ? inputLines : ['- none']),
     '',
-    'Resolve:',
-    ...(resolveLines.length > 0 ? resolveLines : ['- none']),
+    'Load:',
+    ...(loadLines.length > 0 ? loadLines : ['- none']),
     '',
-    'Compute:',
-    ...(computeLines.length > 0 ? computeLines : ['- none']),
+    'Transform:',
+    ...(transformLines.length > 0 ? transformLines : ['- none']),
     '',
     'Raw:',
     asPrettyJson(explanation),
