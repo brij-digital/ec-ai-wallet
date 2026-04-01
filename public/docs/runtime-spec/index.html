@@ -336,21 +336,12 @@
         <p>
           In the Orca pack, <code>quote_exact_in</code> previews Codama instruction
           <code>swap_v2</code>, decodes the <code>Whirlpool</code>, reuses a shared transform,
-          and returns a typed quote object. Then <code>swap_exact_in</code> consumes raw Codama
-          write inputs, does not compute <code>tick_array0/1/2</code> itself, and expects values
-          such as <code>a_to_b</code>, <code>sqrt_price_limit</code>, and
-          <code>tick_array0/1/2</code> to be forwarded from a prior view or runner step.
+          and returns a typed quote object. Then <code>swap_exact_in</code> consumes raw
+          Codama-shaped write inputs and materializes the final instruction args and accounts.
         </p>
         <pre>{
   "transforms": {
-    "quote_exact_in__transform": [
-      {
-        "name": "a_to_b",
-        "kind": "compare.equals",
-        "left": "$whirlpool_data.token_mint_a",
-        "right": "$input.token_in_mint"
-      }
-    ]
+    "quote_exact_in__transform": []
   },
   "views": {
     "quote_exact_in": {
@@ -363,37 +354,13 @@
         "whirlpool": "pubkey",
         "unwrap_sol_output": "bool"
       },
-      "load": [
-        {
-          "name": "wallet",
-          "kind": "wallet_pubkey"
-        },
-        {
-          "name": "whirlpool_data",
-          "kind": "decode_account",
-          "address": "$input.whirlpool",
-          "account_type": "Whirlpool"
-        }
-      ],
+      "load": [],
       "transform": [
         "quote_exact_in__transform"
       ],
       "output": {
         "type": "object",
-        "source": "$derived",
-        "object_schema": {
-          "fields": {
-            "a_to_b": {
-              "type": "bool"
-            },
-            "sqrt_price_limit": {
-              "type": "u128"
-            },
-            "tick_arrays": {
-              "type": "array"
-            }
-          }
-        }
+        "source": "$derived"
       }
     }
   },
@@ -418,11 +385,22 @@
   }
 }</pre>
         <p>
-          In practice, the write input surface can be populated from values previously exposed by a
-          view.
+          This excerpt is intentionally structural. The real Orca pack uses larger transform
+          fragments.
+        </p>
+        <ul>
+          <li>Real Orca transform fragment ids: <code>quote_exact_in__transform</code>, <code>swap_exact_in__transform</code></li>
+          <li>Runtime pack: <a href="/idl/orca_whirlpool.runtime.json" target="_blank" rel="noreferrer"><code>/idl/orca_whirlpool.runtime.json</code></a></li>
+          <li>Codama IDL: <a href="/idl/orca_whirlpool.codama.json" target="_blank" rel="noreferrer"><code>/idl/orca_whirlpool.codama.json</code></a></li>
+          <li>Live inspect UI: <a href="/compute-dev" target="_blank" rel="noreferrer"><code>/compute-dev</code></a></li>
+        </ul>
+        <p>
+          For example, the real Orca flow derives values such as <code>a_to_b</code>,
+          <code>sqrt_price_limit</code>, and <code>tick_arrays</code> before they are bound into
+          the raw Codama-shaped write input surface.
         </p>
         <pre>{
-  "amount": "$quote.output.amount",
+  "amount": "$input.amount_in",
   "other_amount_threshold": "$quote.output.minimum_out",
   "sqrt_price_limit": "$quote.output.sqrt_price_limit",
   "amount_specified_is_input": true,
