@@ -82,13 +82,21 @@
       "protocolId": "orca-whirlpool-mainnet",
       "operationId": "swap_exact_in",
       "input": {
-        "token_in_mint": "$token_in.output.mint",
-        "token_out_mint": "$token_out.output.mint",
-        "amount_in": "$input.amount_in",
-        "slippage_bps": "$input.slippage_bps",
+        "amount": "$input.amount_in",
+        "other_amount_threshold": "$quote.output.minimum_out",
+        "sqrt_price_limit": "0",
+        "amount_specified_is_input": true,
+        "a_to_b": "$quote.output.a_to_b",
+        "token_program_a": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "token_program_b": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         "whirlpool": "$pool.output.pool",
-        "estimated_out": "$quote.output.estimated_out",
-        "unwrap_sol_output": "$input.unwrap_sol_output"
+        "token_mint_a": "$quote.meta.derived.whirlpool_data.token_mint_a",
+        "token_mint_b": "$quote.meta.derived.whirlpool_data.token_mint_b",
+        "token_vault_a": "$quote.meta.derived.whirlpool_data.token_vault_a",
+        "token_vault_b": "$quote.meta.derived.whirlpool_data.token_vault_b",
+        "tick_array0": "$quote.meta.derived.tick_arrays.0",
+        "tick_array1": "$quote.meta.derived.tick_arrays.1",
+        "tick_array2": "$quote.meta.derived.tick_arrays.2"
       }
     }
   ],
