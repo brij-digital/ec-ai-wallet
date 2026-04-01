@@ -5,24 +5,19 @@
     "quote_exact_in": {
       "inputs": {
         "token_in_mint": {
-          "type": "token_mint",
-          "required": true
+          "type": "token_mint"
         },
         "token_out_mint": {
-          "type": "token_mint",
-          "required": true
+          "type": "token_mint"
         },
         "amount_in": {
-          "type": "u64",
-          "required": true
+          "type": "u64"
         },
         "slippage_bps": {
-          "type": "u16",
-          "required": true
+          "type": "u16"
         },
         "whirlpool": {
-          "type": "pubkey",
-          "required": true
+          "type": "pubkey"
         }
       },
       "load": [

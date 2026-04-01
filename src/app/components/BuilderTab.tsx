@@ -4,7 +4,6 @@ import { listSupportedTokens, resolveToken } from '../../constants/tokens';
 import {
   getBuilderInputMode,
   isBuilderInputEditable,
-  stringifyBuilderDefault,
 } from '../builderHelpers';
 import type { OperationEnhancement } from '../metaEnhancements';
 
@@ -163,9 +162,7 @@ export function BuilderTab(props: BuilderTabProps) {
                           type="text"
                           value={builderInputValues[inputName] ?? ''}
                           onChange={(event) => onInputChange(inputName, event.target.value)}
-                          placeholder={
-                            spec.default !== undefined ? stringifyBuilderDefault(spec.default) : inputName
-                          }
+                          placeholder={inputName}
                           disabled={isWorking || !editable}
                           readOnly={!editable}
                           data-mode={mode}

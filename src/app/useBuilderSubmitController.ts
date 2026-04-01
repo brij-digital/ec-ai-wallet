@@ -116,9 +116,6 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         for (const [inputName, spec] of Object.entries(operation.inputs)) {
           const rawValue = options.builderInputValues[inputName] ?? '';
           if (!rawValue.trim()) {
-            if (spec.required && spec.default === undefined) {
-              throw new Error(`Missing required input ${inputName}.`);
-            }
             continue;
           }
           inputPayload[inputName] = parseBuilderInputValue(rawValue, spec.type, `input ${inputName}`);

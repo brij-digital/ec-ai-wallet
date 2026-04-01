@@ -69,12 +69,6 @@
       "properties": {
         "type": {
           "type": "string"
-        },
-        "required": {
-          "type": "boolean"
-        },
-        "default": {
-          "$ref": "#/$defs/jsonValue"
         }
       },
       "additionalProperties": false

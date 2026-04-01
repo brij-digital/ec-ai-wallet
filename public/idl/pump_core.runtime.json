@@ -5,21 +5,16 @@
     "preview_buy_exact_sol_in": {
       "inputs": {
         "base_mint": {
-          "type": "pubkey",
-          "required": true
+          "type": "pubkey"
         },
         "spendable_sol_in": {
-          "type": "u64",
-          "required": true
+          "type": "u64"
         },
         "slippage_bps": {
-          "type": "u16",
-          "required": true
+          "type": "u16"
         },
         "track_volume": {
-          "type": "bool",
-          "required": false,
-          "default": false
+          "type": "bool"
         }
       },
       "load": [

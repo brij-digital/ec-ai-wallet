@@ -7,7 +7,6 @@ import {
 import {
   asPrettyJson,
   buildExampleInputsForOperation,
-  stringifyBuilderDefault,
 } from './builderHelpers';
 import {
   buildOperationEnhancementFromSummary,
@@ -182,10 +181,7 @@ export function useBuilderController() {
     }
 
     const nextValues = Object.fromEntries(
-      Object.entries(selectedBuilderOperation.inputs).map(([inputName, spec]) => [
-        inputName,
-        spec.default === undefined ? '' : stringifyBuilderDefault(spec.default),
-      ]),
+      Object.keys(selectedBuilderOperation.inputs).map((inputName) => [inputName, '']),
     );
     setBuilderInputValues(nextValues);
   }, [selectedBuilderOperation]);

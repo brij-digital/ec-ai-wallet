@@ -4,19 +4,6 @@ import type {
 } from '@brij-digital/apppack-runtime/runtimeOperationRuntime';
 import { resolveToken } from '../constants/tokens';
 
-export function stringifyBuilderDefault(value: unknown): string {
-  if (value === undefined) {
-    return '';
-  }
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
-    return String(value);
-  }
-  return JSON.stringify(value);
-}
-
 export function readBuilderPath(value: unknown, path: string): unknown {
   const cleaned = path.startsWith('$') ? path.slice(1) : path;
   const parts = cleaned.split('.').filter(Boolean);
@@ -98,10 +85,7 @@ export function buildExampleInputsForOperation(
   const nextValues: Record<string, string> = {};
 
   for (const [inputName, spec] of Object.entries(operation.inputs)) {
-    if (spec.default !== undefined) {
-      nextValues[inputName] = stringifyBuilderDefault(spec.default);
-      continue;
-    }
+    void spec;
     nextValues[inputName] = '';
   }
 
@@ -173,14 +157,8 @@ export function buildDerivedFromReadOutputSource(sourcePath: string, value: unkn
 }
 
 export function renderMetaExplain(explanation: RuntimeOperationExplain): string {
-  const formatRequired = (spec: Record<string, unknown>): string => {
-    const required = spec.required === false ? 'optional' : 'required';
-    const defaultText = spec.default !== undefined ? `, default=${JSON.stringify(spec.default)}` : '';
-    return `${required}${defaultText}`;
-  };
-
   const inputLines = Object.entries(explanation.inputs).map(
-    ([name, spec]) => `- ${name}: ${String(spec.type ?? 'unknown')} (${formatRequired(spec as Record<string, unknown>)})`,
+    ([name, spec]) => `- ${name}: ${String(spec.type ?? 'unknown')}`,
   );
 
   const loadLines = explanation.load.map((step, index) => {

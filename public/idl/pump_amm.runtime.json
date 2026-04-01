@@ -5,30 +5,22 @@
     "preview_buy": {
       "inputs": {
         "base_mint": {
-          "type": "pubkey",
-          "required": true
+          "type": "pubkey"
         },
         "quote_mint": {
-          "type": "pubkey",
-          "required": false,
-          "default": "So11111111111111111111111111111111111111112"
+          "type": "pubkey"
         },
         "quote_amount_in": {
-          "type": "u64",
-          "required": true
+          "type": "u64"
         },
         "track_volume": {
-          "type": "bool",
-          "required": false,
-          "default": true
+          "type": "bool"
         },
         "pool": {
-          "type": "pubkey",
-          "required": true
+          "type": "pubkey"
         },
         "slippage_bps": {
-          "type": "u16",
-          "required": true
+          "type": "u16"
         }
       },
       "load": [
@@ -292,26 +284,19 @@
     "preview_sell": {
       "inputs": {
         "base_mint": {
-          "type": "pubkey",
-          "required": true
+          "type": "pubkey"
         },
         "quote_mint": {
-          "type": "pubkey",
-          "required": false,
-          "default": "So11111111111111111111111111111111111111112"
+          "type": "pubkey"
         },
         "pool": {
-          "type": "pubkey",
-          "required": true
+          "type": "pubkey"
         },
         "base_amount_in": {
-          "type": "u64",
-          "required": true
+          "type": "u64"
         },
         "min_quote_amount_out": {
-          "type": "u64",
-          "required": false,
-          "default": "1"
+          "type": "u64"
         }
       },
       "load": [

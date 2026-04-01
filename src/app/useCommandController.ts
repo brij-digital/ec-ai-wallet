@@ -157,9 +157,8 @@ function buildOperationEnhancementFromSummary(operation: MetaOperationSummary): 
         ? { displayOrder: specRecord.display_order }
         : {}),
     };
-    inputValidation[inputName] = {
-      ...(typeof inputSpec.required === 'boolean' ? { required: inputSpec.required } : {}),
-    };
+    void inputSpec;
+    inputValidation[inputName] = {};
   }
 
   return {

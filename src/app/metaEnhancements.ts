@@ -24,14 +24,11 @@ export function buildOperationEnhancementFromSummary(
   const inputUi: OperationEnhancement['inputUi'] = {};
   const inputValidation: OperationEnhancement['inputValidation'] = {};
 
-  for (const [inputName, inputSpec] of Object.entries(operation.inputs)) {
+  for (const inputName of Object.keys(operation.inputs)) {
     inputUi[inputName] = {
       label: inputName,
     };
-
-    inputValidation[inputName] = {
-      ...(typeof inputSpec.required === 'boolean' ? { required: inputSpec.required } : {}),
-    };
+    inputValidation[inputName] = {};
   }
 
   return {
@@ -50,12 +47,12 @@ export function validateOperationInput(options: {
   const inputUi = options.enhancement?.inputUi ?? {};
   const inputValidation = options.enhancement?.inputValidation ?? {};
 
-  for (const [inputName, inputSpec] of Object.entries(options.operation.inputs)) {
+  for (const inputName of Object.keys(options.operation.inputs)) {
     const label = inputUi[inputName]?.label ?? inputName;
     const value = options.input[inputName];
     const validate = inputValidation[inputName] ?? {};
 
-    if ((inputSpec.required || validate.required) && (value === undefined || value === null || value === '')) {
+    if (validate.required && (value === undefined || value === null || value === '')) {
       errors.push(`${label} is required.`);
       continue;
     }
