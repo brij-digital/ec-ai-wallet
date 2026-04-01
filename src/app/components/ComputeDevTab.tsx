@@ -246,13 +246,8 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
     void (async () => {
       try {
         const listed = await listRuntimeOperations({ protocolId });
-        const computeOperations = listed.operations.filter((operation) => operation.executionKind === 'view');
-        if (cancelled) {
-          return;
-        }
-        setOperations(computeOperations);
         const countEntries = await Promise.all(
-          computeOperations.map(async (operation) => {
+          listed.operations.map(async (operation) => {
             const details = await explainRuntimeOperation({ protocolId, operationId: operation.operationId });
             return [operation.operationId, Array.isArray(details.transform) ? details.transform.length : 0] as const;
           }),
@@ -261,11 +256,11 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
           return;
         }
         const counts = Object.fromEntries(countEntries);
+        const computeOperations = listed.operations.filter((operation) => (counts[operation.operationId] ?? 0) > 0);
+        setOperations(computeOperations);
         setOperationComputeCounts(counts);
         const preferred =
-          computeOperations.find((operation) => (counts[operation.operationId] ?? 0) > 0)?.operationId ??
-          computeOperations[0]?.operationId ??
-          '';
+          computeOperations[0]?.operationId ?? '';
         setOperationId(preferred);
       } catch (caught) {
         if (!cancelled) {
@@ -346,7 +341,7 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
           <select value={operationId} onChange={(event) => setOperationId(event.target.value)} disabled={isWorking || loading || operations.length === 0}>
             {operations.map((operation) => (
               <option key={operation.operationId} value={operation.operationId}>
-                {operation.operationId} ({operationComputeCounts[operation.operationId] ?? 0} transform)
+                {operation.operationId} ({operation.executionKind}, {operationComputeCounts[operation.operationId] ?? 0} transform)
               </option>
             ))}
           </select>
@@ -356,7 +351,7 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
       {error ? <p className="compute-error">Error: {error}</p> : null}
       {selectedProtocol ? (
         <p className="compute-empty">
-          Runtime read logic is loaded directly from `{selectedProtocol.id}.runtime.json` agent packs.
+          Runtime transform logic is loaded directly from `{selectedProtocol.id}.runtime.json` agent packs.
         </p>
       ) : null}
       {explain ? (
@@ -371,7 +366,7 @@ export function ComputeDevTab({ isWorking }: ComputeDevTabProps) {
           </article>
         </div>
       ) : (
-        <p className="compute-empty">{loading ? 'Loading read spec...' : 'Select a protocol and operation.'}</p>
+        <p className="compute-empty">{loading ? 'Loading runtime spec...' : 'Select a protocol and operation.'}</p>
       )}
     </section>
   );
