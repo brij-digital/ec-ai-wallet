@@ -245,12 +245,6 @@
         "instruction": {
           "type": "string"
         },
-        "inputs": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/inputSpec"
-          }
-        },
         "load": {
           "type": "array",
           "items": {

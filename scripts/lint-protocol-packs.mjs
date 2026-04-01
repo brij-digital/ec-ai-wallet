@@ -109,7 +109,12 @@ async function main() {
     for (const [sectionName, operations] of sections) {
       for (const [operationId, operationRaw] of Object.entries(operations)) {
         const operation = asObject(operationRaw, `${protocolId}.agentRuntime.${sectionName}.${operationId}`);
-        const inputs = asObject(operation.inputs ?? {}, `${protocolId}.agentRuntime.${sectionName}.${operationId}.inputs`);
+        if (sectionName === 'writes' && operation.inputs !== undefined) {
+          fail(`${protocolId}.agentRuntime.writes.${operationId}.inputs is no longer allowed; write inputs come from Codama.`);
+        }
+        const inputs = sectionName === 'reads'
+          ? asObject(operation.inputs ?? {}, `${protocolId}.agentRuntime.${sectionName}.${operationId}.inputs`)
+          : {};
         for (const [inputName, inputRaw] of Object.entries(inputs)) {
           const input = asObject(inputRaw, `${protocolId}.agentRuntime.${sectionName}.${operationId}.inputs.${inputName}`);
           asNonEmptyString(input.type, `${protocolId}.agentRuntime.${sectionName}.${operationId}.inputs.${inputName}.type`);

@@ -272,231 +272,26 @@
   "writes": {
     "swap_exact_in": {
       "instruction": "swap_v2",
-      "inputs": {
-        "token_in_mint": {
-          "type": "token_mint",
-          "required": true
-        },
-        "token_out_mint": {
-          "type": "token_mint",
-          "required": true
-        },
-        "amount_in": {
-          "type": "u64",
-          "required": true
-        },
-        "slippage_bps": {
-          "type": "u16",
-          "required": true
-        },
-        "estimated_out": {
-          "type": "u64",
-          "required": false,
-          "default": "0"
-        },
-        "whirlpool": {
-          "type": "pubkey",
-          "required": true
-        },
-        "unwrap_sol_output": {
-          "type": "bool",
-          "required": false,
-          "default": true
-        }
-      },
-      "load": [
-        {
-          "name": "wallet",
-          "kind": "wallet_pubkey"
-        },
-        {
-          "name": "whirlpool_data",
-          "kind": "decode_account",
-          "address": "$input.whirlpool",
-          "account_type": "Whirlpool"
-        }
-      ],
-      "transform": [
-        "swap_exact_in__transform"
-      ],
       "args": {
-        "amount": "$input.amount_in",
-        "other_amount_threshold": "$other_amount_threshold",
-        "sqrt_price_limit": "0",
-        "amount_specified_is_input": true,
-        "a_to_b": "$a_to_b",
+        "amount": "$input.amount",
+        "other_amount_threshold": "$input.other_amount_threshold",
+        "sqrt_price_limit": "$input.sqrt_price_limit",
+        "amount_specified_is_input": "$input.amount_specified_is_input",
+        "a_to_b": "$input.a_to_b",
         "remaining_accounts_info": null
       },
       "accounts": {
-        "token_program_a": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-        "token_program_b": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "token_program_a": "$input.token_program_a",
+        "token_program_b": "$input.token_program_b",
         "whirlpool": "$input.whirlpool",
-        "token_mint_a": "$whirlpool_data.token_mint_a",
-        "token_mint_b": "$whirlpool_data.token_mint_b",
-        "token_vault_a": "$whirlpool_data.token_vault_a",
-        "token_vault_b": "$whirlpool_data.token_vault_b",
-        "tick_array0": "$tick_arrays.0",
-        "tick_array1": "$tick_arrays.1",
-        "tick_array2": "$tick_arrays.2"
-      },
-      "pre": [
-        {
-          "kind": "spl_ata_create_idempotent",
-          "payer": "$wallet",
-          "ata": "$instruction_accounts.token_owner_account_a",
-          "owner": "$wallet",
-          "mint": "$whirlpool_data.token_mint_a"
-        },
-        {
-          "kind": "spl_ata_create_idempotent",
-          "payer": "$wallet",
-          "ata": "$instruction_accounts.token_owner_account_b",
-          "owner": "$wallet",
-          "mint": "$whirlpool_data.token_mint_b"
-        },
-        {
-          "kind": "system_transfer",
-          "from": "$wallet",
-          "to": "$instruction_accounts.token_owner_account_a",
-          "lamports": "$input.amount_in",
-          "when": {
-            "all": [
-              {
-                "equals": [
-                  "$a_to_b",
-                  true
-                ]
-              },
-              {
-                "equals": [
-                  "$input.token_in_mint",
-                  "So11111111111111111111111111111111111111112"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "kind": "spl_token_sync_native",
-          "account": "$instruction_accounts.token_owner_account_a",
-          "when": {
-            "all": [
-              {
-                "equals": [
-                  "$a_to_b",
-                  true
-                ]
-              },
-              {
-                "equals": [
-                  "$input.token_in_mint",
-                  "So11111111111111111111111111111111111111112"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "kind": "system_transfer",
-          "from": "$wallet",
-          "to": "$instruction_accounts.token_owner_account_b",
-          "lamports": "$input.amount_in",
-          "when": {
-            "all": [
-              {
-                "equals": [
-                  "$a_to_b",
-                  false
-                ]
-              },
-              {
-                "equals": [
-                  "$input.token_in_mint",
-                  "So11111111111111111111111111111111111111112"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "kind": "spl_token_sync_native",
-          "account": "$instruction_accounts.token_owner_account_b",
-          "when": {
-            "all": [
-              {
-                "equals": [
-                  "$a_to_b",
-                  false
-                ]
-              },
-              {
-                "equals": [
-                  "$input.token_in_mint",
-                  "So11111111111111111111111111111111111111112"
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "post": [
-        {
-          "kind": "spl_token_close_account",
-          "account": "$instruction_accounts.token_owner_account_a",
-          "destination": "$wallet",
-          "owner": "$wallet",
-          "when": {
-            "all": [
-              {
-                "equals": [
-                  "$input.unwrap_sol_output",
-                  true
-                ]
-              },
-              {
-                "equals": [
-                  "$a_to_b",
-                  false
-                ]
-              },
-              {
-                "equals": [
-                  "$input.token_out_mint",
-                  "So11111111111111111111111111111111111111112"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "kind": "spl_token_close_account",
-          "account": "$instruction_accounts.token_owner_account_b",
-          "destination": "$wallet",
-          "owner": "$wallet",
-          "when": {
-            "all": [
-              {
-                "equals": [
-                  "$input.unwrap_sol_output",
-                  true
-                ]
-              },
-              {
-                "equals": [
-                  "$a_to_b",
-                  true
-                ]
-              },
-              {
-                "equals": [
-                  "$input.token_out_mint",
-                  "So11111111111111111111111111111111111111112"
-                ]
-              }
-            ]
-          }
-        }
-      ]
+        "token_mint_a": "$input.token_mint_a",
+        "token_mint_b": "$input.token_mint_b",
+        "token_vault_a": "$input.token_vault_a",
+        "token_vault_b": "$input.token_vault_b",
+        "tick_array0": "$input.tick_array0",
+        "tick_array1": "$input.tick_array1",
+        "tick_array2": "$input.tick_array2"
+      }
     }
   },
   "transforms": {

@@ -170,157 +170,17 @@
   "writes": {
     "buy_exact_sol_in": {
       "instruction": "buy_exact_sol_in",
-      "inputs": {
-        "base_mint": {
-          "type": "pubkey",
-          "required": true
-        },
-        "spendable_sol_in": {
-          "type": "u64",
-          "required": true
-        },
-        "slippage_bps": {
-          "type": "u16",
-          "required": true
-        },
-        "track_volume": {
-          "type": "bool",
-          "required": false,
-          "default": false
-        }
-      },
-      "load": [
-        {
-          "name": "wallet",
-          "kind": "wallet_pubkey"
-        },
-        {
-          "name": "token_program",
-          "kind": "account_owner",
-          "address": "$input.base_mint"
-        },
-        {
-          "name": "global",
-          "kind": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:global"
-          ]
-        },
-        {
-          "name": "global_data",
-          "kind": "decode_account",
-          "address": "$global",
-          "account_type": "Global"
-        },
-        {
-          "name": "bonding_curve",
-          "kind": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:bonding-curve",
-            "$input.base_mint"
-          ]
-        },
-        {
-          "name": "bonding_curve_v2",
-          "kind": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:bonding-curve-v2",
-            "$input.base_mint"
-          ]
-        },
-        {
-          "name": "bonding_curve_data",
-          "kind": "decode_account",
-          "address": "$bonding_curve",
-          "account_type": "BondingCurve"
-        },
-        {
-          "name": "associated_bonding_curve",
-          "kind": "ata",
-          "owner": "$bonding_curve",
-          "mint": "$input.base_mint",
-          "token_program": "$token_program",
-          "allow_owner_off_curve": true
-        },
-        {
-          "name": "associated_user",
-          "kind": "ata",
-          "owner": "$wallet",
-          "mint": "$input.base_mint",
-          "token_program": "$token_program"
-        },
-        {
-          "name": "creator_vault",
-          "kind": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:creator-vault",
-            "$bonding_curve_data.creator"
-          ]
-        },
-        {
-          "name": "event_authority",
-          "kind": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:__event_authority"
-          ]
-        },
-        {
-          "name": "global_volume_accumulator",
-          "kind": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:global_volume_accumulator"
-          ]
-        },
-        {
-          "name": "user_volume_accumulator",
-          "kind": "pda",
-          "program_id": "$protocol.programId",
-          "seeds": [
-            "utf8:user_volume_accumulator",
-            "$wallet"
-          ]
-        },
-        {
-          "name": "fee_config",
-          "kind": "pda",
-          "program_id": "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ",
-          "seeds": [
-            "utf8:fee_config",
-            "$protocol.programId"
-          ]
-        }
-      ],
-      "transform": [
-        "buy_exact_sol_in__transform"
-      ],
       "args": {
         "spendable_sol_in": "$input.spendable_sol_in",
-        "min_tokens_out": "$min_tokens_out_auto",
-        "track_volume": "$input.track_volume"
+        "min_tokens_out": "$input.min_tokens_out",
+        "track_volume": null
       },
       "accounts": {
-        "fee_recipient": "$global_data.fee_recipient",
-        "mint": "$input.base_mint",
-        "associated_user": "$associated_user",
-        "token_program": "$token_program",
-        "creator_vault": "$creator_vault"
-      },
-      "pre": [
-        {
-          "kind": "spl_ata_create_idempotent",
-          "payer": "$wallet",
-          "ata": "$associated_user",
-          "owner": "$wallet",
-          "mint": "$input.base_mint",
-          "token_program": "$token_program"
-        }
-      ]
+        "fee_recipient": "$input.fee_recipient",
+        "mint": "$input.mint",
+        "associated_user": "$input.associated_user",
+        "creator_vault": "$input.creator_vault"
+      }
     }
   },
   "transforms": {
