@@ -119,6 +119,64 @@
     ],
     "quote_exact_in__quote_math": [
       {
+        "name": "tick_array_summaries",
+        "kind": "list.map",
+        "items": "$tick_arrays_data",
+        "item_as": "tick_array",
+        "steps": [
+          {
+            "name": "summary",
+            "kind": "object.create",
+            "fields": {
+              "address": "$tick_array.address",
+              "start_tick_index": "$tick_array.start_tick_index"
+            }
+          }
+        ],
+        "output": "$summary"
+      },
+      {
+        "name": "all_ticks",
+        "kind": "list.flat_map",
+        "items": "$tick_arrays_data",
+        "item_as": "tick_array",
+        "output": "$tick_array.ticks"
+      },
+      {
+        "name": "initialized_ticks",
+        "kind": "list.filter",
+        "items": "$all_ticks",
+        "where": {
+          "path": "initialized",
+          "value": true
+        }
+      },
+      {
+        "name": "first_initialized_tick",
+        "kind": "list.find_first",
+        "items": "$initialized_ticks",
+        "allow_empty": true
+      },
+      {
+        "name": "initialized_liquidity_gross_total",
+        "kind": "list.reduce",
+        "items": "$initialized_ticks",
+        "initial": "0",
+        "item_as": "tick",
+        "acc_as": "acc",
+        "steps": [
+          {
+            "name": "next_total",
+            "kind": "math.add",
+            "values": [
+              "$acc",
+              "$tick.liquidity_gross"
+            ]
+          }
+        ],
+        "output": "$next_total"
+      },
+      {
         "name": "spot_price_numerator",
         "kind": "math.mul",
         "values": [

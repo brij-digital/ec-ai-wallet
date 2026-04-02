@@ -411,6 +411,121 @@
           "required": [
             "name",
             "kind",
+            "items",
+            "output"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "list.map"
+            },
+            "items": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "item_as": {
+              "type": "string"
+            },
+            "index_as": {
+              "type": "string"
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/transformStepSpec"
+              }
+            },
+            "output": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "items",
+            "output"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "list.flat_map"
+            },
+            "items": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "item_as": {
+              "type": "string"
+            },
+            "index_as": {
+              "type": "string"
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/transformStepSpec"
+              }
+            },
+            "output": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
+            "items",
+            "initial",
+            "output"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "list.reduce"
+            },
+            "items": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "initial": {
+              "$ref": "#/$defs/jsonValue"
+            },
+            "item_as": {
+              "type": "string"
+            },
+            "index_as": {
+              "type": "string"
+            },
+            "acc_as": {
+              "type": "string"
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/transformStepSpec"
+              }
+            },
+            "output": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "name",
+            "kind",
             "values"
           ],
           "properties": {
