@@ -127,31 +127,17 @@
         ]
       },
       {
-        "name": "estimated_out_a_to_b_numerator",
-        "kind": "math.mul",
-        "values": [
-          "$input.amount_in",
-          "$spot_price_numerator"
-        ]
-      },
-      {
         "name": "estimated_out_a_to_b",
-        "kind": "math.floor_div",
-        "dividend": "$estimated_out_a_to_b_numerator",
+        "kind": "math.mul_div_floor",
+        "multiplicand": "$input.amount_in",
+        "multiplier": "$spot_price_numerator",
         "divisor": "340282366920938463463374607431768211456"
       },
       {
-        "name": "estimated_out_b_to_a_numerator",
-        "kind": "math.mul",
-        "values": [
-          "$input.amount_in",
-          "340282366920938463463374607431768211456"
-        ]
-      },
-      {
         "name": "estimated_out_b_to_a",
-        "kind": "math.floor_div",
-        "dividend": "$estimated_out_b_to_a_numerator",
+        "kind": "math.mul_div_floor",
+        "multiplicand": "$input.amount_in",
+        "multiplier": "340282366920938463463374607431768211456",
         "divisor": "$spot_price_numerator"
       },
       {
@@ -169,7 +155,7 @@
         ]
       },
       {
-        "name": "slippage_keep_bps",
+        "name": "raw_slippage_keep_bps",
         "kind": "math.sub",
         "values": [
           "10000",
@@ -177,17 +163,19 @@
         ]
       },
       {
-        "name": "estimated_out_override_provided",
-        "kind": "compare.gt",
-        "left": "0",
-        "right": "0"
+        "name": "slippage_keep_bps",
+        "kind": "math.max",
+        "values": [
+          "0",
+          "$raw_slippage_keep_bps"
+        ]
       },
       {
         "name": "estimated_out_effective",
-        "kind": "logic.if",
-        "condition": "$estimated_out_override_provided",
-        "then": "0",
-        "else": "$estimated_out_auto"
+        "kind": "coalesce",
+        "values": [
+          "$estimated_out_auto"
+        ]
       },
       {
         "name": "sqrt_price_limit",
@@ -197,17 +185,10 @@
         "else": "79226673515401279992447579055"
       },
       {
-        "name": "other_amount_threshold_numerator",
-        "kind": "math.mul",
-        "values": [
-          "$estimated_out_effective",
-          "$slippage_keep_bps"
-        ]
-      },
-      {
         "name": "other_amount_threshold",
-        "kind": "math.floor_div",
-        "dividend": "$other_amount_threshold_numerator",
+        "kind": "math.mul_div_floor",
+        "multiplicand": "$estimated_out_effective",
+        "multiplier": "$slippage_keep_bps",
         "divisor": "10000"
       },
       {
