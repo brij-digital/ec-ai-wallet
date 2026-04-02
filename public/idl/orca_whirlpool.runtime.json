@@ -302,6 +302,1336 @@
         "allow_empty": true
       },
       {
+        "name": "last_tick_array_start",
+        "kind": "list.get",
+        "values": "$tick_array_starts",
+        "index": 2
+      },
+      {
+        "name": "terminal_tick_offset_b_to_a",
+        "kind": "math.sub",
+        "values": [
+          "$ticks_per_array",
+          "$whirlpool_data.tick_spacing"
+        ]
+      },
+      {
+        "name": "terminal_tick_offset",
+        "kind": "logic.if",
+        "condition": "$a_to_b",
+        "then": "0",
+        "else": "$terminal_tick_offset_b_to_a"
+      },
+      {
+        "name": "terminal_tick_index",
+        "kind": "math.add",
+        "values": [
+          "$last_tick_array_start",
+          "$terminal_tick_offset"
+        ]
+      },
+      {
+        "name": "terminal_tick_target",
+        "kind": "object.create",
+        "fields": {
+          "initialized": false,
+          "terminal": true,
+          "tick_index": "$terminal_tick_index",
+          "tick_array_start_index": "$last_tick_array_start",
+          "tick_array_address": "$tick_arrays.2"
+        }
+      },
+      {
+        "name": "swap_target_ticks",
+        "kind": "list.concat",
+        "lists": [
+          "$directional_initialized_ticks",
+          [
+            "$terminal_tick_target"
+          ]
+        ]
+      },
+      {
+        "name": "next_swap_target_tick",
+        "kind": "list.first",
+        "items": "$swap_target_ticks",
+        "allow_empty": false
+      },
+      {
+        "name": "next_swap_target_tick_index",
+        "kind": "coalesce",
+        "values": [
+          "$next_swap_target_tick.tick_index"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_index_is_negative",
+        "kind": "compare.lt",
+        "left": "$next_swap_target_tick_index",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_index_abs_negated",
+        "kind": "math.sub",
+        "values": [
+          "0",
+          "$next_swap_target_tick_index"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_index_abs",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_index_is_negative",
+        "then": "$next_swap_target_tick_index_abs_negated",
+        "else": "$next_swap_target_tick_index"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_1_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "1"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_1_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_1_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_0",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_1_enabled",
+        "then": "79232123823359799118286999567",
+        "else": "79228162514264337593543950336"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_2_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "2"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_2_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_2_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_2_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_0",
+          "79236085330515764027303304731"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_2_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_2_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_2",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_2_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_2_shift",
+        "else": "$next_swap_target_tick_positive_ratio_0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_4_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "4"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_4_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_4_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_4_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_2",
+          "79244008939048815603706035061"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_4_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_4_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_4",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_4_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_4_shift",
+        "else": "$next_swap_target_tick_positive_ratio_2"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_8_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "8"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_8_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_8_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_8_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_4",
+          "79259858533276714757314932305"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_8_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_8_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_8",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_8_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_8_shift",
+        "else": "$next_swap_target_tick_positive_ratio_4"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_16_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "16"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_16_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_16_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_16_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_8",
+          "79291567232598584799939703904"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_16_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_16_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_16",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_16_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_16_shift",
+        "else": "$next_swap_target_tick_positive_ratio_8"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_32_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "32"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_32_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_32_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_32_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_16",
+          "79355022692464371645785046466"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_32_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_32_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_32",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_32_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_32_shift",
+        "else": "$next_swap_target_tick_positive_ratio_16"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_64_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "64"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_64_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_64_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_64_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_32",
+          "79482085999252804386437311141"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_64_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_64_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_64",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_64_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_64_shift",
+        "else": "$next_swap_target_tick_positive_ratio_32"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_128_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "128"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_128_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_128_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_128_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_64",
+          "79736823300114093921829183326"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_128_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_128_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_128",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_128_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_128_shift",
+        "else": "$next_swap_target_tick_positive_ratio_64"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_256_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "256"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_256_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_256_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_256_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_128",
+          "80248749790819932309965073892"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_256_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_256_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_256",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_256_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_256_shift",
+        "else": "$next_swap_target_tick_positive_ratio_128"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_512_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "512"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_512_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_512_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_512_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_256",
+          "81282483887344747381513967011"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_512_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_512_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_512",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_512_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_512_shift",
+        "else": "$next_swap_target_tick_positive_ratio_256"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_1024_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "1024"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_1024_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_1024_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_1024_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_512",
+          "83390072131320151908154831281"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_1024_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_1024_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_1024",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_1024_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_1024_shift",
+        "else": "$next_swap_target_tick_positive_ratio_512"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_2048_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "2048"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_2048_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_2048_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_2048_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_1024",
+          "87770609709833776024991924138"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_2048_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_2048_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_2048",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_2048_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_2048_shift",
+        "else": "$next_swap_target_tick_positive_ratio_1024"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_4096_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "4096"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_4096_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_4096_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_4096_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_2048",
+          "97234110755111693312479820773"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_4096_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_4096_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_4096",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_4096_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_4096_shift",
+        "else": "$next_swap_target_tick_positive_ratio_2048"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_8192_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "8192"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_8192_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_8192_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_8192_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_4096",
+          "119332217159966728226237229890"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_8192_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_8192_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_8192",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_8192_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_8192_shift",
+        "else": "$next_swap_target_tick_positive_ratio_4096"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_16384_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "16384"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_16384_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_16384_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_16384_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_8192",
+          "179736315981702064433883588727"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_16384_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_16384_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_16384",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_16384_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_16384_shift",
+        "else": "$next_swap_target_tick_positive_ratio_8192"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_32768_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "32768"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_32768_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_32768_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_32768_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_16384",
+          "407748233172238350107850275304"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_32768_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_32768_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_32768",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_32768_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_32768_shift",
+        "else": "$next_swap_target_tick_positive_ratio_16384"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_65536_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "65536"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_65536_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_65536_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_65536_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_32768",
+          "2098478828474011932436660412517"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_65536_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_65536_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_65536",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_65536_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_65536_shift",
+        "else": "$next_swap_target_tick_positive_ratio_32768"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_131072_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "131072"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_131072_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_131072_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_131072_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_65536",
+          "55581415166113811149459800483533"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_131072_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_131072_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_131072",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_131072_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_131072_shift",
+        "else": "$next_swap_target_tick_positive_ratio_65536"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_262144_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "262144"
+      },
+      {
+        "name": "next_swap_target_tick_positive_bit_262144_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_positive_bit_262144_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_262144_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_positive_ratio_131072",
+          "38992368544603139932233054999993551"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_262144_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_262144_mul",
+        "shift": 96
+      },
+      {
+        "name": "next_swap_target_tick_positive_ratio_262144",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_positive_bit_262144_enabled",
+        "then": "$next_swap_target_tick_positive_ratio_262144_shift",
+        "else": "$next_swap_target_tick_positive_ratio_131072"
+      },
+      {
+        "name": "next_swap_target_tick_sqrt_price_positive",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_positive_ratio_262144",
+        "shift": 32
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_1_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "1"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_1_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_1_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_0",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_1_enabled",
+        "then": "18445821805675392311",
+        "else": "18446744073709551616"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_2_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "2"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_2_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_2_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_2_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_0",
+          "18444899583751176498"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_2_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_2_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_2",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_2_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_2_shift",
+        "else": "$next_swap_target_tick_negative_ratio_0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_4_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "4"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_4_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_4_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_4_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_2",
+          "18443055278223354162"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_4_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_4_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_4",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_4_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_4_shift",
+        "else": "$next_swap_target_tick_negative_ratio_2"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_8_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "8"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_8_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_8_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_8_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_4",
+          "18439367220385604838"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_8_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_8_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_8",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_8_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_8_shift",
+        "else": "$next_swap_target_tick_negative_ratio_4"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_16_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "16"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_16_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_16_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_16_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_8",
+          "18431993317065449817"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_16_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_16_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_16",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_16_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_16_shift",
+        "else": "$next_swap_target_tick_negative_ratio_8"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_32_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "32"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_32_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_32_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_32_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_16",
+          "18417254355718160513"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_32_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_32_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_32",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_32_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_32_shift",
+        "else": "$next_swap_target_tick_negative_ratio_16"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_64_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "64"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_64_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_64_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_64_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_32",
+          "18387811781193591352"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_64_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_64_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_64",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_64_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_64_shift",
+        "else": "$next_swap_target_tick_negative_ratio_32"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_128_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "128"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_128_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_128_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_128_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_64",
+          "18329067761203520168"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_128_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_128_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_128",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_128_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_128_shift",
+        "else": "$next_swap_target_tick_negative_ratio_64"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_256_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "256"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_256_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_256_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_256_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_128",
+          "18212142134806087854"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_256_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_256_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_256",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_256_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_256_shift",
+        "else": "$next_swap_target_tick_negative_ratio_128"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_512_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "512"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_512_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_512_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_512_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_256",
+          "17980523815641551639"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_512_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_512_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_512",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_512_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_512_shift",
+        "else": "$next_swap_target_tick_negative_ratio_256"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_1024_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "1024"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_1024_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_1024_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_1024_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_512",
+          "17526086738831147013"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_1024_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_1024_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_1024",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_1024_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_1024_shift",
+        "else": "$next_swap_target_tick_negative_ratio_512"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_2048_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "2048"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_2048_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_2048_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_2048_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_1024",
+          "16651378430235024244"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_2048_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_2048_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_2048",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_2048_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_2048_shift",
+        "else": "$next_swap_target_tick_negative_ratio_1024"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_4096_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "4096"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_4096_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_4096_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_4096_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_2048",
+          "15030750278693429944"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_4096_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_4096_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_4096",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_4096_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_4096_shift",
+        "else": "$next_swap_target_tick_negative_ratio_2048"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_8192_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "8192"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_8192_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_8192_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_8192_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_4096",
+          "12247334978882834399"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_8192_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_8192_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_8192",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_8192_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_8192_shift",
+        "else": "$next_swap_target_tick_negative_ratio_4096"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_16384_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "16384"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_16384_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_16384_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_16384_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_8192",
+          "8131365268884726200"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_16384_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_16384_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_16384",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_16384_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_16384_shift",
+        "else": "$next_swap_target_tick_negative_ratio_8192"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_32768_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "32768"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_32768_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_32768_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_32768_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_16384",
+          "3584323654723342297"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_32768_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_32768_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_32768",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_32768_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_32768_shift",
+        "else": "$next_swap_target_tick_negative_ratio_16384"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_65536_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "65536"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_65536_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_65536_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_65536_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_32768",
+          "696457651847595233"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_65536_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_65536_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_65536",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_65536_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_65536_shift",
+        "else": "$next_swap_target_tick_negative_ratio_32768"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_131072_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "131072"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_131072_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_131072_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_131072_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_65536",
+          "26294789957452057"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_131072_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_131072_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_131072",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_131072_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_131072_shift",
+        "else": "$next_swap_target_tick_negative_ratio_65536"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_262144_mask",
+        "kind": "math.bit_and",
+        "left": "$next_swap_target_tick_index_abs",
+        "right": "262144"
+      },
+      {
+        "name": "next_swap_target_tick_negative_bit_262144_enabled",
+        "kind": "compare.gt",
+        "left": "$next_swap_target_tick_negative_bit_262144_mask",
+        "right": "0"
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_262144_mul",
+        "kind": "math.mul",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_131072",
+          "37481735321082"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_262144_shift",
+        "kind": "math.shift_right",
+        "value": "$next_swap_target_tick_negative_ratio_262144_mul",
+        "shift": 64
+      },
+      {
+        "name": "next_swap_target_tick_negative_ratio_262144",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_negative_bit_262144_enabled",
+        "then": "$next_swap_target_tick_negative_ratio_262144_shift",
+        "else": "$next_swap_target_tick_negative_ratio_131072"
+      },
+      {
+        "name": "next_swap_target_tick_sqrt_price_negative",
+        "kind": "coalesce",
+        "values": [
+          "$next_swap_target_tick_negative_ratio_262144"
+        ]
+      },
+      {
+        "name": "next_swap_target_tick_sqrt_price_x64",
+        "kind": "logic.if",
+        "condition": "$next_swap_target_tick_index_is_negative",
+        "then": "$next_swap_target_tick_sqrt_price_negative",
+        "else": "$next_swap_target_tick_sqrt_price_positive"
+      },
+      {
         "name": "initialized_liquidity_gross_total",
         "kind": "list.reduce",
         "items": "$initialized_ticks",
