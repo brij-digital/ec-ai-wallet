@@ -32,9 +32,7 @@
         border-radius: 16px;
         background: var(--panel);
       }
-      .hero {
-        padding: 20px;
-      }
+      .hero { padding: 20px; }
       .card {
         padding: 18px;
         margin-top: 16px;
@@ -137,8 +135,8 @@
         <p class="eyebrow">Runtime Spec V1 Reference</p>
         <h1>Program-specific runtime logic in AppPack</h1>
         <p>
-          This page documents the current <code>solana-agent-runtime.v1</code> contract and where
-          the program-specific logic lives on the runtime side.
+          This page documents the current <code>solana-agent-runtime.v1</code> contract and the
+          deterministic runtime layer that sits on top of Codama.
         </p>
       </section>
 
@@ -158,10 +156,10 @@
           <div class="box">
             <strong>Runtime spec</strong>
             <ul>
-              <li>deterministic read operations</li>
-              <li>write preparation</li>
-              <li>reusable transform fragments</li>
-              <li>load steps outside Codama</li>
+              <li>views</li>
+              <li>writes</li>
+              <li>reusable transforms</li>
+              <li>ordered runtime steps</li>
               <li>small transaction-envelope logic</li>
             </ul>
           </div>
@@ -204,13 +202,14 @@
         <table>
           <thead><tr><th>Attribute</th><th>Required</th><th>Type</th><th>Meaning</th></tr></thead>
           <tbody>
-            <tr><td><code>load</code></td><td>No</td><td>array</td><td>Array of <code>loadStepSpec</code>.</td></tr>
-            <tr><td><code>transform</code></td><td>No</td><td>array</td><td>Array of string references to top-level <code>transforms</code>.</td></tr>
+            <tr><td><code>steps</code></td><td>No</td><td>array</td><td>Ordered array of <code>operationStepSpec</code>.</td></tr>
           </tbody>
         </table>
         <p>
-          Both <code>viewSpec</code> and <code>writeSpec</code> share this preparation phase. They diverge only at the end:
-          views return a typed result, while writes materialize args and accounts.
+          Each operation step is either a direct runtime step such as <code>wallet_pubkey</code>,
+          <code>decode_account</code>, <code>decode_accounts</code>, <code>ata</code>, or
+          <code>pda</code>, or a transform fragment invocation like
+          <code>{ "kind": "transform", "transform": "quote_exact_in__quote_math" }</code>.
         </p>
       </section>
 
@@ -222,6 +221,9 @@
             <tr><td><code>load_instruction</code></td><td>No</td><td>string</td><td>Codama instruction name whose account context should be loaded for the view.</td></tr>
             <tr><td><code>load_instruction_bindings</code></td><td>No</td><td>object</td><td>Explicit <code>args</code> and <code>accounts</code> bindings used to populate that instruction context.</td></tr>
             <tr><td><code>inputs</code></td><td>No</td><td>object</td><td>Map of input name to type string.</td></tr>
+            <tr><td><code>steps</code></td><td>No</td><td>array</td><td>Ordered array of runtime steps.</td></tr>
+            <tr><td><code>pre</code></td><td>No</td><td>array</td><td>Optional preview envelope instructions before the modeled instruction context.</td></tr>
+            <tr><td><code>post</code></td><td>No</td><td>array</td><td>Optional preview envelope instructions after the modeled instruction context.</td></tr>
             <tr><td><code>output</code></td><td>Yes</td><td>object</td><td>Typed output contract.</td></tr>
           </tbody>
         </table>
@@ -245,9 +247,9 @@
           <thead><tr><th>Attribute</th><th>Required</th><th>Type</th><th>Notes</th></tr></thead>
           <tbody>
             <tr><td><code>type</code></td><td>Yes</td><td>enum</td><td><code>array</code>, <code>object</code>, <code>scalar</code></td></tr>
-            <tr><td><code>source</code></td><td>Yes</td><td>string</td><td>Runtime expression.</td></tr>
+            <tr><td><code>source</code></td><td>Yes</td><td>string</td><td>Runtime expression resolving to the returned value.</td></tr>
             <tr><td><code>object_schema</code></td><td>No</td><td>object</td><td>For object outputs.</td></tr>
-            <tr><td><code>item_schema</code></td><td>No</td><td>object</td><td>For array outputs.</td></tr>
+            <tr><td><code>item_schema</code></td><td>No</td><td>object</td><td>Schema for array items.</td></tr>
             <tr><td><code>scalar_type</code></td><td>No</td><td>string</td><td>For scalar outputs.</td></tr>
           </tbody>
         </table>
@@ -259,8 +261,7 @@
           <thead><tr><th>Attribute</th><th>Required</th><th>Type</th><th>Meaning</th></tr></thead>
           <tbody>
             <tr><td><code>instruction</code></td><td>Yes</td><td>string</td><td>Target instruction name in Codama.</td></tr>
-            <tr><td><code>load</code></td><td>No</td><td>array</td><td>Array of <code>loadStepSpec</code>.</td></tr>
-            <tr><td><code>transform</code></td><td>No</td><td>array</td><td>Array of string references to top-level <code>transforms</code>.</td></tr>
+            <tr><td><code>steps</code></td><td>No</td><td>array</td><td>Ordered array of runtime steps.</td></tr>
             <tr><td><code>args</code></td><td>No</td><td>object</td><td>Map of arg name to scalar binding.</td></tr>
             <tr><td><code>accounts</code></td><td>No</td><td>object</td><td>Map of account name to string binding.</td></tr>
             <tr><td><code>remaining_accounts</code></td><td>No</td><td>string or array</td><td>String reference or explicit meta list.</td></tr>
@@ -269,48 +270,74 @@
           </tbody>
         </table>
         <p>
-          Write inputs are not declared in the runtime file.
-          They come from the referenced Codama instruction, filtered down to the Codama args/accounts still referenced through <code>$input.*</code> inside the write.
+          Write inputs are not declared explicitly in the runtime file. They come from the
+          referenced Codama instruction, narrowed to the Codama args/accounts still referenced
+          through <code>$input.*</code> inside the write.
         </p>
       </section>
 
       <section class="card">
         <h2><code>transforms</code></h2>
         <p>
-          Top-level <code>transforms</code> is the only place where transform steps are declared.
-          Each entry is an array of <code>transformStepSpec</code> referenced from views or writes by name.
+          Top-level <code>transforms</code> is the only place where reusable transform fragments are
+          declared. Operations reference these fragments from ordered <code>steps</code>.
         </p>
+        <pre>{
+  "transforms": {
+    "swap_direction": [
+      {
+        "name": "a_to_b",
+        "kind": "compare.equals",
+        "left": "$whirlpool_data.token_mint_a",
+        "right": "$input.token_in_mint"
+      }
+    ]
+  },
+  "views": {
+    "quote_exact_in": {
+      "steps": [
+        { "kind": "transform", "transform": "swap_direction" }
+      ]
+    }
+  }
+}</pre>
       </section>
 
       <section class="card">
-        <h2><code>loadStepSpec</code></h2>
+        <h2>Step families</h2>
         <table>
-          <thead><tr><th><code>kind</code></th><th>Required attributes</th><th>Optional attributes</th></tr></thead>
+          <thead><tr><th>Family</th><th>Representative kinds</th><th>Notes</th></tr></thead>
           <tbody>
-            <tr><td><code>wallet_pubkey</code></td><td><code>name</code>, <code>kind</code></td><td>none</td></tr>
-            <tr><td><code>decode_account</code></td><td><code>name</code>, <code>kind</code>, <code>address</code>, <code>account_type</code></td><td>Supports protocol account types from Codama and standard types like <code>Mint</code> and <code>TokenAccount</code></td></tr>
-            <tr><td><code>account_owner</code></td><td><code>name</code>, <code>kind</code>, <code>address</code></td><td>none</td></tr>
-            <tr><td><code>ata</code></td><td><code>name</code>, <code>kind</code>, <code>owner</code>, <code>mint</code></td><td><code>token_program</code>, <code>allow_owner_off_curve</code></td></tr>
-            <tr><td><code>pda</code></td><td><code>name</code>, <code>kind</code>, <code>program_id</code></td><td><code>seeds</code></td></tr>
+            <tr><td>Load / resolution</td><td><code>wallet_pubkey</code>, <code>decode_account</code>, <code>decode_accounts</code>, <code>account_owner</code>, <code>ata</code>, <code>pda</code></td><td>Bring extra runtime context into scope.</td></tr>
+            <tr><td>Arithmetic</td><td><code>math.add</code>, <code>math.sum</code>, <code>math.mul</code>, <code>math.sub</code>, <code>math.min</code>, <code>math.max</code>, <code>math.div_round_up</code>, <code>math.mod</code>, <code>math.mul_div_floor</code>, <code>math.mul_div_ceil</code>, <code>math.shift_left</code>, <code>math.shift_right</code>, <code>math.bit_and</code></td><td>Integer-heavy quote and account math.</td></tr>
+            <tr><td>List / collection</td><td><code>list.range_map</code>, <code>list.map</code>, <code>list.flat_map</code>, <code>list.reduce</code>, <code>list.filter</code>, <code>list.find_first</code>, <code>list.sort_by</code>, <code>list.concat</code>, <code>list.first</code>, <code>list.get</code></td><td>Used heavily by the Orca harness.</td></tr>
+            <tr><td>Object</td><td><code>object.create</code>, <code>object.merge</code></td><td>Build structured payloads and derived records.</td></tr>
+            <tr><td>Comparison / control</td><td><code>compare.*</code>, <code>logic.if</code>, <code>coalesce</code>, <code>assert.not_null</code></td><td>Deterministic branching and validation.</td></tr>
+            <tr><td>Nested transforms</td><td><code>transform</code></td><td>Can invoke another named transform inside a scoped collection step.</td></tr>
           </tbody>
         </table>
+        <p>The JSON schema is the source of truth for the full step catalog and exact attributes.</p>
       </section>
 
       <section class="card">
-        <h2><code>transformStepSpec</code></h2>
-        <table>
-          <thead><tr><th>Kind group</th><th>Kinds</th><th>Main attributes</th></tr></thead>
-          <tbody>
-            <tr><td>Arithmetic</td><td><code>math.add</code>, <code>math.sum</code>, <code>math.mul</code>, <code>math.sub</code></td><td><code>name</code>, <code>kind</code>, <code>values</code></td></tr>
-            <tr><td>Division</td><td><code>math.floor_div</code></td><td><code>name</code>, <code>kind</code>, <code>dividend</code>, <code>divisor</code></td></tr>
-            <tr><td>List</td><td><code>list.range_map</code>, <code>list.get</code>, <code>list.filter</code>, <code>list.first</code>, <code>list.min_by</code>, <code>list.max_by</code></td><td>Depends on kind; see schema.</td></tr>
-            <tr><td>Utility</td><td><code>coalesce</code>, <code>pda(seed_spec)</code></td><td><code>values</code> or <code>seeds</code>, plus optional <code>program_id</code>, <code>map_over</code></td></tr>
-            <tr><td>Comparison</td><td><code>compare.equals</code>, <code>compare.not_equals</code>, <code>compare.gt</code>, <code>compare.gte</code>, <code>compare.lt</code>, <code>compare.lte</code></td><td><code>name</code>, <code>kind</code>, <code>left</code>, <code>right</code></td></tr>
-            <tr><td>Logic</td><td><code>logic.if</code></td><td><code>name</code>, <code>kind</code>, <code>condition</code>, <code>then</code>, <code>else</code></td></tr>
-            <tr><td>Assertion</td><td><code>assert.not_null</code></td><td><code>name</code>, <code>kind</code>, <code>value</code>, optional <code>message</code></td></tr>
-            <tr><td>Curve</td><td><code>curve.linear_interpolate_bps</code></td><td><code>name</code>, <code>kind</code>, <code>points</code>, <code>x_bps</code>, optional <code>x_field</code>, <code>y_field</code></td></tr>
-          </tbody>
-        </table>
+        <h2>Scoped collection transforms</h2>
+        <p>
+          <code>list.map</code>, <code>list.flat_map</code>, and <code>list.reduce</code> can run
+          nested steps inside the collection scope.
+        </p>
+        <pre>{
+  "name": "quote_row",
+  "kind": "transform",
+  "transform": "quote_tick",
+  "bindings": {
+    "tick": "$item",
+    "direction": "$a_to_b"
+  },
+  "output": "$payload"
+}</pre>
+        <p>
+          This is one of the main runtime improvements exercised by the Orca harness.
+        </p>
       </section>
 
       <section class="card">
@@ -343,17 +370,17 @@
       <section class="card">
         <h2>Concrete Orca example</h2>
         <p>
-          In the Orca pack, <code>quote_exact_in</code> loads Codama instruction context for
-          <code>swap_v2</code>, decodes the <code>Whirlpool</code>, reuses a shared transform,
-          and returns a typed quote object. Then <code>swap_exact_in</code> consumes raw
-          Codama-shaped write inputs and materializes the final instruction args and accounts.
+          The current Orca runtime pack is a good boundary test for this spec. It exercises exact-input
+          quotes, exact-output quotes, ordered steps, scoped collection transforms, Codama-backed writes,
+          and preview envelope instructions.
         </p>
         <pre>{
   "protocol_id": "orca-whirlpool-mainnet",
   "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
   "codama_path": "/idl/orca_whirlpool.codama.json",
   "transforms": {
-    "quote_exact_in__transform": []
+    "quote_exact_in__derive_tick_arrays": [],
+    "quote_exact_in__quote_math": []
   },
   "views": {
     "quote_exact_in": {
@@ -374,19 +401,48 @@
           "whirlpool": "$input.whirlpool"
         }
       },
-      "load": [],
-      "transform": [
-        "quote_exact_in__transform"
+      "steps": [
+        { "name": "wallet", "kind": "wallet_pubkey" },
+        {
+          "name": "whirlpool_data",
+          "kind": "decode_account",
+          "address": "$input.whirlpool",
+          "account_type": "Whirlpool"
+        },
+        { "kind": "transform", "transform": "quote_exact_in__derive_tick_arrays" },
+        {
+          "name": "tick_arrays_data",
+          "kind": "decode_accounts",
+          "addresses": "$tick_arrays",
+          "account_type": "TickArray"
+        },
+        { "kind": "transform", "transform": "quote_exact_in__quote_math" }
+      ],
+      "pre": [
+        {
+          "kind": "spl_ata_create_idempotent",
+          "payer": "$wallet",
+          "ata": "$instruction_accounts.token_owner_account_a",
+          "owner": "$wallet",
+          "mint": "$whirlpool_data.token_mint_a"
+        }
       ],
       "output": {
         "type": "object",
         "source": "$derived",
         "object_schema": {
+          "entity_type": "orca_quote_exact_in",
+          "identity_fields": ["whirlpool"],
           "fields": {
-            "a_to_b": { "type": "bool" },
+            "whirlpool": { "type": "pubkey" },
+            "token_in_mint": { "type": "pubkey" },
+            "token_out_mint": { "type": "pubkey" },
+            "amount_in": { "type": "u64" },
+            "slippage_bps": { "type": "u16" },
+            "estimated_out": { "type": "u64" },
             "minimum_out": { "type": "u64" },
-            "sqrt_price_limit": { "type": "u128" },
-            "tick_arrays": { "type": "json" }
+            "a_to_b": { "type": "bool" },
+            "pool_fee_bps": { "type": "number" }
           }
         }
       }
@@ -412,32 +468,12 @@
     }
   }
 }</pre>
-        <p>
-          This excerpt is intentionally structural. The real Orca pack uses larger transform
-          fragments.
-        </p>
         <ul>
-          <li>Real Orca transform fragment id used by the current flow: <code>quote_exact_in__transform</code></li>
+          <li>Current quote flow fragments include <code>quote_exact_in__derive_tick_arrays</code>, <code>quote_exact_in__quote_math</code>, <code>quote_exact_out__derive_tick_arrays</code>, and <code>quote_exact_out__quote_math</code>.</li>
           <li>Runtime pack: <a href="/idl/orca_whirlpool.runtime.json" target="_blank" rel="noreferrer"><code>/idl/orca_whirlpool.runtime.json</code></a></li>
           <li>Codama IDL: <a href="/idl/orca_whirlpool.codama.json" target="_blank" rel="noreferrer"><code>/idl/orca_whirlpool.codama.json</code></a></li>
           <li>Live inspect UI: <a href="/#compute" target="_blank" rel="noreferrer"><code>/#compute</code></a></li>
         </ul>
-        <p>
-          For example, the real Orca flow derives values such as <code>a_to_b</code>,
-          <code>sqrt_price_limit</code>, and <code>tick_arrays</code> before they are bound into
-          the raw Codama-shaped write input surface.
-        </p>
-        <pre>{
-  "amount": "$input.amount_in",
-  "other_amount_threshold": "$quote.output.minimum_out",
-  "sqrt_price_limit": "$quote.output.sqrt_price_limit",
-  "amount_specified_is_input": true,
-  "a_to_b": "$quote.output.a_to_b",
-  "whirlpool": "$input.whirlpool",
-  "tick_array0": "$quote.output.tick_arrays.0",
-  "tick_array1": "$quote.output.tick_arrays.1",
-  "tick_array2": "$quote.output.tick_arrays.2"
-}</pre>
       </section>
 
       <section class="card">
