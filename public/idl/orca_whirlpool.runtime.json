@@ -136,11 +136,63 @@
         "output": "$summary"
       },
       {
-        "name": "all_ticks",
-        "kind": "list.flat_map",
+        "name": "tick_groups",
+        "kind": "list.map",
         "items": "$tick_arrays_data",
         "item_as": "tick_array",
-        "output": "$tick_array.ticks"
+        "steps": [
+          {
+            "name": "annotated_ticks",
+            "kind": "list.map",
+            "items": "$tick_array.ticks",
+            "item_as": "tick",
+            "index_as": "tick_offset",
+            "steps": [
+              {
+                "name": "tick_offset_in_ticks",
+                "kind": "math.mul",
+                "values": [
+                  "$tick_offset",
+                  "$whirlpool_data.tick_spacing"
+                ]
+              },
+              {
+                "name": "tick_index",
+                "kind": "math.add",
+                "values": [
+                  "$tick_array.start_tick_index",
+                  "$tick_offset_in_ticks"
+                ]
+              },
+              {
+                "name": "tick_metadata",
+                "kind": "object.create",
+                "fields": {
+                  "tick_index": "$tick_index",
+                  "tick_array_address": "$tick_array.address",
+                  "tick_array_start_index": "$tick_array.start_tick_index"
+                }
+              },
+              {
+                "name": "annotated_tick",
+                "kind": "object.merge",
+                "objects": [
+                  "$tick",
+                  "$tick_metadata"
+                ]
+              }
+            ],
+            "output": "$annotated_tick"
+          }
+        ],
+        "output": "$annotated_ticks"
+      },
+      {
+        "name": "all_ticks",
+        "kind": "list.flat_map",
+        "items": "$tick_groups",
+        "item_as": "tick_group",
+        "output": "$tick_group"
       },
       {
         "name": "initialized_ticks",
@@ -152,9 +204,101 @@
         }
       },
       {
+        "name": "initialized_tick_count",
+        "kind": "list.reduce",
+        "items": "$initialized_ticks",
+        "initial": "0",
+        "item_as": "tick",
+        "acc_as": "acc",
+        "steps": [
+          {
+            "name": "next_count",
+            "kind": "math.add",
+            "values": [
+              "$acc",
+              "1"
+            ]
+          }
+        ],
+        "output": "$next_count"
+      },
+      {
         "name": "first_initialized_tick",
         "kind": "list.find_first",
         "items": "$initialized_ticks",
+        "allow_empty": true
+      },
+      {
+        "name": "current_tick_index",
+        "kind": "coalesce",
+        "values": [
+          "$whirlpool_data.tick_current_index"
+        ]
+      },
+      {
+        "name": "initialized_ticks_at_or_below_current",
+        "kind": "list.filter",
+        "items": "$initialized_ticks",
+        "where": {
+          "path": "tick_index",
+          "op": "<=",
+          "value": "$current_tick_index"
+        }
+      },
+      {
+        "name": "initialized_ticks_above_current",
+        "kind": "list.filter",
+        "items": "$initialized_ticks",
+        "where": {
+          "path": "tick_index",
+          "op": ">",
+          "value": "$current_tick_index"
+        }
+      },
+      {
+        "name": "initialized_ticks_at_or_below_current_desc",
+        "kind": "list.sort_by",
+        "items": "$initialized_ticks_at_or_below_current",
+        "path": "tick_index",
+        "order": "desc"
+      },
+      {
+        "name": "initialized_ticks_above_current_asc",
+        "kind": "list.sort_by",
+        "items": "$initialized_ticks_above_current",
+        "path": "tick_index",
+        "order": "asc"
+      },
+      {
+        "name": "directional_initialized_ticks",
+        "kind": "logic.if",
+        "condition": "$a_to_b",
+        "then": "$initialized_ticks_at_or_below_current_desc",
+        "else": "$initialized_ticks_above_current_asc"
+      },
+      {
+        "name": "directional_initialized_tick_count",
+        "kind": "list.reduce",
+        "items": "$directional_initialized_ticks",
+        "initial": "0",
+        "item_as": "tick",
+        "acc_as": "acc",
+        "steps": [
+          {
+            "name": "next_count",
+            "kind": "math.add",
+            "values": [
+              "$acc",
+              "1"
+            ]
+          }
+        ],
+        "output": "$next_count"
+      },
+      {
+        "name": "next_initialized_tick",
+        "kind": "list.first",
+        "items": "$directional_initialized_ticks",
         "allow_empty": true
       },
       {
