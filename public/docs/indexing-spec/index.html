@@ -14,6 +14,7 @@
         --muted: #4e5f7b;
         --code-bg: #f8fafc;
         --code-line: #dde5f2;
+        --accent: #234e70;
       }
       * { box-sizing: border-box; }
       body {
@@ -62,7 +63,7 @@
         color: var(--muted);
         line-height: 1.65;
       }
-      ul {
+      ul, ol {
         margin: 8px 0 0;
         padding-left: 20px;
       }
@@ -76,6 +77,10 @@
         border-radius: 12px;
         background: #fbfcfe;
         padding: 14px;
+      }
+      .box strong {
+        display: block;
+        margin-bottom: 4px;
       }
       table {
         width: 100%;
@@ -121,9 +126,17 @@
         padding: 14px;
       }
       .link-card span {
-        color: #2e4f8d;
+        color: var(--accent);
         font-size: 12px;
         word-break: break-all;
+      }
+      .flow {
+        display: grid;
+        gap: 8px;
+      }
+      .flow div {
+        border-left: 3px solid #c7d5eb;
+        padding-left: 10px;
       }
     </style>
   </head>
@@ -131,11 +144,11 @@
     <main class="page">
       <section class="hero">
         <p class="eyebrow">Indexing Spec V1 Reference</p>
-        <h1>Declarative decoder runtime and indexed read surfaces</h1>
+        <h1>Declarative ingest, canonical records, and indexed query surfaces</h1>
         <p>
           This page documents the current <code>declarative-decoder-runtime.v1</code> contract.
-          It covers ingest sources, match rules, pipelines, projections, and
-          <code>operations.*.index_view</code>.
+          It covers decoder artifacts, ingest sources, match rules, pipelines,
+          projections, and indexed read surfaces through <code>operations.*.index_view</code>.
         </p>
       </section>
 
@@ -148,21 +161,36 @@
               <li>decoder artifacts</li>
               <li>ingest source definitions</li>
               <li>match and routing rules</li>
-              <li>canonical record/state pipelines</li>
-              <li>projection definitions</li>
+              <li>canonical record and state pipelines</li>
+              <li>projections</li>
               <li>indexed read and discovery views</li>
             </ul>
           </div>
           <div class="box">
             <strong>Indexing spec does not own</strong>
             <ul>
-              <li>Codama instruction execution</li>
-              <li>runtime write preparation</li>
-              <li>wallet transaction submission</li>
-              <li>runner flow orchestration</li>
+              <li>Codama write execution</li>
+              <li>transaction drafting</li>
+              <li>wallet submission</li>
+              <li>runner orchestration</li>
             </ul>
           </div>
         </div>
+      </section>
+
+      <section class="card">
+        <h2>Mental model</h2>
+        <div class="flow">
+          <div><strong>1. decoderArtifacts</strong><br />Declare how raw program data gets decoded.</div>
+          <div><strong>2. sources</strong><br />Declare where updates come from.</div>
+          <div><strong>3. matchRules</strong><br />Route each decoded update into a named pipeline.</div>
+          <div><strong>4. pipelines</strong><br />Extract, resolve, compute, and emit canonical records or state.</div>
+          <div><strong>5. projectionSpecs</strong><br />Materialize rankings, feeds, snapshots, series, or context views.</div>
+          <div><strong>6. operations.*.index_view</strong><br />Expose indexed query surfaces to callers.</div>
+        </div>
+        <p>
+          This makes the indexing spec an ingest-and-query contract, not a transaction-execution contract.
+        </p>
       </section>
 
       <section class="card">
@@ -205,7 +233,7 @@
             <tr><td><code>kind</code></td><td>Yes</td><td>string</td><td><code>generated_idl_decoder</code> or <code>precompiled_decoder</code>.</td></tr>
             <tr><td><code>family</code></td><td>No</td><td>string</td><td><code>anchor</code>, <code>codama</code>, or <code>custom</code>.</td></tr>
             <tr><td><code>codamaPath</code></td><td>Cond.</td><td>string</td><td>Required when <code>family = codama</code>.</td></tr>
-            <tr><td><code>artifact</code></td><td>Yes</td><td>string</td><td>Artifact id used by the ingest runtime.</td></tr>
+            <tr><td><code>artifact</code></td><td>Yes</td><td>string</td><td>Runtime artifact id.</td></tr>
             <tr><td><code>entrypoint</code></td><td>No</td><td>string</td><td>Custom decoder entrypoint.</td></tr>
             <tr><td><code>notes</code></td><td>No</td><td>string</td><td>Free-form note.</td></tr>
           </tbody>
@@ -238,21 +266,21 @@
 
         <h3><code>sourceTargetsSpec</code></h3>
         <table>
-          <thead><tr><th>Attribute</th><th>Required</th><th>Type</th></tr></thead>
+          <thead><tr><th>Attribute</th><th>Required</th><th>Type</th><th>Meaning</th></tr></thead>
           <tbody>
-            <tr><td><code>kind</code></td><td>Yes</td><td><code>missing_state_from_records</code>, <code>incomplete_state_from_state</code>, or <code>incomplete_state_from_records</code></td></tr>
-            <tr><td><code>stateRecordName</code></td><td>Yes</td><td>string</td></tr>
-            <tr><td><code>missingFields</code></td><td>No</td><td>array</td></tr>
-            <tr><td><code>recordNames</code></td><td>No</td><td>array</td></tr>
-            <tr><td><code>addressField</code></td><td>No</td><td><code>resource_id</code> or <code>subject_id</code></td></tr>
-            <tr><td><code>lookbackMinutes</code></td><td>No</td><td>integer</td></tr>
-            <tr><td><code>limit</code></td><td>No</td><td>integer</td></tr>
+            <tr><td><code>kind</code></td><td>Yes</td><td><code>missing_state_from_records</code>, <code>incomplete_state_from_state</code>, or <code>incomplete_state_from_records</code></td><td>Backfill strategy.</td></tr>
+            <tr><td><code>stateRecordName</code></td><td>Yes</td><td>string</td><td>Target state record name.</td></tr>
+            <tr><td><code>missingFields</code></td><td>No</td><td>array</td><td>Fields still missing on state.</td></tr>
+            <tr><td><code>recordNames</code></td><td>No</td><td>array</td><td>Driving record names.</td></tr>
+            <tr><td><code>addressField</code></td><td>No</td><td><code>resource_id</code> or <code>subject_id</code></td><td>Address source field.</td></tr>
+            <tr><td><code>lookbackMinutes</code></td><td>No</td><td>integer</td><td>Backfill lookback window.</td></tr>
+            <tr><td><code>limit</code></td><td>No</td><td>integer</td><td>Max addresses to target.</td></tr>
           </tbody>
         </table>
       </section>
 
       <section class="card">
-        <h2><code>matchRuleSpec</code> and <code>matchPredicateSpec</code></h2>
+        <h2><code>matchRuleSpec</code></h2>
         <table>
           <thead><tr><th>Attribute</th><th>Required</th><th>Type</th><th>Meaning</th></tr></thead>
           <tbody>
@@ -262,7 +290,7 @@
           </tbody>
         </table>
         <p>
-          Inside <code>match</code>, the main attributes are:
+          Inside <code>match</code>, the main attributes are
           <code>decodedType</code>, optional <code>name</code>, optional
           <code>instruction</code>/<code>event</code>/<code>account</code>, and optional <code>where</code>.
         </p>
@@ -279,6 +307,10 @@
             <tr><td><code>emit</code></td><td>No</td><td>object</td><td><code>emitSpec</code>.</td></tr>
           </tbody>
         </table>
+        <p>
+          Common pattern: extract stable names from the update, resolve missing chain or canonical context,
+          compute normalized values, then emit canonical records or state.
+        </p>
 
         <h3><code>resolveStepSpec</code></h3>
         <table>
@@ -319,7 +351,7 @@
         <table>
           <thead><tr><th>Attribute</th><th>Required</th><th>Type</th><th>Meaning</th></tr></thead>
           <tbody>
-            <tr><td><code>projectionKind</code></td><td>Yes</td><td><code>series</code>, <code>feed</code>, <code>ranking</code>, <code>snapshot</code>, or <code>context</code></td></tr>
+            <tr><td><code>projectionKind</code></td><td>Yes</td><td><code>series</code>, <code>feed</code>, <code>ranking</code>, <code>snapshot</code>, or <code>context</code></td><td>Materialization type.</td></tr>
             <tr><td><code>source</code></td><td>Yes</td><td>object</td><td><code>projectionSourceSpec</code>.</td></tr>
             <tr><td><code>bucket</code></td><td>No</td><td>string</td><td>Time bucket string.</td></tr>
             <tr><td><code>groupBy</code></td><td>No</td><td>array</td><td>Grouping fields.</td></tr>
@@ -348,10 +380,34 @@
       </section>
 
       <section class="card">
-        <h2><code>operations.*.index_view</code></h2>
+        <h2><code>operations.*</code></h2>
         <p>
-          This is the part of the indexing spec that now owns indexed read and discovery surfaces.
+          The indexing spec can expose operations in two ways:
+          <code>contract_view</code> and <code>index_view</code>.
+          The important one in practice is <code>index_view</code>, which owns indexed read and discovery surfaces.
         </p>
+
+        <h3><code>runtimeInputSpec</code></h3>
+        <table>
+          <thead><tr><th>Attribute</th><th>Required</th><th>Type</th></tr></thead>
+          <tbody>
+            <tr><td><code>type</code></td><td>Yes</td><td>string</td></tr>
+            <tr><td><code>required</code></td><td>No</td><td>boolean</td></tr>
+            <tr><td><code>default</code></td><td>No</td><td>template or literal</td></tr>
+          </tbody>
+        </table>
+
+        <h3><code>readOutputSpec</code></h3>
+        <table>
+          <thead><tr><th>Attribute</th><th>Required</th><th>Type</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>type</code></td><td>Yes</td><td><code>array</code>, <code>object</code>, <code>scalar</code>, or <code>list</code></td><td>Returned shape.</td></tr>
+            <tr><td><code>source</code></td><td>Yes</td><td>string</td><td>Runtime expression for the returned value.</td></tr>
+            <tr><td><code>object_schema</code></td><td>No</td><td>object</td><td>Schema for <code>type = object</code>.</td></tr>
+            <tr><td><code>item_schema</code></td><td>No</td><td>object</td><td>Schema for array or list items.</td></tr>
+            <tr><td><code>scalar_type</code></td><td>No</td><td>string</td><td>Scalar type for <code>type = scalar</code>.</td></tr>
+          </tbody>
+        </table>
 
         <h3><code>canonicalViewSpec</code></h3>
         <p>
@@ -374,7 +430,7 @@
         <table>
           <thead><tr><th>Attribute</th><th>Required</th><th>Type</th><th>Meaning</th></tr></thead>
           <tbody>
-            <tr><td><code>kind</code></td><td>Yes</td><td><code>search</code>, <code>account</code>, <code>feed</code>, <code>series</code>, <code>ranking</code>, or <code>context</code></td></tr>
+            <tr><td><code>kind</code></td><td>Yes</td><td><code>search</code>, <code>account</code>, <code>feed</code>, <code>series</code>, <code>ranking</code>, or <code>context</code></td><td>Indexed view shape.</td></tr>
             <tr><td><code>inputs</code></td><td>No</td><td>object</td><td>Input map using <code>runtimeInputSpec</code>.</td></tr>
             <tr><td><code>read_output</code></td><td>No</td><td>object</td><td>Typed read contract for the indexed view.</td></tr>
             <tr><td><code>source_kind</code></td><td>No</td><td>string</td><td>Source mode.</td></tr>
@@ -408,7 +464,7 @@
       </section>
 
       <section class="card">
-        <h2>Pump AMM example</h2>
+        <h2>Concrete Pump AMM example</h2>
         <pre>{
   "sources": {
     "pump_swap_crawler": {
@@ -455,6 +511,12 @@
     }
   }
 }</pre>
+        <p>
+          This shows the core pattern:
+          a decoded update enters through a source, a match rule routes it into a pipeline,
+          the pipeline resolves canonical context, computes normalized values,
+          then emits a canonical record that later powers indexed views.
+        </p>
       </section>
 
       <section class="card">
