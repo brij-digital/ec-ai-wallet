@@ -306,9 +306,9 @@ async function main() {
 
     const instructionNames = collectInstructionNamesFromCodama(codama, `${protocolId}.codama`);
 
-    if (manifest.agentRuntimePath === undefined || manifest.indexingSpecPath === undefined) {
+    if (manifest.agentRuntimePath === undefined || manifest.indexedReadsPath === undefined) {
       if (isActive) {
-        fail(`${protocolId}: active protocols must declare agentRuntimePath and indexingSpecPath.`);
+        fail(`${protocolId}: active protocols must declare agentRuntimePath and indexedReadsPath.`);
       }
       continue;
     }
@@ -329,38 +329,39 @@ async function main() {
       fail(`${protocolId}: agentRuntime.codama_path must match registry codamaIdlPath.`);
     }
 
-    const indexingPath = resolvePublicAssetPath(manifest.indexingSpecPath, `${protocolId}.indexingSpecPath`);
-    const indexing = asObject(await readJson(indexingPath, `${protocolId} indexing spec`), `${protocolId} indexing spec`);
-    if (indexing.schema !== 'declarative-decoder-runtime.v1') {
-      fail(`${protocolId}: indexingSpecPath must point to declarative-decoder-runtime.v1.`);
-    }
-    if (asString(indexing.protocolId, `${protocolId}.indexing.protocolId`) !== protocolId) {
-      fail(`${protocolId}: indexing.protocolId mismatch.`);
-    }
-
-    const decoderArtifacts = asObject(indexing.decoderArtifacts, `${protocolId}.indexing.decoderArtifacts`);
-    if (Object.keys(decoderArtifacts).length === 0) {
-      fail(`${protocolId}: indexing.decoderArtifacts must not be empty.`);
-    }
-    for (const [artifactName, artifactRaw] of Object.entries(decoderArtifacts)) {
-      const artifact = asObject(artifactRaw, `${protocolId}.indexing.decoderArtifacts.${artifactName}`);
-      if (artifact.codecIdlPath !== undefined) {
-        fail(`${protocolId}: indexing decoder artifact ${artifactName} must not declare legacy codecIdlPath.`);
+    if (manifest.ingestSpecPath !== undefined && manifest.ingestSpecPath !== null) {
+      const ingestPath = resolvePublicAssetPath(manifest.ingestSpecPath, `${protocolId}.ingestSpecPath`);
+      const ingest = asObject(await readJson(ingestPath, `${protocolId} ingest spec`), `${protocolId} ingest spec`);
+      if (ingest.schema !== 'declarative-decoder-runtime.v1') {
+        fail(`${protocolId}: ingestSpecPath must point to declarative-decoder-runtime.v1.`);
       }
-      if (artifact.idlPath !== undefined) {
-        fail(`${protocolId}: indexing decoder artifact ${artifactName} must not declare legacy idlPath.`);
+      if (asString(ingest.protocolId, `${protocolId}.ingest.protocolId`) !== protocolId) {
+        fail(`${protocolId}: ingest.protocolId mismatch.`);
       }
-      if (artifact.family === 'codama') {
-        const artifactCodamaPath = resolvePublicAssetPath(
-          artifact.codamaPath,
-          `${protocolId}.indexing.decoderArtifacts.${artifactName}.codamaPath`,
-        );
-        const artifactCodama = asObject(
-          await readJson(artifactCodamaPath, `${protocolId} indexing codama ${artifactName}`),
-          `${protocolId} indexing codama ${artifactName}`,
-        );
-        if (artifactCodama.standard !== 'codama') {
-          fail(`${protocolId}: indexing decoder artifact ${artifactName} codamaPath is not Codama.`);
+      const decoderArtifacts = asObject(ingest.decoderArtifacts, `${protocolId}.ingest.decoderArtifacts`);
+      if (Object.keys(decoderArtifacts).length === 0) {
+        fail(`${protocolId}: ingest.decoderArtifacts must not be empty.`);
+      }
+      for (const [artifactName, artifactRaw] of Object.entries(decoderArtifacts)) {
+        const artifact = asObject(artifactRaw, `${protocolId}.ingest.decoderArtifacts.${artifactName}`);
+        if (artifact.codecIdlPath !== undefined) {
+          fail(`${protocolId}: ingest decoder artifact ${artifactName} must not declare legacy codecIdlPath.`);
+        }
+        if (artifact.idlPath !== undefined) {
+          fail(`${protocolId}: ingest decoder artifact ${artifactName} must not declare legacy idlPath.`);
+        }
+        if (artifact.family === 'codama') {
+          const artifactCodamaPath = resolvePublicAssetPath(
+            artifact.codamaPath,
+            `${protocolId}.ingest.decoderArtifacts.${artifactName}.codamaPath`,
+          );
+          const artifactCodama = asObject(
+            await readJson(artifactCodamaPath, `${protocolId} ingest codama ${artifactName}`),
+            `${protocolId} ingest codama ${artifactName}`,
+          );
+          if (artifactCodama.standard !== 'codama') {
+            fail(`${protocolId}: ingest decoder artifact ${artifactName} codamaPath is not Codama.`);
+          }
         }
       }
     }
@@ -369,13 +370,22 @@ async function main() {
     const views = asOptionalObject(agentRuntime.views, `${protocolId}.agentRuntime.views`);
     const writes = asOptionalObject(agentRuntime.writes, `${protocolId}.agentRuntime.writes`);
 
-    const indexingOperations = asOptionalObject(indexing.operations, `${protocolId}.indexing.operations`);
-    for (const [operationId, operationRaw] of Object.entries(indexingOperations)) {
+    const indexedReadsPath = resolvePublicAssetPath(manifest.indexedReadsPath, `${protocolId}.indexedReadsPath`);
+    const indexedReads = asObject(await readJson(indexedReadsPath, `${protocolId} indexed reads`), `${protocolId} indexed reads`);
+    if (indexedReads.schema !== 'declarative-decoder-runtime.v1') {
+      fail(`${protocolId}: indexedReadsPath must point to declarative-decoder-runtime.v1.`);
+    }
+    if (asString(indexedReads.protocolId, `${protocolId}.indexedReads.protocolId`) !== protocolId) {
+      fail(`${protocolId}: indexedReads.protocolId mismatch.`);
+    }
+
+    const indexedReadOperations = asOptionalObject(indexedReads.operations, `${protocolId}.indexedReads.operations`);
+    for (const [operationId, operationRaw] of Object.entries(indexedReadOperations)) {
       const operation = asObject(operationRaw, `${protocolId}.indexing.operations.${operationId}`);
       if (operation.index_view === undefined) {
         continue;
       }
-      validateIndexingIndexView(protocolId, indexing, operationId);
+      validateIndexingIndexView(protocolId, indexedReads, operationId);
       operationCount += 1;
     }
     for (const [operationId, operationRaw] of Object.entries(views)) {

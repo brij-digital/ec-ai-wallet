@@ -116,7 +116,10 @@ async function main() {
     const programId = checkPubkey(manifest.programId, `${id}.programId`);
     const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
     const agentRuntimePath = manifest.agentRuntimePath ? resolvePublicAssetPath(manifest.agentRuntimePath, `${id}.agentRuntimePath`) : null;
-    const indexingPath = manifest.indexingSpecPath ? resolvePublicAssetPath(manifest.indexingSpecPath, `${id}.indexingSpecPath`) : null;
+    const ingestPath = manifest.ingestSpecPath ? resolvePublicAssetPath(manifest.ingestSpecPath, `${id}.ingestSpecPath`) : null;
+    const indexedReadsPath = manifest.indexedReadsPath
+      ? resolvePublicAssetPath(manifest.indexedReadsPath, `${id}.indexedReadsPath`)
+      : null;
 
     const protocolErrors = [];
     const protocolWarnings = [];
@@ -138,9 +141,14 @@ async function main() {
       protocolErrors.push(`Missing agent runtime file: ${path.relative(ROOT, agentRuntimePath)}`);
     }
 
-    const indexingExists = indexingPath ? await pathExists(indexingPath) : false;
-    if (indexingPath && !indexingExists) {
-      protocolErrors.push(`Missing indexing spec file: ${path.relative(ROOT, indexingPath)}`);
+    const ingestExists = ingestPath ? await pathExists(ingestPath) : false;
+    if (ingestPath && !ingestExists) {
+      protocolErrors.push(`Missing ingest spec file: ${path.relative(ROOT, ingestPath)}`);
+    }
+
+    const indexedReadsExists = indexedReadsPath ? await pathExists(indexedReadsPath) : false;
+    if (indexedReadsPath && !indexedReadsExists) {
+      protocolErrors.push(`Missing indexed reads file: ${path.relative(ROOT, indexedReadsPath)}`);
     }
 
     if (codamaExists) {
@@ -183,22 +191,36 @@ async function main() {
       }
     }
 
-    if (indexingExists && indexingPath) {
+    if (ingestExists && ingestPath) {
       try {
-        const indexing = asObject(await readJson(indexingPath, `${id} indexing spec`), `${id} indexing spec`);
-        if (indexing.schema !== 'declarative-decoder-runtime.v1') {
-          protocolErrors.push(`Unsupported indexing schema: ${String(indexing.schema ?? '')}`);
+        const ingest = asObject(await readJson(ingestPath, `${id} ingest spec`), `${id} ingest spec`);
+        if (ingest.schema !== 'declarative-decoder-runtime.v1') {
+          protocolErrors.push(`Unsupported ingest schema: ${String(ingest.schema ?? '')}`);
         }
-        if (asString(indexing.protocolId, `${id}.indexing.protocolId`) !== id) {
-          protocolErrors.push(`indexing protocolId mismatch: ${String(indexing.protocolId)} != ${id}`);
+        if (asString(ingest.protocolId, `${id}.ingest.protocolId`) !== id) {
+          protocolErrors.push(`ingest protocolId mismatch: ${String(ingest.protocolId)} != ${id}`);
         }
       } catch (error) {
         protocolErrors.push(error instanceof Error ? error.message : String(error));
       }
     }
 
-    if (!agentRuntimePath || !indexingPath) {
-      protocolWarnings.push('Missing agentRuntimePath or indexingSpecPath; protocol is not fully split.');
+    if (indexedReadsExists && indexedReadsPath) {
+      try {
+        const indexedReads = asObject(await readJson(indexedReadsPath, `${id} indexed reads`), `${id} indexed reads`);
+        if (indexedReads.schema !== 'declarative-decoder-runtime.v1') {
+          protocolErrors.push(`Unsupported indexed reads schema: ${String(indexedReads.schema ?? '')}`);
+        }
+        if (asString(indexedReads.protocolId, `${id}.indexedReads.protocolId`) !== id) {
+          protocolErrors.push(`indexedReads protocolId mismatch: ${String(indexedReads.protocolId)} != ${id}`);
+        }
+      } catch (error) {
+        protocolErrors.push(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    if (!agentRuntimePath || !indexedReadsPath) {
+      protocolWarnings.push('Missing agentRuntimePath or indexedReadsPath; protocol is not fully split.');
     }
 
     if (protocolErrors.length > 0) {
@@ -218,10 +240,15 @@ async function main() {
     } else {
       console.log('- agent runtime: none');
     }
-    if (indexingPath) {
-      console.log(`- indexing: ${path.relative(ROOT, indexingPath)} ${indexingExists ? 'OK' : 'MISSING'}`);
+    if (ingestPath) {
+      console.log(`- ingest: ${path.relative(ROOT, ingestPath)} ${ingestExists ? 'OK' : 'MISSING'}`);
     } else {
-      console.log('- indexing: none');
+      console.log('- ingest: none');
+    }
+    if (indexedReadsPath) {
+      console.log(`- indexed reads: ${path.relative(ROOT, indexedReadsPath)} ${indexedReadsExists ? 'OK' : 'MISSING'}`);
+    } else {
+      console.log('- indexed reads: none');
     }
 
     for (const warn of protocolWarnings) {

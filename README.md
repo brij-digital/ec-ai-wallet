@@ -57,14 +57,17 @@ Each active protocol pack is now split into 3 layers:
   - [public/idl/pump_amm.codama.json](public/idl/pump_amm.codama.json)
 
 2. `Indexing Spec`
-- indexed reads
+- ingest specs: `*.ingest.json`
+- indexed reads specs: `*.indexed-reads.json`
 - discovery
 - feeds
 - ranking
 - series
 - examples:
-  - [public/idl/orca_whirlpool.indexing.json](public/idl/orca_whirlpool.indexing.json)
-  - [public/idl/pump_amm.indexing.json](public/idl/pump_amm.indexing.json)
+  - [public/idl/orca_whirlpool.ingest.json](public/idl/orca_whirlpool.ingest.json)
+  - [public/idl/orca_whirlpool.indexed-reads.json](public/idl/orca_whirlpool.indexed-reads.json)
+  - [public/idl/pump_amm.ingest.json](public/idl/pump_amm.ingest.json)
+  - [public/idl/pump_amm.indexed-reads.json](public/idl/pump_amm.indexed-reads.json)
 
 3. `Runtime Spec`
 - deterministic compute

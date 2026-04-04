@@ -93,12 +93,12 @@ function createCodamaSkeleton(programId, name) {
   };
 }
 
-function createIndexingSkeleton({ protocolId, programId, codamaAssetPath }) {
+function createIngestSkeleton({ protocolId, programId, codamaAssetPath }) {
   return {
     schema: 'declarative-decoder-runtime.v1',
     protocolId,
     version: '0.1.0',
-    label: `${protocolId} Indexing Spec`,
+    label: `${protocolId} Ingest Spec`,
     programId,
     decoderArtifacts: {
       default: {
@@ -114,8 +114,23 @@ function createIndexingSkeleton({ protocolId, programId, codamaAssetPath }) {
     projectionSpecs: {},
     operations: {},
     notes: [
-      `Starter indexing spec for ${protocolId}.`,
-      `Add sources/matchRules/pipelines/projections for program ${programId}.`,
+      `Starter ingest spec for ${protocolId}.`,
+      `Add sources/matchRules/pipelines for program ${programId}.`,
+    ],
+  };
+}
+
+function createIndexedReadsSkeleton({ protocolId, programId }) {
+  return {
+    schema: 'declarative-decoder-runtime.v1',
+    protocolId,
+    version: '0.1.0',
+    label: `${protocolId} Indexed Reads`,
+    programId,
+    operations: {},
+    notes: [
+      `Starter indexed reads spec for ${protocolId}.`,
+      'Add operations with index_view definitions.',
     ],
   };
 }
@@ -169,7 +184,8 @@ async function main() {
 
   const codamaPath = path.join(PUBLIC_IDL_DIR, `${slug}.codama.json`);
   const agentRuntimePath = path.join(PUBLIC_IDL_DIR, `${slug}.runtime.json`);
-  const indexingSpecPath = path.join(PUBLIC_IDL_DIR, `${slug}.indexing.json`);
+  const ingestSpecPath = path.join(PUBLIC_IDL_DIR, `${slug}.ingest.json`);
+  const indexedReadsPath = path.join(PUBLIC_IDL_DIR, `${slug}.indexed-reads.json`);
 
   if (!overwrite) {
     if (await pathExists(codamaPath)) {
@@ -178,8 +194,11 @@ async function main() {
     if (await pathExists(agentRuntimePath)) {
       fail(`Agent runtime already exists: ${path.relative(ROOT, agentRuntimePath)} (use --overwrite to replace)`);
     }
-    if (await pathExists(indexingSpecPath)) {
-      fail(`Indexing spec already exists: ${path.relative(ROOT, indexingSpecPath)} (use --overwrite to replace)`);
+    if (await pathExists(ingestSpecPath)) {
+      fail(`Ingest spec already exists: ${path.relative(ROOT, ingestSpecPath)} (use --overwrite to replace)`);
+    }
+    if (await pathExists(indexedReadsPath)) {
+      fail(`Indexed reads spec already exists: ${path.relative(ROOT, indexedReadsPath)} (use --overwrite to replace)`);
     }
   }
 
@@ -188,11 +207,13 @@ async function main() {
   const codamaJson = createCodamaSkeleton(programId, slug);
   const codamaAssetPath = `/idl/${slug}.codama.json`;
   const runtimeJson = createAgentRuntimeSkeleton({ protocolId, programId, codamaAssetPath });
-  const indexingJson = createIndexingSkeleton({ protocolId, programId, codamaAssetPath });
+  const ingestJson = createIngestSkeleton({ protocolId, programId, codamaAssetPath });
+  const indexedReadsJson = createIndexedReadsSkeleton({ protocolId, programId });
 
   await fs.writeFile(codamaPath, `${JSON.stringify(codamaJson, null, 2)}\n`, 'utf8');
   await fs.writeFile(agentRuntimePath, `${JSON.stringify(runtimeJson, null, 2)}\n`, 'utf8');
-  await fs.writeFile(indexingSpecPath, `${JSON.stringify(indexingJson, null, 2)}\n`, 'utf8');
+  await fs.writeFile(ingestSpecPath, `${JSON.stringify(ingestJson, null, 2)}\n`, 'utf8');
+  await fs.writeFile(indexedReadsPath, `${JSON.stringify(indexedReadsJson, null, 2)}\n`, 'utf8');
 
   const registry = await readJson(REGISTRY_PATH, 'Registry');
   if (!registry || typeof registry !== 'object' || !Array.isArray(registry.protocols)) {
@@ -206,7 +227,8 @@ async function main() {
     programId,
     codamaIdlPath: `/idl/${slug}.codama.json`,
     agentRuntimePath: `/idl/${slug}.runtime.json`,
-    indexingSpecPath: `/idl/${slug}.indexing.json`,
+    ingestSpecPath: `/idl/${slug}.ingest.json`,
+    indexedReadsPath: `/idl/${slug}.indexed-reads.json`,
     transport,
     supportedCommands: commands,
     status,
@@ -228,16 +250,18 @@ async function main() {
   console.log('Protocol pack scaffold created:');
   console.log(`- ${path.relative(ROOT, codamaPath)}`);
   console.log(`- ${path.relative(ROOT, agentRuntimePath)}`);
-  console.log(`- ${path.relative(ROOT, indexingSpecPath)}`);
+  console.log(`- ${path.relative(ROOT, ingestSpecPath)}`);
+  console.log(`- ${path.relative(ROOT, indexedReadsPath)}`);
   console.log(`- ${path.relative(ROOT, REGISTRY_PATH)} updated`);
   console.log('');
   console.log('Next steps:');
   console.log('1. Make public/idl/<slug>.codama.json the protocol source of truth.');
-  console.log('2. Fill public/idl/<slug>.indexing.json with sources, matchRules, pipelines, and projections.');
-  console.log('3. Fill public/idl/<slug>.runtime.json with views, writes, and reusable transforms needed around Codama.');
-  console.log('4. Run: npm run codama:check');
-  console.log('5. Run: npm run pack:doctor -- --protocol <protocol-id>');
-  console.log('6. Run: npm run pack:check');
+  console.log('2. Fill public/idl/<slug>.ingest.json with sources, matchRules, and pipelines.');
+  console.log('3. Fill public/idl/<slug>.indexed-reads.json with indexed read operations.');
+  console.log('4. Fill public/idl/<slug>.runtime.json with views, writes, and reusable transforms needed around Codama.');
+  console.log('5. Run: npm run codama:check');
+  console.log('6. Run: npm run pack:doctor -- --protocol <protocol-id>');
+  console.log('7. Run: npm run pack:check');
 }
 
 main().catch((error) => {

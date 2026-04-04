@@ -1,0 +1,641 @@
+{
+  "$schema": "/idl/declarative_decoder_runtime.schema.v1.json",
+  "schema": "declarative-decoder-runtime.v1",
+  "version": "0.1.0",
+  "protocolId": "orca-whirlpool-mainnet",
+  "label": "Orca Whirlpool Indexed Reads",
+  "programId": "$protocol.programId",
+  "operations": {
+    "best_pool_for_pair": {
+      "index_view": {
+        "kind": "search",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "notes": "Canonical Whirlpool pool directory ordered by indexed liquidity."
+        },
+        "projection": {
+          "projection_kind": "search",
+          "filters": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  }
+                ]
+              }
+            ]
+          },
+          "sort_by": [
+            {
+              "field": "liquidity",
+              "dir": "desc"
+            },
+            {
+              "field": "updatedAt",
+              "dir": "desc"
+            }
+          ]
+        },
+        "inputs": {
+          "token_in_mint": {
+            "type": "token_mint",
+            "required": false
+          },
+          "token_out_mint": {
+            "type": "token_mint",
+            "required": false
+          }
+        },
+        "read_output": {
+          "type": "object",
+          "source": "$items.0",
+          "object_schema": {
+            "entity_type": "orca_whirlpool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "subjectId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "resourceId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "tokenMintA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenMintB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tickSpacing": {
+                "type": "u16",
+                "required": true
+              },
+              "feeRateRaw": {
+                "type": "u16",
+                "required": true
+              },
+              "feeRateBps": {
+                "type": "number",
+                "required": false
+              },
+              "liquidity": {
+                "type": "u128",
+                "required": true
+              },
+              "tickCurrentIndex": {
+                "type": "i32",
+                "required": true
+              },
+              "sqrtPrice": {
+                "type": "u128",
+                "required": true
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": true
+              },
+              "updatedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "lastEventTime": {
+                "type": "timestamp",
+                "required": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "trade_feed": {
+      "index_view": {
+        "kind": "feed",
+        "canonical": {
+          "source": "indexed_idl_records",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "event",
+          "record_name": "SwapEvent",
+          "subject_input": "pool",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "time_field": "event_time",
+          "notes": "Recent canonical Orca swap records ordered by event time."
+        },
+        "projection": {
+          "projection_kind": "feed",
+          "group_by": [
+            "subject_id"
+          ],
+          "sort_by": [
+            {
+              "field": "event_time",
+              "dir": "desc"
+            }
+          ]
+        },
+        "inputs": {
+          "pool": {
+            "type": "pubkey",
+            "required": true
+          },
+          "limit": {
+            "type": "u16",
+            "required": false,
+            "default": 50
+          }
+        },
+        "read_output": {
+          "type": "array",
+          "source": "$items",
+          "item_schema": {
+            "entity_type": "orca_swap",
+            "identity_fields": [
+              "signature"
+            ],
+            "fields": {
+              "signature": {
+                "type": "string",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "trader": {
+                "type": "pubkey",
+                "required": false
+              },
+              "side": {
+                "type": "string",
+                "required": true
+              },
+              "eventTime": {
+                "type": "timestamp",
+                "required": true
+              },
+              "aToB": {
+                "type": "bool",
+                "required": false
+              },
+              "inputAmountAtomic": {
+                "type": "u64",
+                "required": true
+              },
+              "outputAmountAtomic": {
+                "type": "u64",
+                "required": true
+              },
+              "inputTransferFeeAtomic": {
+                "type": "u64",
+                "required": false
+              },
+              "outputTransferFeeAtomic": {
+                "type": "u64",
+                "required": false
+              },
+              "preSqrtPrice": {
+                "type": "u128",
+                "required": true
+              },
+              "postSqrtPrice": {
+                "type": "u128",
+                "required": true
+              },
+              "lpFeeAtomic": {
+                "type": "u64",
+                "required": true
+              },
+              "protocolFeeAtomic": {
+                "type": "u64",
+                "required": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "market_cap_series": {
+      "index_view": {
+        "kind": "series",
+        "canonical": {
+          "source": "indexed_series_1m",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "series_id": "orca.whirlpool.market.1m",
+          "subject_input": "pool",
+          "resource_input": "pool",
+          "time_field": "bucket_start",
+          "notes": "Canonical 1m Orca Whirlpool market series projected from canonical swap records."
+        },
+        "projection": {
+          "projection_kind": "series",
+          "source_operation": "trade_feed",
+          "group_by": [
+            "subject_id"
+          ],
+          "bucket": "1m",
+          "fill_mode": "sparse",
+          "aggregations": [
+            {
+              "name": "open",
+              "field": "inputAmountAtomic",
+              "fn": "first"
+            },
+            {
+              "name": "high",
+              "field": "inputAmountAtomic",
+              "fn": "max"
+            },
+            {
+              "name": "low",
+              "field": "inputAmountAtomic",
+              "fn": "min"
+            },
+            {
+              "name": "close",
+              "field": "inputAmountAtomic",
+              "fn": "last"
+            },
+            {
+              "name": "volumeQuote",
+              "field": "inputAmountAtomic",
+              "fn": "sum"
+            },
+            {
+              "name": "tradeCount",
+              "field": "*",
+              "fn": "count"
+            }
+          ]
+        },
+        "inputs": {
+          "pool": {
+            "type": "pubkey",
+            "required": true
+          },
+          "limit": {
+            "type": "u16",
+            "required": false,
+            "default": 240
+          },
+          "from": {
+            "type": "string",
+            "required": false
+          },
+          "to": {
+            "type": "string",
+            "required": false
+          },
+          "interval": {
+            "type": "string",
+            "required": false,
+            "default": "1m"
+          },
+          "mode": {
+            "type": "string",
+            "required": false,
+            "default": "sparse"
+          }
+        },
+        "read_output": {
+          "type": "array",
+          "source": "$items",
+          "item_schema": {
+            "entity_type": "orca_market_series_point",
+            "identity_fields": [
+              "bucketStart"
+            ],
+            "fields": {
+              "bucketStart": {
+                "type": "timestamp",
+                "required": true
+              },
+              "open": {
+                "type": "number",
+                "required": true
+              },
+              "high": {
+                "type": "number",
+                "required": true
+              },
+              "low": {
+                "type": "number",
+                "required": true
+              },
+              "close": {
+                "type": "number",
+                "required": true
+              },
+              "volumeQuote": {
+                "type": "number",
+                "required": true
+              },
+              "tradeCount": {
+                "type": "u32",
+                "required": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "pools_get": {
+      "index_view": {
+        "kind": "account",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "resource_input": "pool",
+          "resource_field": "resource_id",
+          "notes": "Read the latest canonical Whirlpool state by pool address."
+        },
+        "projection": {
+          "projection_kind": "snapshot",
+          "group_by": [
+            "resource_id"
+          ]
+        },
+        "inputs": {
+          "pool": {
+            "type": "pubkey",
+            "required": true
+          }
+        },
+        "read_output": {
+          "type": "object",
+          "source": "$items.0",
+          "object_schema": {
+            "entity_type": "orca_whirlpool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "subjectId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "resourceId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "tokenMintA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenMintB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tickSpacing": {
+                "type": "u16",
+                "required": true
+              },
+              "feeRateRaw": {
+                "type": "u16",
+                "required": true
+              },
+              "feeRateBps": {
+                "type": "number",
+                "required": false
+              },
+              "liquidity": {
+                "type": "u128",
+                "required": true
+              },
+              "tickCurrentIndex": {
+                "type": "i32",
+                "required": true
+              },
+              "sqrtPrice": {
+                "type": "u128",
+                "required": true
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": true
+              },
+              "updatedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "lastEventTime": {
+                "type": "timestamp",
+                "required": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "pools_index": {
+      "index_view": {
+        "kind": "search",
+        "canonical": {
+          "source": "indexed_idl_state",
+          "protocol_id": "orca-whirlpool-mainnet",
+          "record_kind": "account",
+          "record_name": "Whirlpool",
+          "notes": "Canonical Whirlpool pool directory ordered by indexed liquidity."
+        },
+        "projection": {
+          "projection_kind": "search",
+          "filters": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "field": "tokenMintA",
+                    "op": "=",
+                    "value": "$input.token_out_mint"
+                  },
+                  {
+                    "field": "tokenMintB",
+                    "op": "=",
+                    "value": "$input.token_in_mint"
+                  }
+                ]
+              }
+            ]
+          },
+          "sort_by": [
+            {
+              "field": "liquidity",
+              "dir": "desc"
+            },
+            {
+              "field": "updatedAt",
+              "dir": "desc"
+            }
+          ]
+        },
+        "inputs": {
+          "token_in_mint": {
+            "type": "token_mint",
+            "required": false
+          },
+          "token_out_mint": {
+            "type": "token_mint",
+            "required": false
+          }
+        },
+        "read_output": {
+          "type": "array",
+          "source": "$items",
+          "item_schema": {
+            "entity_type": "orca_whirlpool",
+            "identity_fields": [
+              "pool"
+            ],
+            "fields": {
+              "subjectId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "resourceId": {
+                "type": "pubkey",
+                "required": true
+              },
+              "pool": {
+                "type": "pubkey",
+                "required": true
+              },
+              "marketType": {
+                "type": "string",
+                "required": true
+              },
+              "tokenMintA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenMintB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultA": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tokenVaultB": {
+                "type": "pubkey",
+                "required": true
+              },
+              "tickSpacing": {
+                "type": "u16",
+                "required": true
+              },
+              "feeRateRaw": {
+                "type": "u16",
+                "required": true
+              },
+              "feeRateBps": {
+                "type": "number",
+                "required": false
+              },
+              "liquidity": {
+                "type": "u128",
+                "required": true
+              },
+              "tickCurrentIndex": {
+                "type": "i32",
+                "required": true
+              },
+              "sqrtPrice": {
+                "type": "u128",
+                "required": true
+              },
+              "observedAt": {
+                "type": "timestamp",
+                "required": true
+              },
+              "updatedAt": {
+                "type": "timestamp",
+                "required": false
+              },
+              "lastEventTime": {
+                "type": "timestamp",
+                "required": false
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

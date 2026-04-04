@@ -29,15 +29,19 @@ async function main() {
       fail(`Protocol ${protocol.id ?? 'unknown'} still declares appPath.`);
     }
     const agentRuntimePath = typeof protocol.agentRuntimePath === 'string' ? protocol.agentRuntimePath : null;
-    const indexingSpecPath = typeof protocol.indexingSpecPath === 'string' ? protocol.indexingSpecPath : null;
-    if (!agentRuntimePath || !indexingSpecPath) {
+    const ingestSpecPath = typeof protocol.ingestSpecPath === 'string' ? protocol.ingestSpecPath : null;
+    const indexedReadsPath = typeof protocol.indexedReadsPath === 'string' ? protocol.indexedReadsPath : null;
+    if (!agentRuntimePath || !indexedReadsPath) {
       continue;
     }
     if (!agentRuntimePath.startsWith('/idl/')) {
       fail(`Protocol ${protocol.id ?? 'unknown'} has invalid agentRuntimePath.`);
     }
-    if (!indexingSpecPath.startsWith('/idl/')) {
-      fail(`Protocol ${protocol.id ?? 'unknown'} has invalid indexingSpecPath.`);
+    if (ingestSpecPath && !ingestSpecPath.startsWith('/idl/')) {
+      fail(`Protocol ${protocol.id ?? 'unknown'} has invalid ingestSpecPath.`);
+    }
+    if (!indexedReadsPath.startsWith('/idl/')) {
+      fail(`Protocol ${protocol.id ?? 'unknown'} has invalid indexedReadsPath.`);
     }
     const agentRuntimeFilePath = path.join(IDL_DIR, agentRuntimePath.slice('/idl/'.length));
     const agentRuntime = await loadJson(agentRuntimeFilePath);
@@ -59,23 +63,30 @@ async function main() {
     if (!hasCapabilities) {
       fail(`${agentRuntimeFilePath} is missing agent runtime capabilities.`);
     }
-    const indexingFilePath = path.join(IDL_DIR, indexingSpecPath.slice('/idl/'.length));
-    const indexing = await loadJson(indexingFilePath);
-    if (!indexing || typeof indexing !== 'object' || Array.isArray(indexing)) {
-      fail(`${indexingFilePath} did not parse as a JSON object.`);
+    if (ingestSpecPath) {
+      const ingestFilePath = path.join(IDL_DIR, ingestSpecPath.slice('/idl/'.length));
+      const ingest = await loadJson(ingestFilePath);
+      if (!ingest || typeof ingest !== 'object' || Array.isArray(ingest)) {
+        fail(`${ingestFilePath} did not parse as a JSON object.`);
+      }
+      if (!ingest.decoderArtifacts || typeof ingest.decoderArtifacts !== 'object' || Array.isArray(ingest.decoderArtifacts)) {
+        fail(`${ingestFilePath} is missing ingest decoder artifacts.`);
+      }
     }
-    if (!indexing.decoderArtifacts || typeof indexing.decoderArtifacts !== 'object' || Array.isArray(indexing.decoderArtifacts)) {
-      fail(`${indexingFilePath} is missing indexing decoder artifacts.`);
+    const indexedReadsFilePath = path.join(IDL_DIR, indexedReadsPath.slice('/idl/'.length));
+    const indexedReads = await loadJson(indexedReadsFilePath);
+    if (!indexedReads || typeof indexedReads !== 'object' || Array.isArray(indexedReads)) {
+      fail(`${indexedReadsFilePath} did not parse as a JSON object.`);
     }
-    const hasIndexingViews =
-      indexing.operations && typeof indexing.operations === 'object' && !Array.isArray(indexing.operations)
-      && Object.values(indexing.operations).some(
+    const hasIndexedReads =
+      indexedReads.operations && typeof indexedReads.operations === 'object' && !Array.isArray(indexedReads.operations)
+      && Object.values(indexedReads.operations).some(
         (operation) => operation && typeof operation === 'object' && !Array.isArray(operation)
           && operation.index_view && typeof operation.index_view === 'object' && !Array.isArray(operation.index_view),
       );
     loadedRuntimePacks += 1;
-    if (!hasCapabilities && !hasIndexingViews) {
-      fail(`${agentRuntimeFilePath} and ${indexingFilePath} expose no usable capabilities.`);
+    if (!hasCapabilities && !hasIndexedReads) {
+      fail(`${agentRuntimeFilePath} and ${indexedReadsFilePath} expose no usable capabilities.`);
     }
   }
 

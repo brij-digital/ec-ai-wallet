@@ -3,20 +3,8 @@
   "schema": "declarative-decoder-runtime.v1",
   "version": "0.1.0",
   "protocolId": "token-index-mainnet",
-  "label": "Manual Token Index",
+  "label": "Token Index Indexed Reads",
   "programId": "11111111111111111111111111111111",
-  "decoderArtifacts": {
-    "default": {
-      "kind": "generated_idl_decoder",
-      "family": "codama",
-      "artifact": "token_index",
-      "codamaPath": "/idl/token_index.codama.json"
-    }
-  },
-  "sources": {},
-  "matchRules": [],
-  "pipelines": {},
-  "projectionSpecs": {},
   "operations": {
     "tokens_get": {
       "index_view": {

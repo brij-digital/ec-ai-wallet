@@ -8,7 +8,7 @@ type ViewPlaygroundTabProps = {
 type RegistryProtocol = {
   id: string;
   name?: string;
-  indexingSpecPath?: string;
+  indexedReadsPath?: string | null;
   status?: string;
 };
 
@@ -104,7 +104,7 @@ export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTa
 
   const trimmedBaseUrl = useMemo(() => viewApiBaseUrl.trim().replace(/\/+$/, ''), [viewApiBaseUrl]);
   const title = 'Index Views';
-  const description = 'Run indexed discovery, feeds, rankings, and canonical read contracts declared in indexing specs.';
+  const description = 'Run indexed discovery, feeds, rankings, and canonical read contracts declared in indexed-read specs.';
 
   useEffect(() => {
     let cancelled = false;
@@ -121,10 +121,10 @@ export function ViewPlaygroundTab({ viewApiBaseUrl, viewKind }: ViewPlaygroundTa
         const loaded: CatalogEntry[] = [];
 
         for (const protocol of registry.protocols ?? []) {
-          if (protocol.status === 'inactive' || !protocol.indexingSpecPath) {
+          if (protocol.status === 'inactive' || !protocol.indexedReadsPath) {
             continue;
           }
-          const indexingResponse = await fetch(protocol.indexingSpecPath);
+          const indexingResponse = await fetch(protocol.indexedReadsPath);
           if (!indexingResponse.ok) {
             continue;
           }

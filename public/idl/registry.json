@@ -18,7 +18,8 @@
       "programId": "11111111111111111111111111111111",
       "codamaIdlPath": "/idl/token_index.codama.json",
       "agentRuntimePath": "/idl/token_index.runtime.json",
-      "indexingSpecPath": "/idl/token_index.indexing.json",
+      "ingestSpecPath": null,
+      "indexedReadsPath": "/idl/token_index.indexed-reads.json",
       "transport": "local-token-index",
       "supportedCommands": ["/tokens"],
       "status": "active"
@@ -30,7 +31,8 @@
       "programId": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
       "codamaIdlPath": "/idl/orca_whirlpool.codama.json",
       "agentRuntimePath": "/idl/orca_whirlpool.runtime.json",
-      "indexingSpecPath": "/idl/orca_whirlpool.indexing.json",
+      "ingestSpecPath": "/idl/orca_whirlpool.ingest.json",
+      "indexedReadsPath": "/idl/orca_whirlpool.indexed-reads.json",
       "transport": "local-orca-whirlpool",
       "supportedCommands": ["/orca-list-pools", "/orca"],
       "status": "active"
@@ -42,7 +44,8 @@
       "programId": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
       "codamaIdlPath": "/idl/pump_amm.codama.json",
       "agentRuntimePath": "/idl/pump_amm.runtime.json",
-      "indexingSpecPath": "/idl/pump_amm.indexing.json",
+      "ingestSpecPath": "/idl/pump_amm.ingest.json",
+      "indexedReadsPath": "/idl/pump_amm.indexed-reads.json",
       "transport": "local-pump-amm",
       "supportedCommands": ["/pump-amm"],
       "status": "active"
@@ -54,7 +57,8 @@
       "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
       "codamaIdlPath": "/idl/pump_core.codama.json",
       "agentRuntimePath": "/idl/pump_core.runtime.json",
-      "indexingSpecPath": "/idl/pump_core.indexing.json",
+      "ingestSpecPath": "/idl/pump_core.ingest.json",
+      "indexedReadsPath": "/idl/pump_core.indexed-reads.json",
       "transport": "local-pump-core",
       "supportedCommands": ["/pump-curve"],
       "status": "active"
