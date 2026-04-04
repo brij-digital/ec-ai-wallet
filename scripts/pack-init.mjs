@@ -111,7 +111,6 @@ function createIngestSkeleton({ protocolId, programId, codamaAssetPath }) {
     sources: {},
     matchRules: [],
     pipelines: {},
-    projectionSpecs: {},
     operations: {},
     notes: [
       `Starter ingest spec for ${protocolId}.`,
