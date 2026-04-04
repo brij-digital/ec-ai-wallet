@@ -7,17 +7,18 @@
   "label": "Pump Core",
   "writes": {
     "buy_exact_sol_in": {
-      "instruction": "buy_exact_sol_in",
+      "instruction": "buy",
       "args": {
-        "spendable_sol_in": "$input.spendable_sol_in",
-        "min_tokens_out": "$input.min_tokens_out",
-        "track_volume": null
+        "amount": "$input.amount",
+        "max_sol_cost": "$input.max_sol_cost",
+        "track_volume": true
       },
       "accounts": {
         "fee_recipient": "$input.fee_recipient",
         "mint": "$input.mint",
         "associated_user": "$input.associated_user",
-        "creator_vault": "$input.creator_vault"
+        "creator_vault": "$input.creator_vault",
+        "fee_config": "8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt"
       }
     }
   },
