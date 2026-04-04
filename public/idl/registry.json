@@ -12,21 +12,6 @@
   ],
   "protocols": [
     {
-      "id": "token-index-mainnet",
-      "name": "Token Index",
-      "network": "mainnet-beta",
-      "programId": "11111111111111111111111111111111",
-      "codamaIdlPath": "/idl/token_index.codama.json",
-      "agentRuntimePath": "/idl/token_index.runtime.json",
-      "ingestSpecPath": null,
-      "indexedReadsPath": "/idl/token_index.indexed-reads.json",
-      "transport": "local-token-index",
-      "supportedCommands": [
-        "/tokens"
-      ],
-      "status": "active"
-    },
-    {
       "id": "orca-whirlpool-mainnet",
       "name": "Orca Whirlpools",
       "network": "mainnet-beta",
@@ -69,6 +54,21 @@
       "transport": "local-pump-core",
       "supportedCommands": [
         "/pump-curve"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "token-index-mainnet",
+      "name": "Token Index",
+      "network": "mainnet-beta",
+      "programId": "11111111111111111111111111111111",
+      "codamaIdlPath": "/idl/token_index.codama.json",
+      "agentRuntimePath": "/idl/token_index.runtime.json",
+      "ingestSpecPath": null,
+      "indexedReadsPath": "/idl/token_index.indexed-reads.json",
+      "transport": "local-token-index",
+      "supportedCommands": [
+        "/tokens"
       ],
       "status": "active"
     }

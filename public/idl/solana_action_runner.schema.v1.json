@@ -3,14 +3,7 @@
   "$id": "/idl/solana_action_runner.schema.v1.json",
   "title": "Solana Action Runner Spec V1",
   "type": "object",
-  "required": [
-    "schema",
-    "actionId",
-    "title",
-    "inputs",
-    "steps",
-    "output"
-  ],
+  "required": ["schema", "actionId", "title", "inputs", "steps", "output"],
   "properties": {
     "schema": {
       "const": "solana-action-runner.v1"
@@ -47,9 +40,7 @@
   "$defs": {
     "inputSpec": {
       "type": "object",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "properties": {
         "type": {
           "type": "string"
@@ -67,23 +58,14 @@
     },
     "stepSpec": {
       "type": "object",
-      "required": [
-        "id",
-        "kind",
-        "protocolId",
-        "operationId"
-      ],
+      "required": ["id", "kind", "protocolId", "operationId"],
       "properties": {
         "id": {
           "type": "string",
           "minLength": 1
         },
         "kind": {
-          "enum": [
-            "index_view",
-            "read",
-            "write"
-          ]
+          "enum": ["index_view", "read", "write"]
         },
         "protocolId": {
           "type": "string",
