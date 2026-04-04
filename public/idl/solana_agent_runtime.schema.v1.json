@@ -121,7 +121,9 @@
     },
     "remainingAccountMetaSpec": {
       "type": "object",
-      "required": ["pubkey"],
+      "required": [
+        "pubkey"
+      ],
       "properties": {
         "pubkey": {
           "type": "string"
@@ -1848,6 +1850,5 @@
         }
       ]
     }
-  },
-  "additionalProperties": false
+  }
 }

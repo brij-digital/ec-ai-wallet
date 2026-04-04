@@ -2,7 +2,9 @@ This directory contains generated or synced JSON artifacts.
 Because they are JSON files, they do not carry inline `GENERATED / DO NOT EDIT` comments.
 Treat this README as the explicit ownership header for the directory.
 
-Shared schema files in this directory are synced from [`apppack-runtime/schemas`](/home/ubuntu/src/apppack-runtime/schemas).
+Protocol artifacts in this directory are synced from [`protocol-registry`](/Users/antoine/.openclaw/workspace-coding/brij-digital/protocol-registry).
+
+Shared schema files in that registry are owned by [`apppack-runtime/schemas`](/Users/antoine/.openclaw/workspace-coding/brij-digital/apppack-runtime/schemas).
 
 Do not hand-edit:
 - `declarative_decoder_runtime.schema.v1.json`
@@ -10,23 +12,23 @@ Do not hand-edit:
 - `solana_action_runner.schema.v1.json`
 
 Use:
-- `npm run schemas:sync`
-- `npm run schemas:check`
+- `npm run registry:sync`
+- `npm run registry:check`
 
 Schema ownership rule:
-- edit only [`apppack-runtime/schemas`](/home/ubuntu/src/apppack-runtime/schemas)
+- edit only [`apppack-runtime/schemas`](/Users/antoine/.openclaw/workspace-coding/brij-digital/apppack-runtime/schemas), then sync those into [`protocol-registry`](/Users/antoine/.openclaw/workspace-coding/brij-digital/protocol-registry)
 - never edit the copies here by hand
-- if drift is reported, rerun `npm run schemas:sync`
+- if drift is reported, rerun `npm run registry:sync`
 
-This directory is also the current generated protocol-pack artifact source for downstream consumers.
+This directory is a synced consumer copy for the wallet app.
 
 In practice:
-- authoring source lives in this repo
-- generated outputs land in `public/idl/`
-- downstream consumers like `apppack-view-service` should sync from these outputs instead of editing parallel copies
+- authoring source lives in [`protocol-registry`](/Users/antoine/.openclaw/workspace-coding/brij-digital/protocol-registry)
+- synced consumer outputs land in `public/idl/`
+- downstream consumers should sync from the registry, not from the wallet copy
 
 Protocol pack ownership rule:
-- edit pack authoring source in this repo
+- edit pack authoring source in [`protocol-registry`](/Users/antoine/.openclaw/workspace-coding/brij-digital/protocol-registry)
 - verify with `npm run pack:check`
 - do not hand-edit generated artifacts in `public/idl/`
 

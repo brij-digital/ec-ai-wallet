@@ -1,6 +1,6 @@
 {
   "global": {
-    "max_operations_per_protocol": 12,
+    "max_operations_per_protocol": 13,
     "max_derive_per_operation": 24,
     "max_compute_per_operation": 48,
     "max_steps_per_app": 8,

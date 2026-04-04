@@ -21,7 +21,9 @@
       "ingestSpecPath": null,
       "indexedReadsPath": "/idl/token_index.indexed-reads.json",
       "transport": "local-token-index",
-      "supportedCommands": ["/tokens"],
+      "supportedCommands": [
+        "/tokens"
+      ],
       "status": "active"
     },
     {
@@ -34,7 +36,10 @@
       "ingestSpecPath": "/idl/orca_whirlpool.ingest.json",
       "indexedReadsPath": "/idl/orca_whirlpool.indexed-reads.json",
       "transport": "local-orca-whirlpool",
-      "supportedCommands": ["/orca-list-pools", "/orca"],
+      "supportedCommands": [
+        "/orca-list-pools",
+        "/orca"
+      ],
       "status": "active"
     },
     {
@@ -47,7 +52,9 @@
       "ingestSpecPath": "/idl/pump_amm.ingest.json",
       "indexedReadsPath": "/idl/pump_amm.indexed-reads.json",
       "transport": "local-pump-amm",
-      "supportedCommands": ["/pump-amm"],
+      "supportedCommands": [
+        "/pump-amm"
+      ],
       "status": "active"
     },
     {
@@ -60,7 +67,9 @@
       "ingestSpecPath": "/idl/pump_core.ingest.json",
       "indexedReadsPath": "/idl/pump_core.indexed-reads.json",
       "transport": "local-pump-core",
-      "supportedCommands": ["/pump-curve"],
+      "supportedCommands": [
+        "/pump-curve"
+      ],
       "status": "active"
     }
   ]
