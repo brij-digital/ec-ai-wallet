@@ -4,149 +4,212 @@
   "sourceProtocolIds": [
     "orca-whirlpool-mainnet"
   ],
-  "version": "0.1.0",
+  "version": "0.2.0",
   "entities": {
     "Pool": {
-      "source": "state",
-      "recordKind": "account",
-      "recordName": "Whirlpool",
-      "id": "pool",
-      "timeField": "updatedAt",
-      "defaultOrderBy": [
-        "liquidity:desc",
-        "updatedAt:desc"
-      ],
-      "fields": {
-        "subjectId": {
-          "type": "TEXT",
-          "filterable": true,
-          "sourceField": "subject_id"
-        },
-        "resourceId": {
-          "type": "TEXT",
-          "sourceField": "resource_id"
-        },
-        "pool": {
-          "type": "TEXT",
-          "primaryKey": true,
-          "filterable": true,
-          "sourceField": "subject_id"
-        },
-        "marketType": {
-          "type": "TEXT"
-        },
-        "tokenMintA": {
-          "type": "TEXT",
-          "filterable": true
-        },
-        "tokenMintB": {
-          "type": "TEXT",
-          "filterable": true
-        },
-        "tokenVaultA": {
-          "type": "TEXT"
-        },
-        "tokenVaultB": {
-          "type": "TEXT"
-        },
-        "tickSpacing": {
-          "type": "INTEGER"
-        },
-        "feeRateRaw": {
-          "type": "INTEGER"
-        },
-        "feeRateBps": {
-          "type": "NUMERIC"
-        },
-        "liquidity": {
-          "type": "NUMERIC",
-          "filterable": true
-        },
-        "tickCurrentIndex": {
-          "type": "INTEGER"
-        },
-        "sqrtPrice": {
-          "type": "NUMERIC"
-        },
-        "observedAt": {
-          "type": "TIMESTAMPTZ",
-          "filterable": true
-        },
-        "updatedAt": {
-          "type": "TIMESTAMPTZ",
-          "sourceField": "updated_at",
-          "filterable": true
-        },
-        "lastEventTime": {
-          "type": "TIMESTAMPTZ",
-          "sourceField": "last_event_time"
+      "source": {
+        "from": "state",
+        "recordKind": "account",
+        "recordName": "Whirlpool"
+      },
+      "transform": {
+        "extract": {
+          "subjectId": "$raw.subject_id",
+          "resourceId": "$raw.resource_id",
+          "pool": "$raw.subject_id",
+          "marketType": "$state.marketType",
+          "tokenMintA": "$state.tokenMintA",
+          "tokenMintB": "$state.tokenMintB",
+          "tokenVaultA": "$state.tokenVaultA",
+          "tokenVaultB": "$state.tokenVaultB",
+          "tickSpacing": "$state.tickSpacing",
+          "feeRateRaw": "$state.feeRateRaw",
+          "feeRateBps": "$state.feeRateBps",
+          "liquidity": "$state.liquidity",
+          "tickCurrentIndex": "$state.tickCurrentIndex",
+          "sqrtPrice": "$state.sqrtPrice",
+          "observedAt": "$state.observedAt",
+          "updatedAt": "$raw.updated_at",
+          "lastEventTime": "$raw.last_event_time"
+        }
+      },
+      "emit": {
+        "id": "pool",
+        "indexes": [
+          [
+            "tokenMintA",
+            "updatedAt:desc"
+          ],
+          [
+            "tokenMintB",
+            "updatedAt:desc"
+          ],
+          [
+            "liquidity:desc",
+            "updatedAt:desc"
+          ]
+        ],
+        "timeField": "updatedAt",
+        "defaultOrderBy": [
+          "liquidity:desc",
+          "updatedAt:desc"
+        ],
+        "fields": {
+          "subjectId": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "resourceId": {
+            "type": "TEXT"
+          },
+          "pool": {
+            "type": "TEXT",
+            "primaryKey": true,
+            "filterable": true
+          },
+          "marketType": {
+            "type": "TEXT"
+          },
+          "tokenMintA": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "tokenMintB": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "tokenVaultA": {
+            "type": "TEXT"
+          },
+          "tokenVaultB": {
+            "type": "TEXT"
+          },
+          "tickSpacing": {
+            "type": "INTEGER"
+          },
+          "feeRateRaw": {
+            "type": "INTEGER"
+          },
+          "feeRateBps": {
+            "type": "NUMERIC"
+          },
+          "liquidity": {
+            "type": "NUMERIC",
+            "filterable": true
+          },
+          "tickCurrentIndex": {
+            "type": "INTEGER"
+          },
+          "sqrtPrice": {
+            "type": "NUMERIC"
+          },
+          "observedAt": {
+            "type": "TIMESTAMPTZ",
+            "filterable": true
+          },
+          "updatedAt": {
+            "type": "TIMESTAMPTZ",
+            "filterable": true
+          },
+          "lastEventTime": {
+            "type": "TIMESTAMPTZ"
+          }
         }
       }
     },
     "Swap": {
-      "source": "record",
-      "recordKind": "event",
-      "recordName": "SwapEvent",
-      "id": "recordId",
-      "timeField": "eventTime",
-      "defaultOrderBy": [
-        "eventTime:desc"
-      ],
-      "fields": {
-        "recordId": {
-          "type": "TEXT",
-          "primaryKey": true,
-          "filterable": true,
-          "sourceField": "record_id"
-        },
-        "signature": {
-          "type": "TEXT",
-          "filterable": true,
-          "sourceField": "signature"
-        },
-        "pool": {
-          "type": "TEXT",
-          "filterable": true,
-          "sourceField": "subject_id"
-        },
-        "trader": {
-          "type": "TEXT",
-          "filterable": true
-        },
-        "side": {
-          "type": "TEXT"
-        },
-        "eventTime": {
-          "type": "TIMESTAMPTZ",
-          "sourceField": "event_time",
-          "filterable": true
-        },
-        "aToB": {
-          "type": "BOOLEAN"
-        },
-        "inputAmountAtomic": {
-          "type": "NUMERIC"
-        },
-        "outputAmountAtomic": {
-          "type": "NUMERIC"
-        },
-        "inputTransferFeeAtomic": {
-          "type": "NUMERIC"
-        },
-        "outputTransferFeeAtomic": {
-          "type": "NUMERIC"
-        },
-        "preSqrtPrice": {
-          "type": "NUMERIC"
-        },
-        "postSqrtPrice": {
-          "type": "NUMERIC"
-        },
-        "lpFeeAtomic": {
-          "type": "NUMERIC"
-        },
-        "protocolFeeAtomic": {
-          "type": "NUMERIC"
+      "source": {
+        "from": "record",
+        "recordKind": "event",
+        "recordName": "SwapEvent"
+      },
+      "transform": {
+        "extract": {
+          "recordId": "$raw.record_id",
+          "signature": "$raw.signature",
+          "pool": "$raw.subject_id",
+          "trader": "$payload.trader",
+          "side": "$payload.side",
+          "eventTime": "$raw.event_time",
+          "aToB": "$payload.aToB",
+          "inputAmountAtomic": "$payload.inputAmountAtomic",
+          "outputAmountAtomic": "$payload.outputAmountAtomic",
+          "inputTransferFeeAtomic": "$payload.inputTransferFeeAtomic",
+          "outputTransferFeeAtomic": "$payload.outputTransferFeeAtomic",
+          "preSqrtPrice": "$payload.preSqrtPrice",
+          "postSqrtPrice": "$payload.postSqrtPrice",
+          "lpFeeAtomic": "$payload.lpFeeAtomic",
+          "protocolFeeAtomic": "$payload.protocolFeeAtomic"
+        }
+      },
+      "emit": {
+        "id": "recordId",
+        "indexes": [
+          [
+            "pool",
+            "eventTime:desc"
+          ],
+          [
+            "trader",
+            "eventTime:desc"
+          ]
+        ],
+        "timeField": "eventTime",
+        "defaultOrderBy": [
+          "eventTime:desc"
+        ],
+        "fields": {
+          "recordId": {
+            "type": "TEXT",
+            "primaryKey": true,
+            "filterable": true
+          },
+          "signature": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "pool": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "trader": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "side": {
+            "type": "TEXT"
+          },
+          "eventTime": {
+            "type": "TIMESTAMPTZ",
+            "filterable": true
+          },
+          "aToB": {
+            "type": "BOOLEAN"
+          },
+          "inputAmountAtomic": {
+            "type": "NUMERIC"
+          },
+          "outputAmountAtomic": {
+            "type": "NUMERIC"
+          },
+          "inputTransferFeeAtomic": {
+            "type": "NUMERIC"
+          },
+          "outputTransferFeeAtomic": {
+            "type": "NUMERIC"
+          },
+          "preSqrtPrice": {
+            "type": "NUMERIC"
+          },
+          "postSqrtPrice": {
+            "type": "NUMERIC"
+          },
+          "lpFeeAtomic": {
+            "type": "NUMERIC"
+          },
+          "protocolFeeAtomic": {
+            "type": "NUMERIC"
+          }
         }
       }
     }

@@ -4,113 +4,252 @@
   "sourceProtocolIds": [
     "pump-amm-mainnet"
   ],
-  "version": "0.1.0",
+  "version": "0.2.0",
   "entities": {
     "Pool": {
-      "source": "state",
-      "recordKind": "account",
-      "recordName": "PoolMetadata",
-      "id": "pool",
-      "timeField": "updatedAt",
-      "defaultOrderBy": [
-        "updatedAt:desc"
-      ],
-      "fields": {
-        "mint": {
-          "type": "TEXT",
-          "filterable": true
-        },
-        "pool": {
-          "type": "TEXT",
-          "primaryKey": true,
-          "filterable": true,
-          "sourceField": "subject_id"
-        },
-        "quoteMint": {
-          "type": "TEXT",
-          "filterable": true
-        },
-        "baseDecimals": {
-          "type": "INTEGER"
-        },
-        "quoteDecimals": {
-          "type": "INTEGER"
-        },
-        "coinCreator": {
-          "type": "TEXT"
-        },
-        "isCashbackCoin": {
-          "type": "BOOLEAN"
-        },
-        "observedAt": {
-          "type": "TIMESTAMPTZ",
-          "filterable": true
-        },
-        "updatedAt": {
-          "type": "TIMESTAMPTZ",
-          "sourceField": "updated_at",
-          "filterable": true
-        },
-        "poolQuoteReservesAtomic": {
-          "type": "NUMERIC"
+      "source": {
+        "from": "state",
+        "recordKind": "account",
+        "recordName": "PoolMetadata"
+      },
+      "transform": {
+        "extract": {
+          "pool": "$raw.subject_id",
+          "mint": "$state.mint",
+          "quoteMint": "$state.quoteMint",
+          "baseDecimals": "$state.baseDecimals",
+          "quoteDecimals": "$state.quoteDecimals",
+          "coinCreator": "$state.coinCreator",
+          "isCashbackCoin": "$state.isCashbackCoin",
+          "observedAt": "$state.observedAt",
+          "updatedAt": "$raw.updated_at",
+          "poolQuoteReservesAtomic": "$state.poolQuoteReservesAtomic"
+        }
+      },
+      "emit": {
+        "id": "pool",
+        "indexes": [
+          [
+            "mint",
+            "updatedAt:desc"
+          ],
+          [
+            "quoteMint",
+            "updatedAt:desc"
+          ]
+        ],
+        "timeField": "updatedAt",
+        "defaultOrderBy": [
+          "updatedAt:desc"
+        ],
+        "fields": {
+          "mint": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "pool": {
+            "type": "TEXT",
+            "primaryKey": true,
+            "filterable": true
+          },
+          "quoteMint": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "baseDecimals": {
+            "type": "INTEGER"
+          },
+          "quoteDecimals": {
+            "type": "INTEGER"
+          },
+          "coinCreator": {
+            "type": "TEXT"
+          },
+          "isCashbackCoin": {
+            "type": "BOOLEAN"
+          },
+          "observedAt": {
+            "type": "TIMESTAMPTZ",
+            "filterable": true
+          },
+          "updatedAt": {
+            "type": "TIMESTAMPTZ",
+            "filterable": true
+          },
+          "poolQuoteReservesAtomic": {
+            "type": "NUMERIC"
+          }
         }
       }
     },
     "Trade": {
-      "source": "record",
-      "recordKind": "event",
-      "recordName": [
-        "BuyEvent",
-        "SellEvent"
-      ],
-      "id": "recordId",
-      "timeField": "eventTime",
-      "defaultOrderBy": [
-        "eventTime:desc"
-      ],
-      "fields": {
-        "recordId": {
-          "type": "TEXT",
-          "primaryKey": true,
-          "filterable": true,
-          "sourceField": "record_id"
+      "source": {
+        "from": "record",
+        "recordKind": "event",
+        "recordName": [
+          "BuyEvent",
+          "SellEvent"
+        ]
+      },
+      "transform": {
+        "extract": {
+          "recordId": "$raw.record_id",
+          "signature": "$raw.signature",
+          "pool": "$raw.subject_id",
+          "participant": "$payload.participant",
+          "side": "$payload.side",
+          "baseAmountAtomic": "$payload.baseAmountAtomic",
+          "quoteAmountAtomic": "$payload.quoteAmountAtomic",
+          "poolBaseReservesAtomic": "$payload.poolBaseReservesAtomic",
+          "poolQuoteReservesAtomic": "$payload.poolQuoteReservesAtomic",
+          "coinCreator": "$payload.coinCreator",
+          "eventTime": "$raw.event_time"
+        }
+      },
+      "emit": {
+        "id": "recordId",
+        "indexes": [
+          [
+            "pool",
+            "eventTime:desc"
+          ],
+          [
+            "participant",
+            "eventTime:desc"
+          ]
+        ],
+        "timeField": "eventTime",
+        "defaultOrderBy": [
+          "eventTime:desc"
+        ],
+        "fields": {
+          "recordId": {
+            "type": "TEXT",
+            "primaryKey": true,
+            "filterable": true
+          },
+          "signature": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "pool": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "participant": {
+            "type": "TEXT",
+            "filterable": true
+          },
+          "side": {
+            "type": "TEXT"
+          },
+          "baseAmountAtomic": {
+            "type": "NUMERIC"
+          },
+          "quoteAmountAtomic": {
+            "type": "NUMERIC"
+          },
+          "poolBaseReservesAtomic": {
+            "type": "NUMERIC"
+          },
+          "poolQuoteReservesAtomic": {
+            "type": "NUMERIC"
+          },
+          "coinCreator": {
+            "type": "TEXT"
+          },
+          "eventTime": {
+            "type": "TIMESTAMPTZ",
+            "filterable": true
+          }
+        }
+      }
+    },
+    "TradeVolume1m": {
+      "source": {
+        "from": "record",
+        "recordKind": "event",
+        "recordName": [
+          "BuyEvent",
+          "SellEvent"
+        ]
+      },
+      "transform": {
+        "extract": {
+          "pool": "$raw.subject_id",
+          "quoteAmountAtomic": "$payload.quoteAmountAtomic",
+          "eventTime": "$raw.event_time"
         },
-        "signature": {
-          "type": "TEXT",
-          "filterable": true,
-          "sourceField": "signature"
-        },
-        "pool": {
-          "type": "TEXT",
-          "filterable": true,
-          "sourceField": "subject_id"
-        },
-        "participant": {
-          "type": "TEXT",
-          "filterable": true
-        },
-        "side": {
-          "type": "TEXT"
-        },
-        "baseAmountAtomic": {
-          "type": "NUMERIC"
-        },
-        "quoteAmountAtomic": {
-          "type": "NUMERIC"
-        },
-        "poolBaseReservesAtomic": {
-          "type": "NUMERIC"
-        },
-        "poolQuoteReservesAtomic": {
-          "type": "NUMERIC"
-        },
-        "coinCreator": {
-          "type": "TEXT"
-        },
-        "eventTime": {
-          "type": "TIMESTAMPTZ",
-          "sourceField": "event_time",
-          "filterable": true
+        "compute": [
+          {
+            "ref": "time.bucket",
+            "inputs": {
+              "value": "$ctx.eventTime",
+              "interval": "1m"
+            },
+            "output": "bucketStart"
+          }
+        ],
+        "groupBy": [
+          "pool",
+          "bucketStart"
+        ],
+        "reduce": {
+          "volumeQuoteAtomic": {
+            "op": "sum",
+            "value": "$ctx.quoteAmountAtomic"
+          },
+          "tradeCount": {
+            "op": "count"
+          },
+          "firstEventTime": {
+            "op": "min",
+            "value": "$ctx.eventTime"
+          },
+          "lastEventTime": {
+            "op": "max",
+            "value": "$ctx.eventTime"
+          }
+        }
+      },
+      "emit": {
+        "id": [
+          "pool",
+          "bucketStart"
+        ],
+        "indexes": [
+          [
+            "pool",
+            "bucketStart:desc"
+          ]
+        ],
+        "timeField": "bucketStart",
+        "defaultOrderBy": [
+          "bucketStart:desc"
+        ],
+        "fields": {
+          "pool": {
+            "type": "TEXT",
+            "primaryKey": true,
+            "filterable": true
+          },
+          "bucketStart": {
+            "type": "TIMESTAMPTZ",
+            "primaryKey": true,
+            "filterable": true
+          },
+          "volumeQuoteAtomic": {
+            "type": "NUMERIC"
+          },
+          "tradeCount": {
+            "type": "BIGINT"
+          },
+          "firstEventTime": {
+            "type": "TIMESTAMPTZ"
+          },
+          "lastEventTime": {
+            "type": "TIMESTAMPTZ"
+          }
         }
       }
     }
