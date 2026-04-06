@@ -1,0 +1,15 @@
+{
+  "standard": "codama",
+  "kind": "rootNode",
+  "program": {
+    "kind": "programNode",
+    "name": "marinade",
+    "publicKey": "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD",
+    "version": "0.1.0",
+    "accounts": [],
+    "instructions": [],
+    "errors": [],
+    "definedTypes": []
+  },
+  "additionalPrograms": []
+}

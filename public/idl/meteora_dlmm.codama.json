@@ -1,0 +1,15 @@
+{
+  "standard": "codama",
+  "kind": "rootNode",
+  "program": {
+    "kind": "programNode",
+    "name": "meteoraDlmm",
+    "publicKey": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+    "version": "0.1.0",
+    "accounts": [],
+    "instructions": [],
+    "errors": [],
+    "definedTypes": []
+  },
+  "additionalPrograms": []
+}

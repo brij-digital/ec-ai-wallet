@@ -1,0 +1,11 @@
+{
+  "$schema": "/idl/solana_agent_runtime.schema.v1.json",
+  "schema": "solana-agent-runtime.v1",
+  "protocol_id": "meteora-dlmm-mainnet",
+  "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+  "codama_path": "/idl/meteora_dlmm.codama.json",
+  "label": "Meteora DLMM",
+  "writes": {},
+  "views": {},
+  "transforms": {}
+}

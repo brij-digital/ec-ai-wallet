@@ -1,18 +1,26 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "/idl/declarative_decoder_runtime.schema.v1.json",
+  "$id": "/schemas/declarative_decoder_runtime.schema.v1.json",
   "title": "Declarative Decoder Runtime Spec V1",
   "type": "object",
-  "required": ["schema", "protocolId", "decoderArtifacts"],
+  "required": ["schema", "sourceProtocolIds"],
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference for validation"
+    },
     "schema": {
       "const": "declarative-decoder-runtime.v1"
     },
     "version": {
       "type": "string"
     },
-    "protocolId": {
-      "type": "string"
+    "sourceProtocolIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
     },
     "active_window_days": {
       "type": ["integer", "null"],
@@ -208,7 +216,6 @@
             "rpc_transaction_crawler",
             "rpc_block_subscribe",
             "rpc_program_subscribe",
-            "rpc_account_snapshot",
             "yellowstone_grpc",
             "custom"
           ]
@@ -348,12 +355,48 @@
       },
       "additionalProperties": false
     },
+    "resolveStepSpec": {
+      "type": "object",
+      "required": ["name", "from", "where"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Variable name for resolved data (available as $name.field)"
+        },
+        "from": {
+          "type": "string",
+          "enum": ["indexed_idl_state", "indexed_idl_records"],
+          "description": "Table to read from (local DB, not RPC)"
+        },
+        "where": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/stringOrTemplate" },
+          "description": "Filter conditions (protocol_id auto-added if missing)"
+        },
+        "fields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Which fields to project from the resolved payload"
+        },
+        "optional": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, missing data produces null fields instead of error"
+        }
+      },
+      "additionalProperties": false
+    },
     "pipelineSpec": {
       "type": "object",
       "properties": {
         "extract": {
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/stringOrTemplate" }
+        },
+        "resolve": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/resolveStepSpec" },
+          "description": "Read local DB state between extract and compute (replaces rpc_account_snapshot)"
         },
         "compute": {
           "type": "array",
@@ -367,38 +410,23 @@
     },
     "computeStepSpec": {
       "type": "object",
-      "required": ["name", "compute"],
+      "required": ["ref", "output"],
       "properties": {
-        "name": {
-          "type": "string"
-        },
-        "compute": {
+        "ref": {
           "type": "string",
-          "enum": [
-            "math.amount_ui",
-            "math.safe_div",
-            "math.mul",
-            "math.add",
-            "math.sub",
-            "math.avg",
-            "compare.gt",
-            "compare.gte",
-            "compare.lt",
-            "compare.eq",
-            "logic.if",
-            "string.concat",
-            "coalesce",
-            "wasm"
-          ]
+          "description": "Transform reference — same catalog as runtime transforms"
         },
-        "module": {
-          "type": "string"
+        "inputs": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/stringOrTemplate" },
+          "description": "Named inputs passed to the transform"
         },
-        "entrypoint": {
-          "type": "string"
+        "output": {
+          "type": "string",
+          "description": "Variable name to store the result"
         }
       },
-      "additionalProperties": { "$ref": "#/$defs/stringOrTemplate" }
+      "additionalProperties": false
     },
     "emitSpec": {
       "type": "object",
@@ -573,12 +601,16 @@
     },
     "sortSpec": {
       "type": "object",
-      "required": ["field", "order"],
+      "required": ["field"],
       "properties": {
         "field": {
           "type": "string"
         },
         "order": {
+          "type": "string",
+          "enum": ["asc", "desc"]
+        },
+        "dir": {
           "type": "string",
           "enum": ["asc", "desc"]
         }
@@ -639,7 +671,7 @@
       "properties": {
         "projection_kind": {
           "type": "string",
-          "enum": ["snapshot", "feed", "series", "ranking", "context"]
+          "enum": ["snapshot", "feed", "series", "ranking", "context", "search"]
         },
         "source_operation": {
           "type": "string"

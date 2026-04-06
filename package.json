@@ -16,7 +16,6 @@
     "codama:check": "node scripts/check-codama-source.mjs",
     "aidl:compile": "npm run registry:sync && node scripts/compile-aidl.mjs",
     "aidl:check": "npm run registry:check && node scripts/compile-aidl.mjs --check",
-    "pack:init": "node scripts/pack-init.mjs",
     "pack:doctor": "node scripts/pack-doctor.mjs",
     "pack:check": "node scripts/check-protocol-packs.mjs",
     "pack:topology:check": "node scripts/check-pack-topology.mjs",

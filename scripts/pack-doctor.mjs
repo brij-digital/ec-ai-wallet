@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { PublicKey } from '@solana/web3.js';
+import { listIndexingSourcesForProtocol } from './indexing-registry.mjs';
 
 const ROOT = process.cwd();
 const REGISTRY_PATH = path.join(ROOT, 'public', 'idl', 'registry.json');
@@ -116,7 +117,11 @@ async function main() {
     const programId = checkPubkey(manifest.programId, `${id}.programId`);
     const codamaPath = resolvePublicAssetPath(manifest.codamaIdlPath, `${id}.codamaIdlPath`);
     const agentRuntimePath = manifest.agentRuntimePath ? resolvePublicAssetPath(manifest.agentRuntimePath, `${id}.agentRuntimePath`) : null;
-    const ingestPath = manifest.ingestSpecPath ? resolvePublicAssetPath(manifest.ingestSpecPath, `${id}.ingestSpecPath`) : null;
+    const ingestSources = listIndexingSourcesForProtocol(registry, id);
+    const ingestPaths = ingestSources.map((source) => ({
+      ...source,
+      filePath: resolvePublicAssetPath(source.ingestSpecPath, `${source.indexingId}/${source.sourceId}.ingestSpecPath`),
+    }));
     const indexedReadsPath = manifest.indexedReadsPath
       ? resolvePublicAssetPath(manifest.indexedReadsPath, `${id}.indexedReadsPath`)
       : null;
@@ -141,9 +146,14 @@ async function main() {
       protocolErrors.push(`Missing agent runtime file: ${path.relative(ROOT, agentRuntimePath)}`);
     }
 
-    const ingestExists = ingestPath ? await pathExists(ingestPath) : false;
-    if (ingestPath && !ingestExists) {
-      protocolErrors.push(`Missing ingest spec file: ${path.relative(ROOT, ingestPath)}`);
+    const ingestStatuses = await Promise.all(ingestPaths.map(async (entry) => ({
+      ...entry,
+      exists: await pathExists(entry.filePath),
+    })));
+    for (const ingest of ingestStatuses) {
+      if (!ingest.exists) {
+        protocolErrors.push(`Missing ingest spec file for ${ingest.indexingId}/${ingest.sourceId}: ${path.relative(ROOT, ingest.filePath)}`);
+      }
     }
 
     const indexedReadsExists = indexedReadsPath ? await pathExists(indexedReadsPath) : false;
@@ -191,14 +201,21 @@ async function main() {
       }
     }
 
-    if (ingestExists && ingestPath) {
+    for (const ingest of ingestStatuses) {
+      if (!ingest.exists) {
+        continue;
+      }
       try {
-        const ingest = asObject(await readJson(ingestPath, `${id} ingest spec`), `${id} ingest spec`);
-        if (ingest.schema !== 'declarative-decoder-runtime.v1') {
-          protocolErrors.push(`Unsupported ingest schema: ${String(ingest.schema ?? '')}`);
+        const parsed = asObject(
+          await readJson(ingest.filePath, `${id} ingest spec ${ingest.indexingId}/${ingest.sourceId}`),
+          `${id} ingest spec ${ingest.indexingId}/${ingest.sourceId}`,
+        );
+        if (parsed.schema !== 'declarative-decoder-runtime.v1') {
+          protocolErrors.push(`Unsupported ingest schema for ${ingest.indexingId}/${ingest.sourceId}: ${String(parsed.schema ?? '')}`);
         }
-        if (asString(ingest.protocolId, `${id}.ingest.protocolId`) !== id) {
-          protocolErrors.push(`ingest protocolId mismatch: ${String(ingest.protocolId)} != ${id}`);
+        const sourceProtocolIds = asArray(parsed.sourceProtocolIds, `${id}.ingest.sourceProtocolIds`);
+        if (!sourceProtocolIds.includes(id)) {
+          protocolErrors.push(`ingest sourceProtocolIds mismatch for ${ingest.indexingId}/${ingest.sourceId}`);
         }
       } catch (error) {
         protocolErrors.push(error instanceof Error ? error.message : String(error));
@@ -240,8 +257,10 @@ async function main() {
     } else {
       console.log('- agent runtime: none');
     }
-    if (ingestPath) {
-      console.log(`- ingest: ${path.relative(ROOT, ingestPath)} ${ingestExists ? 'OK' : 'MISSING'}`);
+    if (ingestStatuses.length > 0) {
+      for (const ingest of ingestStatuses) {
+        console.log(`- ingest ${ingest.indexingId}/${ingest.sourceId}: ${path.relative(ROOT, ingest.filePath)} ${ingest.exists ? 'OK' : 'MISSING'}`);
+      }
     } else {
       console.log('- ingest: none');
     }

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { listIndexingSourcesForProtocol } from './indexing-registry.mjs';
 
 const ROOT = process.cwd();
 const IDL_DIR = path.join(ROOT, 'public', 'idl');
@@ -72,9 +73,9 @@ async function main() {
       fail(`${protocolId}: codamaIdlPath does not point to a Codama artifact.`);
     }
 
-    if (!protocol.agentRuntimePath || !protocol.indexedReadsPath) {
+    if (!protocol.agentRuntimePath) {
       if (isActive) {
-        fail(`${protocolId}: active protocols must declare agentRuntimePath and indexedReadsPath.`);
+        fail(`${protocolId}: active protocols must declare agentRuntimePath.`);
       }
       continue;
     }
@@ -86,34 +87,40 @@ async function main() {
     if (agentRuntime.schema !== 'solana-agent-runtime.v1') {
       fail(`${protocolId}: agent runtime schema must be solana-agent-runtime.v1.`);
     }
-    if (protocol.ingestSpecPath) {
+    for (const ingestSource of listIndexingSourcesForProtocol(registry, protocolId)) {
       const ingest = asObject(
-        await readJson(resolveIdlPath(protocol.ingestSpecPath, `${protocolId}.ingestSpecPath`), `${protocolId} ingest spec`),
-        `${protocolId} ingest spec`,
+        await readJson(
+          resolveIdlPath(ingestSource.ingestSpecPath, `${ingestSource.indexingId}/${ingestSource.sourceId}.ingestSpecPath`),
+          `${protocolId} ingest spec ${ingestSource.indexingId}/${ingestSource.sourceId}`,
+        ),
+        `${protocolId} ingest spec ${ingestSource.indexingId}/${ingestSource.sourceId}`,
       );
       if (ingest.schema !== 'declarative-decoder-runtime.v1') {
         fail(`${protocolId}: ingest schema must be declarative-decoder-runtime.v1.`);
       }
-      if (asString(ingest.protocolId, `${protocolId}.ingest.protocolId`) !== protocolId) {
-        fail(`${protocolId}: ingest.protocolId mismatch.`);
+      const sourceProtocolIds = Array.isArray(ingest.sourceProtocolIds) ? ingest.sourceProtocolIds : [];
+      if (!sourceProtocolIds.includes(protocolId)) {
+        fail(`${protocolId}: ingest sourceProtocolIds mismatch for ${ingestSource.indexingId}/${ingestSource.sourceId}.`);
       }
     }
 
-    const indexedReads = asObject(
-      await readJson(resolveIdlPath(protocol.indexedReadsPath, `${protocolId}.indexedReadsPath`), `${protocolId} indexed reads`),
-      `${protocolId} indexed reads`,
-    );
-    if (indexedReads.schema !== 'declarative-decoder-runtime.v1') {
-      fail(`${protocolId}: indexed reads schema must be declarative-decoder-runtime.v1.`);
-    }
-    if (asString(indexedReads.protocolId, `${protocolId}.indexedReads.protocolId`) !== protocolId) {
-      fail(`${protocolId}: indexedReads.protocolId mismatch.`);
+    if (protocol.indexedReadsPath) {
+      const indexedReads = asObject(
+        await readJson(resolveIdlPath(protocol.indexedReadsPath, `${protocolId}.indexedReadsPath`), `${protocolId} indexed reads`),
+        `${protocolId} indexed reads`,
+      );
+      if (indexedReads.schema !== 'declarative-decoder-runtime.v1') {
+        fail(`${protocolId}: indexed reads schema must be declarative-decoder-runtime.v1.`);
+      }
+      if (asString(indexedReads.protocolId, `${protocolId}.indexedReads.protocolId`) !== protocolId) {
+        fail(`${protocolId}: indexedReads.protocolId mismatch.`);
+      }
     }
     runtimeBackedCount += 1;
   }
 
   console.log(
-    `Pack topology OK for ${protocols.length} protocol(s); ${runtimeBackedCount} protocol(s) use Codama + indexed reads + agent runtime.`,
+    `Pack topology OK for ${protocols.length} protocol(s); ${runtimeBackedCount} protocol(s) use Codama + agent runtime.`,
   );
 }
 

@@ -12,18 +12,56 @@
   ],
   "protocols": [
     {
+      "id": "kamino-lending-mainnet",
+      "name": "Kamino K-Lend",
+      "network": "mainnet-beta",
+      "programId": "KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD",
+      "codamaIdlPath": "/idl/kamino_lending.codama.json",
+      "agentRuntimePath": "/idl/kamino_lending.runtime.json",
+      "transport": "local-kamino-lending",
+      "supportedCommands": [
+        "/kamino-lending"
+      ],
+      "status": "active"
+    },
+    {
       "id": "orca-whirlpool-mainnet",
       "name": "Orca Whirlpools",
       "network": "mainnet-beta",
       "programId": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
       "codamaIdlPath": "/idl/orca_whirlpool.codama.json",
       "agentRuntimePath": "/idl/orca_whirlpool.runtime.json",
-      "ingestSpecPath": "/idl/orca_whirlpool.ingest.json",
       "indexedReadsPath": "/idl/orca_whirlpool.indexed-reads.json",
       "transport": "local-orca-whirlpool",
       "supportedCommands": [
         "/orca-list-pools",
         "/orca"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "raydium-clmm-mainnet",
+      "name": "Raydium CLMM",
+      "network": "mainnet-beta",
+      "programId": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "codamaIdlPath": "/idl/raydium_clmm.codama.json",
+      "agentRuntimePath": "/idl/raydium_clmm.runtime.json",
+      "transport": "local-raydium-clmm",
+      "supportedCommands": [
+        "/raydium-clmm"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "raydium-amm-v4-mainnet",
+      "name": "Raydium AMM v4",
+      "network": "mainnet-beta",
+      "programId": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+      "codamaIdlPath": "/idl/raydium_amm_v4.codama.json",
+      "agentRuntimePath": "/idl/raydium_amm_v4.runtime.json",
+      "transport": "local-raydium-amm-v4",
+      "supportedCommands": [
+        "/raydium-amm"
       ],
       "status": "active"
     },
@@ -34,7 +72,6 @@
       "programId": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
       "codamaIdlPath": "/idl/pump_amm.codama.json",
       "agentRuntimePath": "/idl/pump_amm.runtime.json",
-      "ingestSpecPath": "/idl/pump_amm.ingest.json",
       "indexedReadsPath": "/idl/pump_amm.indexed-reads.json",
       "transport": "local-pump-amm",
       "supportedCommands": [
@@ -49,12 +86,85 @@
       "programId": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
       "codamaIdlPath": "/idl/pump_core.codama.json",
       "agentRuntimePath": "/idl/pump_core.runtime.json",
-      "ingestSpecPath": "/idl/pump_core.ingest.json",
       "indexedReadsPath": "/idl/pump_core.indexed-reads.json",
       "transport": "local-pump-core",
       "supportedCommands": [
         "/pump-curve"
       ],
+      "status": "active"
+    },
+    {
+      "id": "marinade-mainnet",
+      "name": "Marinade",
+      "network": "mainnet-beta",
+      "programId": "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD",
+      "codamaIdlPath": "/idl/marinade.codama.json",
+      "agentRuntimePath": "/idl/marinade.runtime.json",
+      "indexedReadsPath": null,
+      "transport": "local",
+      "supportedCommands": [],
+      "status": "active"
+    },
+    {
+      "id": "meteora-dlmm-mainnet",
+      "name": "Meteora DLMM",
+      "network": "mainnet-beta",
+      "programId": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "codamaIdlPath": "/idl/meteora_dlmm.codama.json",
+      "agentRuntimePath": "/idl/meteora_dlmm.runtime.json",
+      "indexedReadsPath": null,
+      "transport": "local",
+      "supportedCommands": [],
+      "status": "active"
+    },
+    {
+      "id": "sanctum-mainnet",
+      "name": "Sanctum Router",
+      "network": "mainnet-beta",
+      "programId": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq",
+      "codamaIdlPath": "/idl/sanctum.codama.json",
+      "agentRuntimePath": "/idl/sanctum.runtime.json",
+      "indexedReadsPath": null,
+      "transport": "local",
+      "supportedCommands": [],
+      "status": "active"
+    }
+  ],
+  "indexings": [
+    {
+      "id": "orca-whirlpool-mainnet",
+      "sources": [
+        {
+          "id": "orca-whirlpool",
+          "protocolId": "orca-whirlpool-mainnet",
+          "ingestSpecPath": "/idl/orca_whirlpool.ingest.json"
+        }
+      ],
+      "entitySchemaPath": "/idl/orca_whirlpool.entities.json",
+      "status": "active"
+    },
+    {
+      "id": "pump-amm-mainnet",
+      "sources": [
+        {
+          "id": "pump-amm",
+          "protocolId": "pump-amm-mainnet",
+          "ingestSpecPath": "/idl/pump_amm.ingest.json"
+        }
+      ],
+      "entitySchemaPath": "/idl/pump_amm.entities.json",
+      "status": "active"
+    },
+    {
+      "id": "pump-core-mainnet",
+      "sources": [
+        {
+          "id": "pump-core",
+          "protocolId": "pump-core-mainnet",
+          "ingestSpecPath": "/idl/pump_core.ingest.json"
+        }
+      ],
+      "entitySchemaPath": "/idl/pump_core.entities.json",
       "status": "active"
     }
   ]

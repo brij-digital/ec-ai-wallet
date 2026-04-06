@@ -1,0 +1,121 @@
+{
+  "$schema": "/idl/solana_agent_runtime.schema.v1.json",
+  "schema": "solana-agent-runtime.v1",
+  "protocol_id": "raydium-clmm-mainnet",
+  "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+  "codama_path": "/idl/raydium_clmm.codama.json",
+  "label": "Raydium CLMM",
+  "writes": {
+    "swap_base_in": {
+      "instruction": "swap",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        }
+      ],
+      "args": {
+        "amount": "$input.amount",
+        "other_amount_threshold": "$input.other_amount_threshold",
+        "sqrt_price_limit_x64": "$input.sqrt_price_limit_x64",
+        "is_base_input": true
+      },
+      "accounts": {
+        "payer": "$wallet",
+        "amm_config_id": "$input.amm_config_id",
+        "pool_id": "$input.pool_id",
+        "input_token_account": "$input.input_token_account",
+        "output_token_account": "$input.output_token_account",
+        "input_vault": "$input.input_vault",
+        "output_vault": "$input.output_vault",
+        "observation_id": "$input.observation_id",
+        "input_mint": "$input.input_mint",
+        "output_mint": "$input.output_mint",
+        "ex_bitmap": "$input.ex_bitmap",
+        "tick_array0": "$input.tick_array0",
+        "tick_array1": "$input.tick_array1",
+        "tick_array2": "$input.tick_array2"
+      }
+    }
+  },
+  "transforms": {
+    "derive_pool_pdas": [
+      {
+        "name": "pool_id",
+        "kind": "pda(seed_spec)",
+        "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+        "seeds": [
+          {
+            "kind": "utf8",
+            "value": "pool"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$amm_config_id"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$mint_a"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$mint_b"
+          }
+        ]
+      },
+      {
+        "name": "vault_a",
+        "kind": "pda(seed_spec)",
+        "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+        "seeds": [
+          {
+            "kind": "utf8",
+            "value": "pool_vault"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$pool_id"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$mint_a"
+          }
+        ]
+      },
+      {
+        "name": "vault_b",
+        "kind": "pda(seed_spec)",
+        "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+        "seeds": [
+          {
+            "kind": "utf8",
+            "value": "pool_vault"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$pool_id"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$mint_b"
+          }
+        ]
+      },
+      {
+        "name": "ex_bitmap",
+        "kind": "pda(seed_spec)",
+        "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+        "seeds": [
+          {
+            "kind": "utf8",
+            "value": "pool_tick_array_bitmap_extension"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$pool_id"
+          }
+        ]
+      }
+    ]
+  }
+}

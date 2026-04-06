@@ -1,0 +1,11 @@
+{
+  "$schema": "/idl/solana_agent_runtime.schema.v1.json",
+  "schema": "solana-agent-runtime.v1",
+  "protocol_id": "sanctum-mainnet",
+  "program_id": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq",
+  "codama_path": "/idl/sanctum.codama.json",
+  "label": "Sanctum LST",
+  "writes": {},
+  "views": {},
+  "transforms": {}
+}

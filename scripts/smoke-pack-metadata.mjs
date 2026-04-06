@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { listAllIndexingSources } from './indexing-registry.mjs';
 
 const ROOT = process.cwd();
 const IDL_DIR = path.join(ROOT, 'public', 'idl');
@@ -29,18 +30,14 @@ async function main() {
       fail(`Protocol ${protocol.id ?? 'unknown'} still declares appPath.`);
     }
     const agentRuntimePath = typeof protocol.agentRuntimePath === 'string' ? protocol.agentRuntimePath : null;
-    const ingestSpecPath = typeof protocol.ingestSpecPath === 'string' ? protocol.ingestSpecPath : null;
     const indexedReadsPath = typeof protocol.indexedReadsPath === 'string' ? protocol.indexedReadsPath : null;
-    if (!agentRuntimePath || !indexedReadsPath) {
+    if (!agentRuntimePath) {
       continue;
     }
     if (!agentRuntimePath.startsWith('/idl/')) {
       fail(`Protocol ${protocol.id ?? 'unknown'} has invalid agentRuntimePath.`);
     }
-    if (ingestSpecPath && !ingestSpecPath.startsWith('/idl/')) {
-      fail(`Protocol ${protocol.id ?? 'unknown'} has invalid ingestSpecPath.`);
-    }
-    if (!indexedReadsPath.startsWith('/idl/')) {
+    if (indexedReadsPath && !indexedReadsPath.startsWith('/idl/')) {
       fail(`Protocol ${protocol.id ?? 'unknown'} has invalid indexedReadsPath.`);
     }
     const agentRuntimeFilePath = path.join(IDL_DIR, agentRuntimePath.slice('/idl/'.length));
@@ -63,30 +60,37 @@ async function main() {
     if (!hasCapabilities) {
       fail(`${agentRuntimeFilePath} is missing agent runtime capabilities.`);
     }
-    if (ingestSpecPath) {
-      const ingestFilePath = path.join(IDL_DIR, ingestSpecPath.slice('/idl/'.length));
-      const ingest = await loadJson(ingestFilePath);
-      if (!ingest || typeof ingest !== 'object' || Array.isArray(ingest)) {
-        fail(`${ingestFilePath} did not parse as a JSON object.`);
+    let hasIndexedReads = false;
+    if (indexedReadsPath) {
+      const indexedReadsFilePath = path.join(IDL_DIR, indexedReadsPath.slice('/idl/'.length));
+      const indexedReads = await loadJson(indexedReadsFilePath);
+      if (!indexedReads || typeof indexedReads !== 'object' || Array.isArray(indexedReads)) {
+        fail(`${indexedReadsFilePath} did not parse as a JSON object.`);
       }
-      if (!ingest.decoderArtifacts || typeof ingest.decoderArtifacts !== 'object' || Array.isArray(ingest.decoderArtifacts)) {
-        fail(`${ingestFilePath} is missing ingest decoder artifacts.`);
-      }
+      hasIndexedReads =
+        indexedReads.operations && typeof indexedReads.operations === 'object' && !Array.isArray(indexedReads.operations)
+        && Object.values(indexedReads.operations).some(
+          (operation) => operation && typeof operation === 'object' && !Array.isArray(operation)
+            && operation.index_view && typeof operation.index_view === 'object' && !Array.isArray(operation.index_view),
+        );
     }
-    const indexedReadsFilePath = path.join(IDL_DIR, indexedReadsPath.slice('/idl/'.length));
-    const indexedReads = await loadJson(indexedReadsFilePath);
-    if (!indexedReads || typeof indexedReads !== 'object' || Array.isArray(indexedReads)) {
-      fail(`${indexedReadsFilePath} did not parse as a JSON object.`);
-    }
-    const hasIndexedReads =
-      indexedReads.operations && typeof indexedReads.operations === 'object' && !Array.isArray(indexedReads.operations)
-      && Object.values(indexedReads.operations).some(
-        (operation) => operation && typeof operation === 'object' && !Array.isArray(operation)
-          && operation.index_view && typeof operation.index_view === 'object' && !Array.isArray(operation.index_view),
-      );
     loadedRuntimePacks += 1;
     if (!hasCapabilities && !hasIndexedReads) {
-      fail(`${agentRuntimeFilePath} and ${indexedReadsFilePath} expose no usable capabilities.`);
+      fail(`${agentRuntimeFilePath} exposes no usable capabilities.`);
+    }
+  }
+
+  for (const source of listAllIndexingSources(registry)) {
+    if (!source.ingestSpecPath.startsWith('/idl/')) {
+      fail(`Indexing source ${source.indexingId}/${source.sourceId} has invalid ingestSpecPath.`);
+    }
+    const ingestFilePath = path.join(IDL_DIR, source.ingestSpecPath.slice('/idl/'.length));
+    const ingest = await loadJson(ingestFilePath);
+    if (!ingest || typeof ingest !== 'object' || Array.isArray(ingest)) {
+      fail(`${ingestFilePath} did not parse as a JSON object.`);
+    }
+    if (!ingest.decoderArtifacts || typeof ingest.decoderArtifacts !== 'object' || Array.isArray(ingest.decoderArtifacts)) {
+      fail(`${ingestFilePath} is missing ingest decoder artifacts.`);
     }
   }
 

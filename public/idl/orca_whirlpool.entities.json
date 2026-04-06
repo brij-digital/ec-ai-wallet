@@ -1,0 +1,154 @@
+{
+  "$schema": "/idl/entity_schema.v1.entities.json",
+  "indexingId": "orca-whirlpool-mainnet",
+  "sourceProtocolIds": [
+    "orca-whirlpool-mainnet"
+  ],
+  "version": "0.1.0",
+  "entities": {
+    "Pool": {
+      "source": "state",
+      "recordKind": "account",
+      "recordName": "Whirlpool",
+      "id": "pool",
+      "timeField": "updatedAt",
+      "defaultOrderBy": [
+        "liquidity:desc",
+        "updatedAt:desc"
+      ],
+      "fields": {
+        "subjectId": {
+          "type": "TEXT",
+          "filterable": true,
+          "sourceField": "subject_id"
+        },
+        "resourceId": {
+          "type": "TEXT",
+          "sourceField": "resource_id"
+        },
+        "pool": {
+          "type": "TEXT",
+          "primaryKey": true,
+          "filterable": true,
+          "sourceField": "subject_id"
+        },
+        "marketType": {
+          "type": "TEXT"
+        },
+        "tokenMintA": {
+          "type": "TEXT",
+          "filterable": true
+        },
+        "tokenMintB": {
+          "type": "TEXT",
+          "filterable": true
+        },
+        "tokenVaultA": {
+          "type": "TEXT"
+        },
+        "tokenVaultB": {
+          "type": "TEXT"
+        },
+        "tickSpacing": {
+          "type": "INTEGER"
+        },
+        "feeRateRaw": {
+          "type": "INTEGER"
+        },
+        "feeRateBps": {
+          "type": "NUMERIC"
+        },
+        "liquidity": {
+          "type": "NUMERIC",
+          "filterable": true
+        },
+        "tickCurrentIndex": {
+          "type": "INTEGER"
+        },
+        "sqrtPrice": {
+          "type": "NUMERIC"
+        },
+        "observedAt": {
+          "type": "TIMESTAMPTZ",
+          "filterable": true
+        },
+        "updatedAt": {
+          "type": "TIMESTAMPTZ",
+          "sourceField": "updated_at",
+          "filterable": true
+        },
+        "lastEventTime": {
+          "type": "TIMESTAMPTZ",
+          "sourceField": "last_event_time"
+        }
+      }
+    },
+    "Swap": {
+      "source": "record",
+      "recordKind": "event",
+      "recordName": "SwapEvent",
+      "id": "recordId",
+      "timeField": "eventTime",
+      "defaultOrderBy": [
+        "eventTime:desc"
+      ],
+      "fields": {
+        "recordId": {
+          "type": "TEXT",
+          "primaryKey": true,
+          "filterable": true,
+          "sourceField": "record_id"
+        },
+        "signature": {
+          "type": "TEXT",
+          "filterable": true,
+          "sourceField": "signature"
+        },
+        "pool": {
+          "type": "TEXT",
+          "filterable": true,
+          "sourceField": "subject_id"
+        },
+        "trader": {
+          "type": "TEXT",
+          "filterable": true
+        },
+        "side": {
+          "type": "TEXT"
+        },
+        "eventTime": {
+          "type": "TIMESTAMPTZ",
+          "sourceField": "event_time",
+          "filterable": true
+        },
+        "aToB": {
+          "type": "BOOLEAN"
+        },
+        "inputAmountAtomic": {
+          "type": "NUMERIC"
+        },
+        "outputAmountAtomic": {
+          "type": "NUMERIC"
+        },
+        "inputTransferFeeAtomic": {
+          "type": "NUMERIC"
+        },
+        "outputTransferFeeAtomic": {
+          "type": "NUMERIC"
+        },
+        "preSqrtPrice": {
+          "type": "NUMERIC"
+        },
+        "postSqrtPrice": {
+          "type": "NUMERIC"
+        },
+        "lpFeeAtomic": {
+          "type": "NUMERIC"
+        },
+        "protocolFeeAtomic": {
+          "type": "NUMERIC"
+        }
+      }
+    }
+  }
+}

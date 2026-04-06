@@ -1,0 +1,11 @@
+{
+  "$schema": "/idl/solana_agent_runtime.schema.v1.json",
+  "schema": "solana-agent-runtime.v1",
+  "protocol_id": "marinade-mainnet",
+  "program_id": "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD",
+  "codama_path": "/idl/marinade.codama.json",
+  "label": "Marinade Liquid Staking",
+  "writes": {},
+  "views": {},
+  "transforms": {}
+}

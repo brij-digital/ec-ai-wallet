@@ -11,35 +11,13 @@ A protocol pack is represented by files under `public/idl`:
 Registry entry:
 - `public/idl/registry.json`
 
-## 1) Scaffold a New Pack
-
-```bash
-npm run pack:init -- \
-  --id my-protocol-mainnet \
-  --name "My Protocol" \
-  --program-id 11111111111111111111111111111111
-```
-
-Useful optional flags:
-- `--network mainnet-beta`
-- `--slug my_protocol`
-- `--transport local-my-protocol`
-- `--status inactive|active`
-- `--commands /my-op,/my-read`
-- `--overwrite`
-
-What scaffold creates:
-- `aidl/<slug>.aidl.json` (starter AIDL source)
-- `registry.json` entry
-- then runs AIDL compile
-
-## 2) Author Operations
+## 1) Author Operations
 
 In AIDL source:
 - define runtime-facing operations
 - keep protocol behavior in `Codama + runtime`
 
-## 3) Compile and Split Outputs
+## 2) Compile and Split Outputs
 
 ```bash
 npm run aidl:compile
@@ -47,7 +25,7 @@ npm run aidl:compile
 
 This compiles AIDL and generates the runtime pack outputs consumed by runtime/UI.
 
-## 4) Validate During Authoring
+## 3) Validate During Authoring
 
 ```bash
 npm run pack:doctor -- --protocol my-protocol-mainnet
@@ -63,7 +41,7 @@ Optional RPC-backed checks:
 npm run pack:rpc-check
 ```
 
-## 5) Activate Pack
+## 4) Activate Pack
 
 Once checks and fixtures are ready:
 - set protocol `status` to `active` in `registry.json`

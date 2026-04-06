@@ -186,14 +186,28 @@ Client request -> [Indexed reads spec] -> Filter/Sort/Aggregate -> Response</pre
       <section class="card">
         <h2>Registry fields</h2>
         <pre>{
-  "id": "pump-amm-mainnet",
-  "ingestSpecPath": "/idl/pump_amm.ingest.json",
-  "indexedReadsPath": "/idl/pump_amm.indexed-reads.json"
+  "protocols": [
+    {
+      "id": "pump-amm-mainnet",
+      "indexedReadsPath": "/idl/pump_amm.indexed-reads.json"
+    }
+  ],
+  "indexings": [
+    {
+      "id": "pump-amm-mainnet",
+      "sources": [
+        {
+          "id": "pump-amm",
+          "protocolId": "pump-amm-mainnet",
+          "ingestSpecPath": "/idl/pump_amm.ingest.json"
+        }
+      ]
+    }
+  ]
 }</pre>
         <ul>
-          <li><code>ingestSpecPath</code> is used by the Carbon plan compiler.</li>
-          <li><code>indexedReadsPath</code> is used by the canonical view runner and query layer.</li>
-          <li><code>indexingSpecPath</code> is deprecated and kept only as fallback.</li>
+          <li><code>indexings[].sources[].ingestSpecPath</code> is used by the Carbon plan compiler.</li>
+          <li><code>indexedReadsPath</code> stays on protocol manifests for indexed reads.</li>
         </ul>
       </section>
 
@@ -204,7 +218,7 @@ Client request -> [Indexed reads spec] -> Filter/Sort/Aggregate -> Response</pre
         <h3>Top-level shape</h3>
         <pre>{
   "schema": "declarative-decoder-runtime.v1",
-  "protocolId": "pump-amm-mainnet",
+  "sourceProtocolIds": ["pump-amm-mainnet"],
   "programId": "$protocol.programId",
   "decoderArtifacts": {},
   "sources": {},
@@ -331,7 +345,7 @@ Client request -> [Indexed reads spec] -> Filter/Sort/Aggregate -> Response</pre
         <h2>Deprecated features</h2>
         <ul>
           <li><code>resolve</code> steps in ingest pipelines are deprecated.</li>
-          <li><code>indexingSpecPath</code> in registry is deprecated.</li>
+          <li>Protocol-level <code>ingestSpecPath</code> in registry has been removed in favor of canonical indexings.</li>
           <li>Top-level <code>projectionSpecs</code> in ingest is deprecated.</li>
         </ul>
       </section>

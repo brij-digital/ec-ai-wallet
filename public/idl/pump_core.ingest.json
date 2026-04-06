@@ -2,7 +2,9 @@
   "$schema": "/idl/declarative_decoder_runtime.schema.v1.json",
   "schema": "declarative-decoder-runtime.v1",
   "version": "0.1.0",
-  "protocolId": "pump-core-mainnet",
+  "sourceProtocolIds": [
+    "pump-core-mainnet"
+  ],
   "label": "Pump Core Declarative Runtime",
   "programId": "$protocol.programId",
   "decoderArtifacts": {
@@ -62,10 +64,12 @@
       },
       "compute": [
         {
-          "name": "quoteReserveUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.virtualSolReservesAtomic",
-          "decimals": "$ctx.quoteDecimals"
+          "ref": "math.amount_ui",
+          "inputs": {
+            "amount": "$ctx.virtualSolReservesAtomic",
+            "decimals": "$ctx.quoteDecimals"
+          },
+          "output": "quoteReserveUi"
         }
       ],
       "emit": {
@@ -118,17 +122,21 @@
       },
       "compute": [
         {
-          "name": "side",
-          "compute": "logic.if",
-          "condition": "$ctx.isBuy",
-          "then": "buy",
-          "else": "sell"
+          "ref": "logic.if_then_else",
+          "inputs": {
+            "condition": "$ctx.isBuy",
+            "then_value": "buy",
+            "else_value": "sell"
+          },
+          "output": "side"
         },
         {
-          "name": "quoteAmountUi",
-          "compute": "math.amount_ui",
-          "amount": "$ctx.quoteAmountAtomic",
-          "decimals": "$ctx.quoteDecimals"
+          "ref": "math.amount_ui",
+          "inputs": {
+            "amount": "$ctx.quoteAmountAtomic",
+            "decimals": "$ctx.quoteDecimals"
+          },
+          "output": "quoteAmountUi"
         }
       ],
       "emit": {

@@ -1,0 +1,118 @@
+{
+  "$schema": "/idl/entity_schema.v1.entities.json",
+  "indexingId": "pump-amm-mainnet",
+  "sourceProtocolIds": [
+    "pump-amm-mainnet"
+  ],
+  "version": "0.1.0",
+  "entities": {
+    "Pool": {
+      "source": "state",
+      "recordKind": "account",
+      "recordName": "PoolMetadata",
+      "id": "pool",
+      "timeField": "updatedAt",
+      "defaultOrderBy": [
+        "updatedAt:desc"
+      ],
+      "fields": {
+        "mint": {
+          "type": "TEXT",
+          "filterable": true
+        },
+        "pool": {
+          "type": "TEXT",
+          "primaryKey": true,
+          "filterable": true,
+          "sourceField": "subject_id"
+        },
+        "quoteMint": {
+          "type": "TEXT",
+          "filterable": true
+        },
+        "baseDecimals": {
+          "type": "INTEGER"
+        },
+        "quoteDecimals": {
+          "type": "INTEGER"
+        },
+        "coinCreator": {
+          "type": "TEXT"
+        },
+        "isCashbackCoin": {
+          "type": "BOOLEAN"
+        },
+        "observedAt": {
+          "type": "TIMESTAMPTZ",
+          "filterable": true
+        },
+        "updatedAt": {
+          "type": "TIMESTAMPTZ",
+          "sourceField": "updated_at",
+          "filterable": true
+        },
+        "poolQuoteReservesAtomic": {
+          "type": "NUMERIC"
+        }
+      }
+    },
+    "Trade": {
+      "source": "record",
+      "recordKind": "event",
+      "recordName": [
+        "BuyEvent",
+        "SellEvent"
+      ],
+      "id": "recordId",
+      "timeField": "eventTime",
+      "defaultOrderBy": [
+        "eventTime:desc"
+      ],
+      "fields": {
+        "recordId": {
+          "type": "TEXT",
+          "primaryKey": true,
+          "filterable": true,
+          "sourceField": "record_id"
+        },
+        "signature": {
+          "type": "TEXT",
+          "filterable": true,
+          "sourceField": "signature"
+        },
+        "pool": {
+          "type": "TEXT",
+          "filterable": true,
+          "sourceField": "subject_id"
+        },
+        "participant": {
+          "type": "TEXT",
+          "filterable": true
+        },
+        "side": {
+          "type": "TEXT"
+        },
+        "baseAmountAtomic": {
+          "type": "NUMERIC"
+        },
+        "quoteAmountAtomic": {
+          "type": "NUMERIC"
+        },
+        "poolBaseReservesAtomic": {
+          "type": "NUMERIC"
+        },
+        "poolQuoteReservesAtomic": {
+          "type": "NUMERIC"
+        },
+        "coinCreator": {
+          "type": "TEXT"
+        },
+        "eventTime": {
+          "type": "TIMESTAMPTZ",
+          "sourceField": "event_time",
+          "filterable": true
+        }
+      }
+    }
+  }
+}

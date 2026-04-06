@@ -2,7 +2,9 @@
   "$schema": "/idl/declarative_decoder_runtime.schema.v1.json",
   "schema": "declarative-decoder-runtime.v1",
   "version": "0.1.0",
-  "protocolId": "orca-whirlpool-mainnet",
+  "sourceProtocolIds": [
+    "orca-whirlpool-mainnet"
+  ],
   "label": "Orca Whirlpool Declarative Runtime",
   "programId": "$protocol.programId",
   "decoderArtifacts": {
@@ -24,72 +26,9 @@
         "log_event"
       ],
       "filters": {}
-    },
-    "orca_whirlpool_snapshot": {
-      "kind": "rpc_account_snapshot",
-      "programId": "$protocol.programId",
-      "commitment": "confirmed",
-      "decoderRef": "orca_whirlpool",
-      "decodeTargets": [
-        "account"
-      ],
-      "filters": {
-        "accountName": "Whirlpool",
-        "targetsFrom": {
-          "kind": "incomplete_state_from_records",
-          "stateRecordName": "Whirlpool",
-          "missingFields": [
-            "tokenDecimalsA",
-            "tokenDecimalsB"
-          ],
-          "recordNames": [
-            "SwapEvent"
-          ],
-          "addressField": "resource_id",
-          "lookbackMinutes": 1440,
-          "limit": 500
-        }
-      }
-    },
-    "orca_whirlpool_snapshot_backfill": {
-      "kind": "rpc_account_snapshot",
-      "programId": "$protocol.programId",
-      "commitment": "confirmed",
-      "decoderRef": "orca_whirlpool",
-      "decodeTargets": [
-        "account"
-      ],
-      "filters": {
-        "accountName": "Whirlpool",
-        "targetsFrom": {
-          "kind": "incomplete_state_from_state",
-          "stateRecordName": "Whirlpool",
-          "missingFields": [
-            "tokenDecimalsA",
-            "tokenDecimalsB"
-          ],
-          "limit": 500
-        }
-      }
     }
   },
   "matchRules": [
-    {
-      "source": "orca_whirlpool_snapshot",
-      "match": {
-        "decodedType": "account",
-        "name": "Whirlpool"
-      },
-      "pipeline": "whirlpool_snapshot"
-    },
-    {
-      "source": "orca_whirlpool_snapshot_backfill",
-      "match": {
-        "decodedType": "account",
-        "name": "Whirlpool"
-      },
-      "pipeline": "whirlpool_snapshot"
-    },
     {
       "source": "orca_whirlpool_crawler",
       "match": {
@@ -118,13 +57,33 @@
         "slot": "$update.slot",
         "observedAt": "$update.eventTime"
       },
+      "resolve": [
+        {
+          "name": "poolState",
+          "from": "indexed_idl_state",
+          "where": {
+            "protocol_id": "$protocolId",
+            "record_name": "Whirlpool",
+            "resource_id": "$ctx.pool"
+          },
+          "fields": [
+            "tokenMintA",
+            "tokenMintB",
+            "tokenDecimalsA",
+            "tokenDecimalsB"
+          ],
+          "optional": true
+        }
+      ],
       "compute": [
         {
-          "name": "side",
-          "compute": "logic.if",
-          "condition": "$ctx.aToB",
-          "then": "a_to_b",
-          "else": "b_to_a"
+          "ref": "logic.if_then_else",
+          "inputs": {
+            "condition": "$ctx.aToB",
+            "then_value": "a_to_b",
+            "else_value": "b_to_a"
+          },
+          "output": "side"
         }
       ],
       "emit": {
@@ -149,6 +108,10 @@
             "outputTransferFeeAtomic": "$ctx.outputTransferFeeAtomic",
             "preSqrtPrice": "$ctx.preSqrtPrice",
             "postSqrtPrice": "$ctx.postSqrtPrice",
+            "tokenMintA": "$poolState.tokenMintA",
+            "tokenMintB": "$poolState.tokenMintB",
+            "tokenDecimalsA": "$poolState.tokenDecimalsA",
+            "tokenDecimalsB": "$poolState.tokenDecimalsB",
             "lpFeeAtomic": "$ctx.lpFeeAtomic",
             "protocolFeeAtomic": "$ctx.protocolFeeAtomic",
             "signature": "$ctx.signature",
@@ -175,6 +138,10 @@
             "outputTransferFeeAtomic": "$ctx.outputTransferFeeAtomic",
             "preSqrtPrice": "$ctx.preSqrtPrice",
             "postSqrtPrice": "$ctx.postSqrtPrice",
+            "tokenMintA": "$poolState.tokenMintA",
+            "tokenMintB": "$poolState.tokenMintB",
+            "tokenDecimalsA": "$poolState.tokenDecimalsA",
+            "tokenDecimalsB": "$poolState.tokenDecimalsB",
             "lpFeeAtomic": "$ctx.lpFeeAtomic",
             "protocolFeeAtomic": "$ctx.protocolFeeAtomic",
             "observedAt": "$ctx.observedAt"
@@ -199,10 +166,12 @@
       },
       "compute": [
         {
-          "name": "feeRateBps",
-          "compute": "math.safe_div",
-          "dividend": "$ctx.feeRateRaw",
-          "divisor": 100
+          "ref": "math.safe_div",
+          "inputs": {
+            "dividend": "$ctx.feeRateRaw",
+            "divisor": 100
+          },
+          "output": "feeRateBps"
         }
       ],
       "emit": {

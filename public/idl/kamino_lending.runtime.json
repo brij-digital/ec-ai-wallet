@@ -1,0 +1,181 @@
+{
+  "$schema": "/idl/solana_agent_runtime.schema.v1.json",
+  "schema": "solana-agent-runtime.v1",
+  "protocol_id": "kamino-lending-mainnet",
+  "program_id": "KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD",
+  "codama_path": "/idl/kamino_lending.codama.json",
+  "label": "Kamino K-Lend",
+  "writes": {
+    "deposit": {
+      "instruction": "deposit_reserve_liquidity_and_obligation_collateral",
+      "args": {
+        "liquidity_amount": "$input.liquidity_amount"
+      },
+      "accounts": {
+        "owner": "$input.owner",
+        "obligation": "$input.obligation",
+        "lending_market": "$input.lending_market",
+        "lending_market_authority": "$input.lending_market_authority",
+        "reserve": "$input.reserve",
+        "reserve_liquidity_mint": "$input.reserve_liquidity_mint",
+        "reserve_liquidity_supply": "$input.reserve_liquidity_supply",
+        "reserve_collateral_mint": "$input.reserve_collateral_mint",
+        "reserve_destination_deposit_collateral": "$input.reserve_destination_deposit_collateral",
+        "user_source_liquidity": "$input.user_source_liquidity",
+        "placeholder_user_destination_collateral": "$protocol.programId",
+        "collateral_token_program": "$input.collateral_token_program",
+        "liquidity_token_program": "$input.liquidity_token_program",
+        "instruction_sysvar_account": "Sysvar1nstructions1111111111111111111111111"
+      }
+    },
+    "borrow": {
+      "instruction": "borrow_obligation_liquidity",
+      "args": {
+        "liquidity_amount": "$input.liquidity_amount"
+      },
+      "accounts": {
+        "owner": "$input.owner",
+        "obligation": "$input.obligation",
+        "lending_market": "$input.lending_market",
+        "lending_market_authority": "$input.lending_market_authority",
+        "borrow_reserve": "$input.borrow_reserve",
+        "borrow_reserve_liquidity_mint": "$input.borrow_reserve_liquidity_mint",
+        "reserve_source_liquidity": "$input.reserve_source_liquidity",
+        "borrow_reserve_liquidity_fee_receiver": "$input.borrow_reserve_liquidity_fee_receiver",
+        "user_destination_liquidity": "$input.user_destination_liquidity",
+        "token_program": "$input.token_program",
+        "instruction_sysvar_account": "Sysvar1nstructions1111111111111111111111111"
+      }
+    },
+    "repay": {
+      "instruction": "repay_obligation_liquidity",
+      "args": {
+        "liquidity_amount": "$input.liquidity_amount"
+      },
+      "accounts": {
+        "owner": "$input.owner",
+        "obligation": "$input.obligation",
+        "lending_market": "$input.lending_market",
+        "repay_reserve": "$input.repay_reserve",
+        "reserve_liquidity_mint": "$input.reserve_liquidity_mint",
+        "reserve_destination_liquidity": "$input.reserve_destination_liquidity",
+        "user_source_liquidity": "$input.user_source_liquidity",
+        "token_program": "$input.token_program",
+        "instruction_sysvar_account": "Sysvar1nstructions1111111111111111111111111"
+      }
+    },
+    "withdraw": {
+      "instruction": "withdraw_obligation_collateral",
+      "args": {
+        "collateral_amount": "$input.collateral_amount"
+      },
+      "accounts": {
+        "owner": "$input.owner",
+        "obligation": "$input.obligation",
+        "lending_market": "$input.lending_market",
+        "lending_market_authority": "$input.lending_market_authority",
+        "withdraw_reserve": "$input.withdraw_reserve",
+        "reserve_source_collateral": "$input.reserve_source_collateral",
+        "user_destination_collateral": "$input.user_destination_collateral",
+        "token_program": "$input.token_program",
+        "instruction_sysvar_account": "Sysvar1nstructions1111111111111111111111111"
+      }
+    }
+  },
+  "views": {
+    "derive_accounts": {
+      "inputs": {
+        "owner": "pubkey",
+        "lending_market": "pubkey",
+        "reserve": "pubkey"
+      },
+      "steps": [
+        {
+          "name": "lending_market_authority",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:lma",
+            "$input.lending_market"
+          ]
+        },
+        {
+          "name": "reserve_liquidity_supply",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:reserve_liq_supply",
+            "$input.reserve"
+          ]
+        },
+        {
+          "name": "reserve_collateral_mint",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:reserve_coll_mint",
+            "$input.reserve"
+          ]
+        },
+        {
+          "name": "reserve_collateral_supply",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:reserve_coll_supply",
+            "$input.reserve"
+          ]
+        },
+        {
+          "name": "reserve_fee_vault",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:fee_receiver",
+            "$input.reserve"
+          ]
+        },
+        {
+          "name": "obligation",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:\u0000",
+            "utf8:\u0000",
+            "$input.owner",
+            "$input.lending_market",
+            "11111111111111111111111111111111",
+            "11111111111111111111111111111111"
+          ]
+        }
+      ],
+      "output": {
+        "type": "object",
+        "source": "$derived",
+        "object_schema": {
+          "entity_type": "kamino_derived_accounts",
+          "fields": {
+            "lending_market_authority": {
+              "type": "pubkey"
+            },
+            "reserve_liquidity_supply": {
+              "type": "pubkey"
+            },
+            "reserve_collateral_mint": {
+              "type": "pubkey"
+            },
+            "reserve_collateral_supply": {
+              "type": "pubkey"
+            },
+            "reserve_fee_vault": {
+              "type": "pubkey"
+            },
+            "obligation": {
+              "type": "pubkey"
+            }
+          }
+        }
+      }
+    }
+  }
+}

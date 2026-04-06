@@ -1,0 +1,242 @@
+{
+  "$schema": "/idl/solana_agent_runtime.schema.v1.json",
+  "schema": "solana-agent-runtime.v1",
+  "protocol_id": "raydium-amm-v4-mainnet",
+  "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+  "codama_path": "/idl/raydium_amm_v4.codama.json",
+  "label": "Raydium AMM v4",
+  "writes": {
+    "swap_base_in": {
+      "instruction": "swap_base_in",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        }
+      ],
+      "args": {
+        "amount_in": "$input.amount_in",
+        "min_amount_out": "$input.min_amount_out"
+      },
+      "accounts": {
+        "amm_id": "$input.amm_id",
+        "authority": "$input.authority",
+        "open_orders": "$input.open_orders",
+        "target_orders": "$input.target_orders",
+        "base_vault": "$input.base_vault",
+        "quote_vault": "$input.quote_vault",
+        "market_program_id": "$input.market_program_id",
+        "market_id": "$input.market_id",
+        "market_bids": "$input.market_bids",
+        "market_asks": "$input.market_asks",
+        "market_event_queue": "$input.market_event_queue",
+        "market_base_vault": "$input.market_base_vault",
+        "market_quote_vault": "$input.market_quote_vault",
+        "market_authority": "$input.market_authority",
+        "user_token_in": "$input.user_token_in",
+        "user_token_out": "$input.user_token_out",
+        "owner": "$wallet"
+      }
+    },
+    "swap_base_in_v2": {
+      "instruction": "swap_base_in_v2",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        }
+      ],
+      "args": {
+        "amount_in": "$input.amount_in",
+        "min_amount_out": "$input.min_amount_out"
+      },
+      "accounts": {
+        "pool_id": "$input.pool_id",
+        "authority": "$input.authority",
+        "vault_a": "$input.vault_a",
+        "vault_b": "$input.vault_b",
+        "owner_token_in": "$input.owner_token_in",
+        "owner_token_out": "$input.owner_token_out",
+        "owner": "$wallet"
+      }
+    }
+  },
+  "transforms": {
+    "derive_pool_keys": [
+      {
+        "name": "config_id",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "utf8",
+            "value": "amm_config_account_seed"
+          }
+        ]
+      },
+      {
+        "name": "authority",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "utf8",
+            "value": "amm authority"
+          }
+        ]
+      },
+      {
+        "name": "id",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$market_id"
+          },
+          {
+            "kind": "utf8",
+            "value": "amm_associated_seed"
+          }
+        ]
+      },
+      {
+        "name": "lp_mint",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$market_id"
+          },
+          {
+            "kind": "utf8",
+            "value": "lp_mint_associated_seed"
+          }
+        ]
+      },
+      {
+        "name": "base_vault",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$market_id"
+          },
+          {
+            "kind": "utf8",
+            "value": "coin_vault_associated_seed"
+          }
+        ]
+      },
+      {
+        "name": "quote_vault",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$market_id"
+          },
+          {
+            "kind": "utf8",
+            "value": "pc_vault_associated_seed"
+          }
+        ]
+      },
+      {
+        "name": "lp_vault",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$market_id"
+          },
+          {
+            "kind": "utf8",
+            "value": "temp_lp_token_associated_seed"
+          }
+        ]
+      },
+      {
+        "name": "open_orders",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$market_id"
+          },
+          {
+            "kind": "utf8",
+            "value": "open_order_associated_seed"
+          }
+        ]
+      },
+      {
+        "name": "target_orders",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$market_id"
+          },
+          {
+            "kind": "utf8",
+            "value": "target_associated_seed"
+          }
+        ]
+      },
+      {
+        "name": "withdraw_queue",
+        "kind": "pda(seed_spec)",
+        "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+        "seeds": [
+          {
+            "kind": "pubkey",
+            "value": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
+          },
+          {
+            "kind": "pubkey",
+            "value": "$market_id"
+          },
+          {
+            "kind": "utf8",
+            "value": "withdraw_associated_seed"
+          }
+        ]
+      }
+    ]
+  }
+}
