@@ -31,26 +31,15 @@ describe('command parser', () => {
     expect(parsed.value.operationId).toBe('buy');
   });
 
-  it('parses /view-run with JSON input', () => {
-    const parsed = parseCommand('/view-run orca-whirlpool-mainnet pools_index {"token_in_mint":"A","token_out_mint":"B"}');
-    expect(parsed.kind).toBe('view-run');
-    if (parsed.kind !== 'view-run') {
-      return;
-    }
-    expect(parsed.value.protocolId).toBe('orca-whirlpool-mainnet');
-    expect(parsed.value.operationId).toBe('pools_index');
-    expect(parsed.value.input).toEqual({ token_in_mint: 'A', token_out_mint: 'B' });
-  });
-
   it('rejects malformed /meta-run payload', () => {
     expect(() => parseCommand('/meta-run orca-whirlpool-mainnet')).toThrow(
       'Usage: /meta-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON> --simulate|--send',
     );
   });
 
-  it('rejects malformed /view-run JSON', () => {
-    expect(() => parseCommand('/view-run orca-whirlpool-mainnet pools_index {bad-json}')).toThrow(
-      'Invalid input JSON.',
+  it('rejects removed /view-run command', () => {
+    expect(() => parseCommand('/view-run orca-whirlpool-mainnet pools_index {"token_in_mint":"A"}')).toThrow(
+      'Unknown command: /view-run. This mode is protocol-agnostic; use /idl-list or /help.',
     );
   });
 });

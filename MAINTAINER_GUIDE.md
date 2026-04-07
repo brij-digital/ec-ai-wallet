@@ -37,10 +37,10 @@ Optimize for explicit behavior, small diffs, and strong regression protection.
 - the current schema supports it but runtime interprets it incorrectly
 - a new primitive is needed and is not protocol-specific
 
-### Put the fix in view-service when
-- the issue is in indexed reads
-- cache hydration is wrong
-- `/view-run` result shaping is wrong
+### Put the fix in protocol-indexing when
+- the issue is in materialized entities
+- entity freshness/health is wrong
+- the entity browser is reading good contracts but bad indexed data
 
 ### Avoid fixing in UI when
 - the behavior can be represented in pack spec

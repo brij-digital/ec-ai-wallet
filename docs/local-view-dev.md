@@ -1,6 +1,6 @@
-# Local View Loop
+# Local Indexing Loop
 
-Use this setup when iterating on view specs, indexer behavior, or small UI prototypes without waiting on Render/Neon deploys.
+Use this setup when iterating on entity specs, projector behavior, or small UI prototypes without waiting on deploys.
 
 ## 1. Local PostgreSQL
 
@@ -14,22 +14,16 @@ brew services start postgresql@17
 createdb apppack_local
 ```
 
-## 2. Local view service
+## 2. Local indexing stack
 
 In `protocol-indexing`:
 
 ```bash
-cd /Users/antoine/Documents/github/Espresso\ Cash/protocol-indexing
-cp local.env.example .env
-# then replace SOLANA_RPC_URL with your Helius RPC URL
-npm run dev
-```
-
-In a second terminal:
-
-```bash
-cd /Users/antoine/Documents/github/Espresso\ Cash/protocol-indexing
-npm run dev:worker
+cd /Users/antoine/Documents/github/AppPACK/protocol-indexing
+cargo run --manifest-path protocol-indexing-engine/Cargo.toml -- ingest-live
+# or run the projector / API roles separately in additional terminals:
+cargo run --manifest-path protocol-indexing-engine/Cargo.toml -- project
+cargo run --manifest-path protocol-indexing-engine/Cargo.toml -- api
 ```
 
 The API will be available at `http://localhost:8080`.
@@ -44,21 +38,15 @@ cp local.env.example .env.local
 npm run dev
 ```
 
-Open the app and use the `Views` tab to:
-- verify the local view service is healthy
-- run search views against your local index
+Open the app and use the `Entities` tab to:
+- verify the local indexing API is healthy
+- browse materialized entities against your local index
 - inspect raw result shapes and a simple structured preview
 
 ## 4. Suggested workflow
 
-1. edit the view spec / runtime behavior
-2. let the local worker backfill or refresh
-3. check `http://localhost:8080/sync/status`
-4. run the view from the wallet `Views` tab
+1. edit the entity spec / runtime behavior
+2. let the projector catch up
+3. check `http://localhost:8080/health`
+4. inspect the data from the wallet `Entities` tab
 5. inspect the data shape before deploying anything
-
-## 5. Good next local additions
-
-- Pump trade ingest worker (`feed` source)
-- materialized 1m candles (`series` source)
-- small purpose-built Pump page prototype that reuses the same views

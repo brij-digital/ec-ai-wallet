@@ -10,7 +10,6 @@ import { type Connection, PublicKey, SystemProgram, TransactionInstruction } fro
 import {
   parseCommand,
   type MetaRunCommand,
-  type ViewRunCommand,
 } from './commandParser';
 import {
   decodeIdlAccount,
@@ -33,22 +32,10 @@ import {
 } from './metaEnhancements';
 import type { CommandMessage } from './components/CommandTab';
 
-type RemoteViewRunResponse = {
-  ok: boolean;
-  protocol?: string;
-  operation?: string;
-  items?: unknown[];
-  query?: Record<string, unknown>;
-  meta?: Record<string, unknown>;
-  error?: string;
-};
-
 type UseCommandControllerOptions = {
   connection: Connection;
   wallet: WalletContextState;
   supportedTokens: string;
-  viewApiBaseUrl: string;
-  defaultViewApiBaseUrl: string;
 };
 
 function buildMetaPostInstructions(
@@ -173,8 +160,6 @@ export function useCommandController(options: UseCommandControllerOptions) {
     connection,
     wallet,
     supportedTokens,
-    viewApiBaseUrl,
-    defaultViewApiBaseUrl,
   } = options;
 
   const [messages, setMessages] = useState<CommandMessage[]>([
@@ -192,7 +177,6 @@ export function useCommandController(options: UseCommandControllerOptions) {
       [
         'Commands:',
         '/meta-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON> --simulate|--send',
-        '/view-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON>',
         '/write-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
         '/read-raw <PROTOCOL_ID> <INSTRUCTION_NAME> | <ARGS_JSON> | <ACCOUNTS_JSON>',
         '/idl-list',
@@ -203,7 +187,6 @@ export function useCommandController(options: UseCommandControllerOptions) {
         '',
         'Notes:',
         'Use /meta-run for protocol-agnostic operation execution from runtime specs.',
-        `Pool discovery runs through View API (${defaultViewApiBaseUrl}) with no local fallback.`,
         '/meta-run requires explicit mode: --simulate or --send.',
         'Use --simulate first, then --send with same input for deterministic execution.',
         '',
@@ -211,76 +194,14 @@ export function useCommandController(options: UseCommandControllerOptions) {
         '/meta-run orca-whirlpool-mainnet swap_exact_in {"token_in_mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","token_out_mint":"So11111111111111111111111111111111111111112","amount_in":"10000","slippage_bps":50,"estimated_out":"100000","whirlpool":"Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE","unwrap_sol_output":true} --simulate',
         '/meta-run orca-whirlpool-mainnet swap_exact_in {"token_in_mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","token_out_mint":"So11111111111111111111111111111111111111112","amount_in":"10000","slippage_bps":50,"estimated_out":"100000","whirlpool":"Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE","unwrap_sol_output":true} --send',
         '/meta-explain orca-whirlpool-mainnet swap_exact_in',
-        '/meta-explain orca-whirlpool-mainnet pools_index',
         '/meta-explain pump-amm-mainnet buy',
         '/meta-explain pump-core-mainnet buy_exact_sol_in',
-        '/view-run orca-whirlpool-mainnet pools_index {"token_in_mint":"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","token_out_mint":"So11111111111111111111111111111111111111112"}',
       ].join('\n'),
-    [defaultViewApiBaseUrl],
+    [],
   );
 
   function pushMessage(role: 'user' | 'assistant', text: string) {
     setMessages((prev) => [...prev, { id: prev.length + 1, role, text }]);
-  }
-
-  async function runRemoteViewRun(params: {
-    protocolId: string;
-    operationId: string;
-    input: Record<string, unknown>;
-    limit?: number;
-  }): Promise<RemoteViewRunResponse> {
-    if (!viewApiBaseUrl) {
-      throw new Error('View API base URL is not configured (VITE_VIEW_API_BASE_URL).');
-    }
-
-    let response: Response;
-    try {
-      response = await fetch(`${viewApiBaseUrl}/view-run`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          protocol_id: params.protocolId,
-          operation_id: params.operationId,
-          input: params.input,
-          ...(typeof params.limit === 'number' ? { limit: params.limit } : {}),
-        }),
-      });
-    } catch {
-      throw new Error(
-        `Failed to reach View API at ${viewApiBaseUrl}. Check service uptime and CORS preflight configuration for /view-run.`,
-      );
-    }
-
-    const bodyText = await response.text();
-    let parsed: unknown = null;
-    if (bodyText.trim().length > 0) {
-      try {
-        parsed = JSON.parse(bodyText);
-      } catch {
-        parsed = null;
-      }
-    }
-
-    if (!response.ok) {
-      const detail =
-        parsed && typeof parsed === 'object' && !Array.isArray(parsed) && typeof (parsed as { error?: unknown }).error === 'string'
-          ? (parsed as { error: string }).error
-          : bodyText || response.statusText;
-      throw new Error(`View API error ${response.status}: ${detail}`);
-    }
-
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error('View API returned invalid JSON response.');
-    }
-
-    const result = parsed as RemoteViewRunResponse;
-    if (!result.ok) {
-      throw new Error(result.error ?? 'View API returned ok=false.');
-    }
-
-    return result;
   }
 
   async function executeMetaRun(value: MetaRunCommand): Promise<void> {
@@ -413,34 +334,6 @@ export function useCommandController(options: UseCommandControllerOptions) {
     );
   }
 
-  async function executeViewRun(value: ViewRunCommand): Promise<void> {
-    const response = await runRemoteViewRun({
-      protocolId: value.protocolId,
-      operationId: value.operationId,
-      input: value.input,
-      limit: 20,
-    });
-
-    const items = Array.isArray(response.items) ? response.items : [];
-    const highlights = [
-      `items: ${items.length}`,
-      ...(response.meta ? [`source: ${asPrettyJson(response.meta)}`] : []),
-    ];
-    pushMessage(
-      'assistant',
-      [
-        `View run (${value.protocolId}/${value.operationId}):`,
-        ...(highlights.length > 0 ? highlights : ['No data returned.']),
-        '',
-        'Raw JSON:',
-        asPrettyJson({
-          input: value.input,
-          output: response,
-        }),
-      ].join('\n'),
-    );
-  }
-
   async function handleCommandSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -504,11 +397,6 @@ export function useCommandController(options: UseCommandControllerOptions) {
 
       if (parsed.kind === 'meta-run') {
         await executeMetaRun(parsed.value);
-        return;
-      }
-
-      if (parsed.kind === 'view-run') {
-        await executeViewRun(parsed.value);
         return;
       }
 

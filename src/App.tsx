@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import './App.css';
-import { PumpWorkspaceTab } from './app/components/PumpWorkspaceTab';
 import { ComputeDevTab } from './app/components/ComputeDevTab';
 import { RawOperationsTab } from './app/components/RawOperationsTab';
 import { TradingViewTestTab } from './app/components/TradingViewTestTab';
@@ -11,18 +10,16 @@ import { RunnerTab } from './app/components/RunnerTab';
 import { AdminDashboardTab } from './app/components/AdminDashboardTab';
 
 const VIEW_API_BASE_URL = 'https://api.brijmail.com';
-const RUNNER_VIEW_API_BASE_URL = 'https://api.brijmail.com';
 const ADMIN_API_BASE_URL = 'https://api.brijmail.com';
 
-type AppTab = 'indexViews' | 'pump' | 'raw' | 'compute' | 'tv' | 'agent' | 'runner' | 'admin';
+type AppTab = 'indexViews' | 'raw' | 'compute' | 'tv' | 'agent' | 'runner' | 'admin';
 type AppMode = 'normal' | 'advanced';
 const DISABLED_TABS = ['Apps', 'Command', 'Explorer'] as const;
 const NORMAL_TABS: AppTab[] = ['runner', 'indexViews', 'compute'];
-const ADVANCED_TABS: AppTab[] = ['admin', 'agent', 'pump', 'raw', 'tv'];
+const ADVANCED_TABS: AppTab[] = ['admin', 'agent', 'raw', 'tv'];
 
 const TAB_HASHES: Record<AppTab, string> = {
   agent: 'agent',
-  pump: 'pump',
   runner: 'runner',
   indexViews: 'index-views',
   raw: 'raw',
@@ -136,17 +133,6 @@ function App() {
               Admin
             </button>
           ) : null}
-          {visibleTabs.includes('pump') ? (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'pump'}
-              className={activeTab === 'pump' ? 'active' : ''}
-              onClick={() => switchTab('pump')}
-            >
-              Pump
-            </button>
-          ) : null}
           {visibleTabs.includes('runner') ? (
             <button
               type="button"
@@ -221,10 +207,8 @@ function App() {
         </div>
         <p className="tab-status-note">Active path is `Codama + runtime`. App packs are out of the contract.</p>
 
-        {activeTab === 'pump' ? (
-          <PumpWorkspaceTab viewApiBaseUrl={VIEW_API_BASE_URL} />
-        ) : activeTab === 'raw' ? (
-          <RawOperationsTab viewApiBaseUrl={VIEW_API_BASE_URL} />
+        {activeTab === 'raw' ? (
+          <RawOperationsTab />
         ) : activeTab === 'compute' ? (
           <ComputeDevTab isWorking={false} />
         ) : activeTab === 'agent' ? (
@@ -232,7 +216,7 @@ function App() {
         ) : activeTab === 'admin' ? (
           <AdminDashboardTab adminApiBaseUrl={ADMIN_API_BASE_URL} />
         ) : activeTab === 'runner' ? (
-          <RunnerTab viewApiBaseUrl={RUNNER_VIEW_API_BASE_URL} />
+          <RunnerTab />
         ) : activeTab === 'tv' ? (
           <TradingViewTestTab viewApiBaseUrl={VIEW_API_BASE_URL} />
         ) : activeTab === 'indexViews' ? (

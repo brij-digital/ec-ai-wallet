@@ -5,10 +5,10 @@ import { useCallback } from 'react';
 import type { FormEvent } from 'react';
 import {
   prepareRuntimeOperation,
+  runRuntimeView,
   type RuntimeOperationSummary,
 } from '@brij-digital/apppack-runtime/runtimeOperationRuntime';
 import {
-  buildDerivedFromReadOutputSource,
   buildReadOnlyHighlightsFromSpec,
   parseBuilderInputValue,
 } from './builderHelpers';
@@ -19,17 +19,9 @@ import {
 } from './runtimeSubmit';
 import type { BuilderPreparedStepResult } from './useBuilderController';
 
-type RemoteViewRunResponse = {
-  ok: boolean;
-  items?: unknown[];
-  meta?: Record<string, unknown>;
-  error?: string;
-};
-
 type UseBuilderSubmitControllerOptions = {
   connection: Connection;
   wallet: WalletContextState;
-  viewApiBaseUrl: string;
   pushMessage: (role: 'user' | 'assistant', text: string) => void;
   setIsBuilderWorking: (value: boolean) => void;
   builderProtocolId: string;
@@ -43,40 +35,6 @@ type UseBuilderSubmitControllerOptions = {
   setBuilderResult: (lines: string[], raw?: unknown) => void;
   builderSimulate: boolean;
 };
-
-async function runRemoteViewRun(options: {
-  viewApiBaseUrl: string;
-  protocolId: string;
-  operationId: string;
-  input: Record<string, unknown>;
-  limit?: number;
-}): Promise<RemoteViewRunResponse> {
-  if (!options.viewApiBaseUrl) {
-    throw new Error('View API base URL is not configured (VITE_VIEW_API_BASE_URL).');
-  }
-
-  const response = await fetch(`${options.viewApiBaseUrl}/view-run`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      protocol_id: options.protocolId,
-      operation_id: options.operationId,
-      input: options.input,
-      ...(typeof options.limit === 'number' ? { limit: options.limit } : {}),
-    }),
-  });
-
-  const parsed = (await response.json()) as RemoteViewRunResponse;
-  if (!response.ok) {
-    throw new Error(parsed.error ?? `View API error ${response.status}`);
-  }
-  if (!parsed.ok) {
-    throw new Error(parsed.error ?? 'View API returned ok=false.');
-  }
-  return parsed;
-}
 
 function buildPreparedResult(prepared: Awaited<ReturnType<typeof prepareRuntimeOperation>>): BuilderPreparedStepResult {
   return {
@@ -131,36 +89,31 @@ export function useBuilderSubmitController(options: UseBuilderSubmitControllerOp
         }
 
         if (isReadOnlyOperation) {
+          if (!options.wallet.publicKey) {
+            throw new Error('Connect wallet first to execute runtime views.');
+          }
           if (!operation.output) {
             throw new Error(`Read-only operation ${options.builderProtocolId}/${operation.operationId} is missing output.`);
           }
 
-          const response = await runRemoteViewRun({
-            viewApiBaseUrl: options.viewApiBaseUrl,
+          const computed = await runRuntimeView({
             protocolId: options.builderProtocolId,
             operationId: operation.operationId,
             input: inputPayload,
-            limit: 20,
+            connection: options.connection,
+            walletPublicKey: options.wallet.publicKey,
           });
-
-          const readValue = response.items ?? [];
-          const derived = buildDerivedFromReadOutputSource(operation.output.source, readValue);
-          const preparedReadOnly: BuilderPreparedStepResult = {
-            derived,
-            args: {},
-            accounts: {},
-            instructionName: null,
-          };
 
           const lines = [
             `Runtime result (${options.builderProtocolId}/${operation.operationId}):`,
-            'Read-only operation (view API).',
-            ...buildReadOnlyHighlightsFromSpec(operation.output, readValue),
+            'Read-only operation (runtime view).',
+            ...buildReadOnlyHighlightsFromSpec(operation.output, computed.output),
           ];
           options.setBuilderResult(lines, {
             input: inputPayload,
-            response,
-            derived: preparedReadOnly.derived,
+            output: computed.output,
+            outputSpec: computed.outputSpec,
+            derived: computed.derived,
           });
           options.pushMessage('assistant', lines.join('\n'));
           return;

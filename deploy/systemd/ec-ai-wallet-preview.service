@@ -1,6 +1,6 @@
 [Unit]
 Description=EC AI Wallet Preview
-After=network-online.target apppack-view-service-api.service
+After=network-online.target protocol-indexing-api.service
 Wants=network-online.target
 
 [Service]

@@ -37,7 +37,6 @@ export async function loadActionRunnerSpecs(): Promise<ActionRunnerSpec[]> {
 export async function runActionRunnerSpec(options: {
   spec: ActionRunnerSpec;
   input: Record<string, unknown>;
-  viewApiBaseUrl: string;
   connection: Connection;
   walletPublicKey: PublicKey | null;
 }): Promise<ActionRunnerResult> {

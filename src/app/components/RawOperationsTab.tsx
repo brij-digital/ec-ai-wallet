@@ -4,11 +4,7 @@ import { BuilderTab } from './BuilderTab';
 import { useBuilderController } from '../useBuilderController';
 import { useBuilderSubmitController } from '../useBuilderSubmitController';
 
-type RawOperationsTabProps = {
-  viewApiBaseUrl: string;
-};
-
-export function RawOperationsTab({ viewApiBaseUrl }: RawOperationsTabProps) {
+export function RawOperationsTab() {
   const { connection } = useConnection();
   const wallet = useWallet();
   const [isWorking, setIsWorking] = useState(false);
@@ -17,7 +13,6 @@ export function RawOperationsTab({ viewApiBaseUrl }: RawOperationsTabProps) {
   const { handleBuilderSubmit } = useBuilderSubmitController({
     connection,
     wallet,
-    viewApiBaseUrl,
     pushMessage: () => {},
     setIsBuilderWorking: setIsWorking,
     builderProtocolId: builder.builderProtocolId,

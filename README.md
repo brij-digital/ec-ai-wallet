@@ -33,8 +33,7 @@ Active protocols in this repo:
 - `pump-core-mainnet`
 
 Main UI tabs:
-- `Pump`: pump-specific reference workspace
-- `Views`: backend read/view playground
+- `Entities`: materialized entity browser for the indexing API
 - `Raw Operations`: operation-level execution from runtime specs
 - `Compute`: developer inspection of runtime compute
 - `TradingView`: chart/debug surface
@@ -86,12 +85,11 @@ Schemas:
 
 This web app depends on:
 - `@brij-digital/apppack-runtime` (external package): deterministic protocol/runtime execution runtime
-- `apppack-view-service` (separate repo/service): read/view execution and indexed data endpoint (`/view-run`)
+- `protocol-indexing` (separate repo/service): entity API and indexing health endpoints
 
 Important behavior:
-- no local view fallback in app command mode
 - `/meta-run` requires explicit mode: `--simulate` or `--send`
-- indexed reads are owned by the view service and the indexing spec
+- entity browsing is owned by `protocol-indexing`
 - runtime compute/write execution is owned by `@brij-digital/apppack-runtime`
 
 ## Quick Start
@@ -127,13 +125,10 @@ cp local.env.example .env.local
 npm run dev
 ```
 
-The app now includes a `Views` tab that can:
+The app now includes an `Entities` tab that can:
 - ping `/health`
-- run a view directly against the configured view API
+- browse materialized entity tables served by `protocol-indexing`
 - show both a structured preview and the raw JSON response
-
-It also includes a `Scenarios` tab that can run a multi-view page recipe.
-The default recipe currently uses Pump data, but the component is scenario-driven rather than protocol-specific.
 
 See [docs/local-view-dev.md](docs/local-view-dev.md) for the full local loop, including PostgreSQL and the local view-service worker.
 
@@ -143,7 +138,6 @@ Use `/help` in the app for current command help.
 
 Core commands:
 - `/meta-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON> --simulate|--send`
-- `/view-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON>`
 - `/meta-explain <PROTOCOL_ID> <OPERATION_ID>`
 - `/idl-list`
 - `/idl-template <PROTOCOL_ID> <INSTRUCTION_NAME>`

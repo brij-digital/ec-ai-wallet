@@ -9,10 +9,6 @@ import {
   type PreparedExecutionDraft,
 } from '../runtimeSubmit';
 
-type RunnerTabProps = {
-  viewApiBaseUrl: string;
-};
-
 type RunnerResult = Awaited<ReturnType<typeof runActionRunnerSpec>>;
 
 type RunnerActionStatus =
@@ -66,7 +62,7 @@ function asDraft(value: unknown): PreparedExecutionDraft | null {
   return candidate as unknown as PreparedExecutionDraft;
 }
 
-export function RunnerTab({ viewApiBaseUrl }: RunnerTabProps) {
+export function RunnerTab() {
   const { connection } = useConnection();
   const wallet = useWallet();
   const [runnerSpecs, setRunnerSpecs] = useState<ActionRunnerSpec[]>([]);
@@ -159,7 +155,6 @@ export function RunnerTab({ viewApiBaseUrl }: RunnerTabProps) {
       const executed = await runActionRunnerSpec({
         spec: selectedRunner,
         input: parsedInput,
-        viewApiBaseUrl,
         connection,
         walletPublicKey: wallet.publicKey,
       });

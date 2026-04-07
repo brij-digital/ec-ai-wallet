@@ -56,5 +56,5 @@ npm run ci:protocol-packs
 1. Edit AIDL + compute libraries.
 2. `npm run aidl:compile`.
 3. Validate with `pack:check`, `pack:lint`, complexity gate.
-4. Run app in `npm run dev` and test in Raw + Compute + Views tabs.
+4. Run app in `npm run dev` and test in Raw + Compute + Entities tabs.
 5. Commit source and generated pack outputs together.

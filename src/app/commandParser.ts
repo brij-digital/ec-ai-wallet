@@ -25,13 +25,6 @@ export type MetaExplainCommand = {
   operationId: string;
 };
 
-export type ViewRunCommand = {
-  kind: 'view-run';
-  protocolId: string;
-  operationId: string;
-  input: Record<string, unknown>;
-};
-
 export type MetaRunCommand = {
   kind: 'meta-run';
   protocolId: string;
@@ -48,7 +41,6 @@ export type ParsedCommand =
   | { kind: 'idl-template'; value: IdlTemplateCommand }
   | { kind: 'meta-explain'; value: MetaExplainCommand }
   | { kind: 'meta-run'; value: MetaRunCommand }
-  | { kind: 'view-run'; value: ViewRunCommand }
   | { kind: 'idl-view'; value: IdlViewCommand }
   | { kind: 'idl-send'; value: IdlSendCommand };
 
@@ -118,39 +110,6 @@ function parseIdlSendCommand(trimmed: string): ParsedCommand {
       instructionName: parsed.instructionName,
       args: parsed.args,
       accounts: parsed.accounts,
-    },
-  };
-}
-
-function parseViewRunCommand(trimmed: string): ParsedCommand {
-  const payload = trimmed.slice('/view-run'.length).trim();
-  if (payload.length === 0) {
-    throw new Error('Usage: /view-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON>');
-  }
-
-  const firstSpace = payload.indexOf(' ');
-  if (firstSpace <= 0) {
-    throw new Error('Usage: /view-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON>');
-  }
-  const protocolId = payload.slice(0, firstSpace).trim();
-  const rest = payload.slice(firstSpace + 1).trim();
-  const secondSpace = rest.indexOf(' ');
-  if (secondSpace <= 0) {
-    throw new Error('Usage: /view-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON>');
-  }
-  const operationId = rest.slice(0, secondSpace).trim();
-  const inputRaw = rest.slice(secondSpace + 1).trim();
-  if (inputRaw.length === 0) {
-    throw new Error('Usage: /view-run <PROTOCOL_ID> <OPERATION_ID> <INPUT_JSON>');
-  }
-
-  return {
-    kind: 'view-run',
-    value: {
-      kind: 'view-run',
-      protocolId,
-      operationId,
-      input: parseJsonObject<Record<string, unknown>>(inputRaw, 'input'),
     },
   };
 }
@@ -232,10 +191,6 @@ export function parseCommand(raw: string): ParsedCommand {
 
   if (trimmed.startsWith('/idl-send')) {
     return parseIdlSendCommand(trimmed);
-  }
-
-  if (trimmed === '/view-run' || trimmed.startsWith('/view-run ')) {
-    return parseViewRunCommand(trimmed);
   }
 
   if (trimmed === '/meta-run' || trimmed.startsWith('/meta-run ')) {

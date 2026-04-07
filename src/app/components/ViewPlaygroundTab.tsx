@@ -176,7 +176,7 @@ export function ViewPlaygroundTab({ viewApiBaseUrl }: ViewPlaygroundTabProps) {
 
   const trimmedBaseUrl = useMemo(() => viewApiBaseUrl.trim().replace(/\/+$/, ''), [viewApiBaseUrl]);
   const title = 'Indexed Entities';
-  const description = 'Browse materialized layer-2 entities served by the indexing API. This replaces the old indexed-read /view-run flow.';
+  const description = 'Browse materialized layer-2 entities served by the indexing API.';
 
   useEffect(() => {
     let cancelled = false;

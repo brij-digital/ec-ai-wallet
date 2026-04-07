@@ -50,7 +50,7 @@ Role:
 - bootstrap + incremental sync worker
 
 Owns:
-- `/view-run`
+- materialized entity browsing through `protocol-indexing`
 - account cache and refresh flow
 - Neon-backed account cache and refresh flow
 - sync state for search-view universes
