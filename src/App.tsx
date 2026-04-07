@@ -78,11 +78,13 @@ function App() {
     <main className="page-shell">
       <section className="card-shell">
         <header className="card-header">
-          <div>
+          <div className="card-header-copy">
             <h1>AppPack — AI Compatible by Design</h1>
             <p>Define once, execute everywhere: AppPack turns protocol specs into deterministic, verifiable on-chain read and transaction flows, so users and AI agents can discover options, simulate outcomes, and execute safely without external SDK lock-in, custom API glue, or fragile wallet-connection UX.</p>
           </div>
-          <WalletMultiButton />
+          <div className="card-header-wallet">
+            <WalletMultiButton />
+          </div>
         </header>
 
         <div className="mode-switcher" role="tablist" aria-label="Navigation mode">

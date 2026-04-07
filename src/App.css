@@ -25,6 +25,27 @@
   margin-bottom: 1rem;
 }
 
+.card-header-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.card-header-wallet {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+.card-header-wallet .wallet-adapter-dropdown {
+  display: block;
+  max-width: 100%;
+}
+
+.card-header-wallet .wallet-adapter-button {
+  white-space: nowrap;
+  min-width: max-content;
+  max-width: 100%;
+}
+
 .card-header h1 {
   margin: 0;
   font-size: 1.45rem;
@@ -2718,6 +2739,15 @@
   .card-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .card-header-wallet {
+    width: 100%;
+  }
+
+  .card-header-wallet .wallet-adapter-dropdown,
+  .card-header-wallet .wallet-adapter-button {
+    width: 100%;
   }
 
   .tab-switcher {
