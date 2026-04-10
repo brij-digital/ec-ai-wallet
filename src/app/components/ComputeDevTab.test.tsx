@@ -11,7 +11,7 @@ const runtimeMocks = vi.hoisted(() => ({
   loadRuntimePackMock: vi.fn(),
 }));
 
-vi.mock('@brij-digital/apppack-runtime/idlDeclarativeRuntime', () => ({
+vi.mock('@brij-digital/apppack-runtime/codamaFacade', () => ({
   listIdlProtocols: runtimeMocks.listIdlProtocolsMock,
 }));
 
