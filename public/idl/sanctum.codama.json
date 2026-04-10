@@ -1,1 +1,200 @@
-{"standard":"codama","kind":"rootNode","program":{"kind":"programNode","name":"sanctum","publicKey":"stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq","version":"0.1.0","accounts":[],"instructions":[],"errors":[],"definedTypes":[]},"additionalPrograms":[]}
+{
+  "standard": "codama",
+  "kind": "rootNode",
+  "program": {
+    "kind": "programNode",
+    "name": "sanctum",
+    "publicKey": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq",
+    "version": "0.1.0",
+    "docs": [
+      "Minimal Codama projection for Sanctum router conformance tests."
+    ],
+    "accounts": [],
+    "instructions": [
+      {
+        "kind": "instructionNode",
+        "name": "depositSol",
+        "docs": [],
+        "accounts": [
+          { "kind": "instructionAccountNode", "name": "signer", "isWritable": false, "isSigner": true, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "signerInp", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "signerOut", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "routeSource", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "routeDestination", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "feeTokenAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outMint", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "wsolMint", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "tokenProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "systemProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakePoolProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakePool", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "withdrawAuthority", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "reserveStake", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "managerFeeAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": { "kind": "fixedSizeTypeNode", "size": 1, "type": { "kind": "bytesTypeNode" } },
+            "defaultValue": { "kind": "bytesValueNode", "data": "00", "encoding": "base16" }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "amt",
+            "docs": [],
+            "type": { "kind": "numberTypeNode", "format": "u64", "endian": "le" }
+          }
+        ],
+        "discriminators": [
+          { "kind": "fieldDiscriminatorNode", "name": "discriminator", "offset": 0 }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "depositStake",
+        "docs": [],
+        "accounts": [
+          { "kind": "instructionAccountNode", "name": "signer", "isWritable": true, "isSigner": true, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "signerInp", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "signerOut", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "feeTokenAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outMint", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakePoolProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakePool", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "validatorList", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakeDepositAuthority", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "withdrawAuthority", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "validatorStakeAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "reserveStake", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "managerFeeAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "clock", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakeHistory", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "tokenProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakeProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": { "kind": "fixedSizeTypeNode", "size": 1, "type": { "kind": "bytesTypeNode" } },
+            "defaultValue": { "kind": "bytesValueNode", "data": "05", "encoding": "base16" }
+          }
+        ],
+        "discriminators": [
+          { "kind": "fieldDiscriminatorNode", "name": "discriminator", "offset": 0 }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "withdrawSol",
+        "docs": [],
+        "accounts": [
+          { "kind": "instructionAccountNode", "name": "signer", "isWritable": false, "isSigner": true, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "signerInp", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "signerOut", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "routeDestination", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpMint", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "wsolMint", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "tokenProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakePoolProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakePool", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "withdrawAuthority", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "reserveStake", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "managerFeeAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "clock", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakeHistory", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakeProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "tokenProgramDuplicate", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": { "kind": "fixedSizeTypeNode", "size": 1, "type": { "kind": "bytesTypeNode" } },
+            "defaultValue": { "kind": "bytesValueNode", "data": "08", "encoding": "base16" }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "amt",
+            "docs": [],
+            "type": { "kind": "numberTypeNode", "format": "u64", "endian": "le" }
+          }
+        ],
+        "discriminators": [
+          { "kind": "fieldDiscriminatorNode", "name": "discriminator", "offset": 0 }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "prefundSwapViaStake",
+        "docs": [],
+        "accounts": [
+          { "kind": "instructionAccountNode", "name": "signer", "isWritable": false, "isSigner": true, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "signerInp", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "signerOut", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "bridgeStake", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "slumdogStake", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpMint", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outMint", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpFeeTokenAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outFeeTokenAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpStakePoolProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpStakePool", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpValidatorList", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpWithdrawAuthority", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpValidatorStakeAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpReserveStake", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "inpManagerFeeAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outStakePoolProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outStakePool", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outValidatorList", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outStakeDepositAuthority", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outWithdrawAuthority", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outValidatorStakeAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outReserveStake", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "outManagerFeeAccount", "isWritable": true, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "clock", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakeHistory", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "tokenProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "stakeProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] },
+          { "kind": "instructionAccountNode", "name": "systemProgram", "isWritable": false, "isSigner": false, "isOptional": false, "docs": [] }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": { "kind": "fixedSizeTypeNode", "size": 1, "type": { "kind": "bytesTypeNode" } },
+            "defaultValue": { "kind": "bytesValueNode", "data": "01", "encoding": "base16" }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "amt",
+            "docs": [],
+            "type": { "kind": "numberTypeNode", "format": "u64", "endian": "le" }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "bridgeStakeSeed",
+            "docs": [],
+            "type": { "kind": "numberTypeNode", "format": "u32", "endian": "le" }
+          }
+        ],
+        "discriminators": [
+          { "kind": "fieldDiscriminatorNode", "name": "discriminator", "offset": 0 }
+        ]
+      }
+    ],
+    "errors": [],
+    "definedTypes": []
+  },
+  "additionalPrograms": []
+}

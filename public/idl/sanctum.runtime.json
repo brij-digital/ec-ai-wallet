@@ -5,7 +5,202 @@
   "program_id": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq",
   "codama_path": "/idl/sanctum.codama.json",
   "label": "Sanctum LST",
-  "writes": {},
-  "views": {},
+  "writes": {
+    "deposit_sol": {
+      "instruction": "depositSol",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        },
+        {
+          "name": "fee_token_account",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:fee",
+            "$input.out_mint"
+          ]
+        }
+      ],
+      "args": {
+        "amt": "$input.amt"
+      },
+      "accounts": {
+        "signer": "$wallet",
+        "signer_inp": "$wallet",
+        "signer_out": "$input.signer_out",
+        "route_source": "$input.route_source",
+        "route_destination": "$input.route_destination",
+        "fee_token_account": "$fee_token_account",
+        "out_mint": "$input.out_mint",
+        "wsol_mint": "So11111111111111111111111111111111111111112",
+        "token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "system_program": "11111111111111111111111111111111",
+        "stake_pool_program": "SP12tWFxD9oJsVWNavTTBZvMbA6gkAmxtVgxdqvyvhY",
+        "stake_pool": "$input.stake_pool",
+        "withdraw_authority": "$input.withdraw_authority",
+        "reserve_stake": "$input.reserve_stake",
+        "manager_fee_account": "$input.manager_fee_account"
+      }
+    },
+    "deposit_stake": {
+      "instruction": "depositStake",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        },
+        {
+          "name": "fee_token_account",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:fee",
+            "$input.out_mint"
+          ]
+        }
+      ],
+      "args": {},
+      "accounts": {
+        "signer": "$wallet",
+        "signer_inp": "$input.signer_inp",
+        "signer_out": "$input.signer_out",
+        "fee_token_account": "$fee_token_account",
+        "out_mint": "$input.out_mint",
+        "stake_pool_program": "SP12tWFxD9oJsVWNavTTBZvMbA6gkAmxtVgxdqvyvhY",
+        "stake_pool": "$input.stake_pool",
+        "validator_list": "$input.validator_list",
+        "stake_deposit_authority": "$input.stake_deposit_authority",
+        "withdraw_authority": "$input.withdraw_authority",
+        "validator_stake_account": "$input.validator_stake_account",
+        "reserve_stake": "$input.reserve_stake",
+        "manager_fee_account": "$input.manager_fee_account",
+        "clock": "SysvarC1ock11111111111111111111111111111111",
+        "stake_history": "SysvarStakeHistory1111111111111111111111111",
+        "token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "stake_program": "Stake11111111111111111111111111111111111111"
+      }
+    },
+    "withdraw_sol": {
+      "instruction": "withdrawSol",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        }
+      ],
+      "args": {
+        "amt": "$input.amt"
+      },
+      "accounts": {
+        "signer": "$wallet",
+        "signer_inp": "$input.signer_inp",
+        "signer_out": "$wallet",
+        "route_destination": "$input.route_destination",
+        "inp_mint": "$input.inp_mint",
+        "wsol_mint": "So11111111111111111111111111111111111111112",
+        "token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "stake_pool_program": "SP12tWFxD9oJsVWNavTTBZvMbA6gkAmxtVgxdqvyvhY",
+        "stake_pool": "$input.stake_pool",
+        "withdraw_authority": "$input.withdraw_authority",
+        "reserve_stake": "$input.reserve_stake",
+        "manager_fee_account": "$input.manager_fee_account",
+        "clock": "SysvarC1ock11111111111111111111111111111111",
+        "stake_history": "SysvarStakeHistory1111111111111111111111111",
+        "stake_program": "Stake11111111111111111111111111111111111111",
+        "token_program_duplicate": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      }
+    },
+    "swap_lst": {
+      "instruction": "prefundSwapViaStake",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        },
+        {
+          "name": "inp_fee_token_account",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:fee",
+            "$input.inp_mint"
+          ]
+        },
+        {
+          "name": "out_fee_token_account",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "utf8:fee",
+            "$input.out_mint"
+          ]
+        }
+      ],
+      "args": {
+        "amt": "$input.amt",
+        "bridge_stake_seed": "$input.bridge_stake_seed"
+      },
+      "accounts": {
+        "signer": "$wallet",
+        "signer_inp": "$input.signer_inp",
+        "signer_out": "$input.signer_out",
+        "bridge_stake": "$input.bridge_stake",
+        "slumdog_stake": "$input.slumdog_stake",
+        "inp_mint": "$input.inp_mint",
+        "out_mint": "$input.out_mint",
+        "inp_fee_token_account": "$inp_fee_token_account",
+        "out_fee_token_account": "$out_fee_token_account",
+        "inp_stake_pool_program": "SP12tWFxD9oJsVWNavTTBZvMbA6gkAmxtVgxdqvyvhY",
+        "inp_stake_pool": "$input.inp_stake_pool",
+        "inp_validator_list": "$input.inp_validator_list",
+        "inp_withdraw_authority": "$input.inp_withdraw_authority",
+        "inp_validator_stake_account": "$input.inp_validator_stake_account",
+        "inp_reserve_stake": "$input.inp_reserve_stake",
+        "inp_manager_fee_account": "$input.inp_manager_fee_account",
+        "out_stake_pool_program": "SP12tWFxD9oJsVWNavTTBZvMbA6gkAmxtVgxdqvyvhY",
+        "out_stake_pool": "$input.out_stake_pool",
+        "out_validator_list": "$input.out_validator_list",
+        "out_stake_deposit_authority": "$input.out_stake_deposit_authority",
+        "out_withdraw_authority": "$input.out_withdraw_authority",
+        "out_validator_stake_account": "$input.out_validator_stake_account",
+        "out_reserve_stake": "$input.out_reserve_stake",
+        "out_manager_fee_account": "$input.out_manager_fee_account",
+        "clock": "SysvarC1ock11111111111111111111111111111111",
+        "stake_history": "SysvarStakeHistory1111111111111111111111111",
+        "token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "stake_program": "Stake11111111111111111111111111111111111111",
+        "system_program": "11111111111111111111111111111111"
+      }
+    }
+  },
+  "views": {
+    "pool_info": {
+      "inputs": {
+        "pool_state": "pubkey",
+        "lst_state_list": "pubkey",
+        "pricing_program": "pubkey",
+        "lp_token_mint": "pubkey"
+      },
+      "output": {
+        "type": "object",
+        "source": "$input"
+      }
+    },
+    "lst_state": {
+      "inputs": {
+        "mint": "pubkey",
+        "lst_state": "pubkey",
+        "pool_reserves": "pubkey",
+        "sol_value_calculator": "pubkey",
+        "stake_pool": "pubkey"
+      },
+      "output": {
+        "type": "object",
+        "source": "$input"
+      }
+    }
+  },
   "transforms": {}
 }

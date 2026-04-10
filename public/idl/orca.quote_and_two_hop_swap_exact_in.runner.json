@@ -1,0 +1,100 @@
+{
+  "schema": "solana-action-runner.v1",
+  "actionId": "orca.quote_and_two_hop_swap_exact_in",
+  "title": "Orca Quote and Two-Hop Swap Exact In",
+  "description": "Quote an Orca two-hop exact-in route, then prepare the matching two-hop swap draft.",
+  "inputs": {
+    "whirlpool_one": {
+      "type": "pubkey",
+      "description": "First Whirlpool address."
+    },
+    "whirlpool_two": {
+      "type": "pubkey",
+      "description": "Second Whirlpool address."
+    },
+    "token_in_mint": {
+      "type": "token_mint",
+      "description": "Input token mint."
+    },
+    "token_intermediate_mint": {
+      "type": "token_mint",
+      "description": "Intermediate token mint."
+    },
+    "token_out_mint": {
+      "type": "token_mint",
+      "description": "Output token mint."
+    },
+    "amount_in": {
+      "type": "u64",
+      "description": "Input token amount."
+    },
+    "slippage_bps": {
+      "type": "u16",
+      "description": "Slippage tolerance in basis points.",
+      "default": "100"
+    },
+    "unwrap_sol_output": {
+      "type": "bool",
+      "required": false,
+      "default": false,
+      "description": "Close the wrapped SOL output account after the swap."
+    }
+  },
+  "steps": [
+    {
+      "id": "quote",
+      "kind": "read",
+      "protocolId": "orca-whirlpool-mainnet",
+      "operationId": "quote_two_hop_exact_in",
+      "input": {
+        "whirlpool_one": "$input.whirlpool_one",
+        "whirlpool_two": "$input.whirlpool_two",
+        "token_in_mint": "$input.token_in_mint",
+        "token_intermediate_mint": "$input.token_intermediate_mint",
+        "token_out_mint": "$input.token_out_mint",
+        "amount_in": "$input.amount_in",
+        "slippage_bps": "$input.slippage_bps",
+        "unwrap_sol_output": "$input.unwrap_sol_output"
+      }
+    },
+    {
+      "id": "swap",
+      "kind": "write",
+      "protocolId": "orca-whirlpool-mainnet",
+      "operationId": "two_hop_swap_v2",
+      "input": {
+        "whirlpool_one": "$quote.meta.loadInstructionAccounts.whirlpool_one",
+        "whirlpool_two": "$quote.meta.loadInstructionAccounts.whirlpool_two",
+        "amount": "$quote.output.amount_in",
+        "other_amount_threshold": "$quote.output.minimum_out",
+        "amount_specified_is_input": true,
+        "a_to_bone": "$quote.output.a_to_bone",
+        "a_to_btwo": "$quote.output.a_to_btwo",
+        "sqrt_price_limit_one": "$quote.meta.derived.leg_one_quote.sqrt_price_limit",
+        "sqrt_price_limit_two": "$quote.meta.derived.leg_two_quote.sqrt_price_limit",
+        "token_mint_input": "$quote.meta.loadInstructionAccounts.token_mint_input",
+        "token_mint_intermediate": "$quote.meta.loadInstructionAccounts.token_mint_intermediate",
+        "token_mint_output": "$quote.meta.loadInstructionAccounts.token_mint_output",
+        "token_program_input": "$quote.meta.loadInstructionAccounts.token_program_input",
+        "token_program_intermediate": "$quote.meta.loadInstructionAccounts.token_program_intermediate",
+        "token_program_output": "$quote.meta.loadInstructionAccounts.token_program_output",
+        "token_vault_one_input": "$quote.meta.loadInstructionAccounts.token_vault_one_input",
+        "token_vault_one_intermediate": "$quote.meta.loadInstructionAccounts.token_vault_one_intermediate",
+        "token_vault_two_intermediate": "$quote.meta.loadInstructionAccounts.token_vault_two_intermediate",
+        "token_vault_two_output": "$quote.meta.loadInstructionAccounts.token_vault_two_output",
+        "tick_array_one0": "$quote.meta.loadInstructionAccounts.tick_array_one0",
+        "tick_array_one1": "$quote.meta.loadInstructionAccounts.tick_array_one1",
+        "tick_array_one2": "$quote.meta.loadInstructionAccounts.tick_array_one2",
+        "tick_array_two0": "$quote.meta.loadInstructionAccounts.tick_array_two0",
+        "tick_array_two1": "$quote.meta.loadInstructionAccounts.tick_array_two1",
+        "tick_array_two2": "$quote.meta.loadInstructionAccounts.tick_array_two2",
+        "oracle_one": "$quote.meta.loadInstructionAccounts.oracle_one",
+        "oracle_two": "$quote.meta.loadInstructionAccounts.oracle_two"
+      }
+    }
+  ],
+  "output": {
+    "quote": "$quote.output",
+    "draft": "$swap.output"
+  }
+}

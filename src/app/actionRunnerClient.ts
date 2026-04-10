@@ -59,6 +59,8 @@ export async function runActionRunnerSpec(options: {
           meta: {
             ...(computed.outputSpec ? { outputSpec: computed.outputSpec } : {}),
             derived: computed.derived,
+            loadInstructionArgs: computed.loadInstructionArgs,
+            loadInstructionAccounts: computed.loadInstructionAccounts,
             preInstructions: computed.preInstructions,
             postInstructions: computed.postInstructions,
           },

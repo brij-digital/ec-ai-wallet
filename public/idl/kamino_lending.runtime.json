@@ -80,6 +80,56 @@
         "token_program": "$input.token_program",
         "instruction_sysvar_account": "Sysvar1nstructions1111111111111111111111111"
       }
+    },
+    "liquidate": {
+      "instruction": "liquidate_obligation_and_redeem_reserve_collateral",
+      "args": {
+        "liquidity_amount": "$input.liquidity_amount",
+        "min_acceptable_received_liquidity_amount": "$input.min_acceptable_received_liquidity_amount",
+        "max_allowed_ltv_override_percent": "$input.max_allowed_ltv_override_percent"
+      },
+      "accounts": {
+        "liquidator": "$input.liquidator",
+        "obligation": "$input.obligation",
+        "lending_market": "$input.lending_market",
+        "lending_market_authority": "$input.lending_market_authority",
+        "repay_reserve": "$input.repay_reserve",
+        "repay_reserve_liquidity_mint": "$input.repay_reserve_liquidity_mint",
+        "repay_reserve_liquidity_supply": "$input.repay_reserve_liquidity_supply",
+        "withdraw_reserve": "$input.withdraw_reserve",
+        "withdraw_reserve_liquidity_mint": "$input.withdraw_reserve_liquidity_mint",
+        "withdraw_reserve_collateral_mint": "$input.withdraw_reserve_collateral_mint",
+        "withdraw_reserve_collateral_supply": "$input.withdraw_reserve_collateral_supply",
+        "withdraw_reserve_liquidity_supply": "$input.withdraw_reserve_liquidity_supply",
+        "withdraw_reserve_liquidity_fee_receiver": "$input.withdraw_reserve_liquidity_fee_receiver",
+        "user_source_liquidity": "$input.user_source_liquidity",
+        "user_destination_collateral": "$input.user_destination_collateral",
+        "user_destination_liquidity": "$input.user_destination_liquidity",
+        "collateral_token_program": "$input.collateral_token_program",
+        "repay_liquidity_token_program": "$input.repay_liquidity_token_program",
+        "withdraw_liquidity_token_program": "$input.withdraw_liquidity_token_program",
+        "instruction_sysvar_account": "Sysvar1nstructions1111111111111111111111111"
+      }
+    },
+    "flash_loan": {
+      "instruction": "flash_borrow_reserve_liquidity",
+      "args": {
+        "liquidity_amount": "$input.liquidity_amount"
+      },
+      "accounts": {
+        "user_transfer_authority": "$input.user_transfer_authority",
+        "lending_market_authority": "$input.lending_market_authority",
+        "lending_market": "$input.lending_market",
+        "reserve": "$input.reserve",
+        "reserve_liquidity_mint": "$input.reserve_liquidity_mint",
+        "reserve_source_liquidity": "$input.reserve_source_liquidity",
+        "user_destination_liquidity": "$input.user_destination_liquidity",
+        "reserve_liquidity_fee_receiver": "$input.reserve_liquidity_fee_receiver",
+        "referrer_token_state": "$protocol.programId",
+        "referrer_account": "$protocol.programId",
+        "sysvar_info": "Sysvar1nstructions1111111111111111111111111",
+        "token_program": "$input.token_program"
+      }
     }
   },
   "views": {
@@ -175,6 +225,57 @@
             }
           }
         }
+      }
+    },
+    "obligation_health": {
+      "inputs": {
+        "obligation": "pubkey"
+      },
+      "steps": [
+        {
+          "name": "obligation_data",
+          "kind": "decode_account",
+          "address": "$input.obligation",
+          "account_type": "Obligation"
+        }
+      ],
+      "output": {
+        "type": "object",
+        "source": "$obligation_data"
+      }
+    },
+    "reserve_info": {
+      "inputs": {
+        "reserve": "pubkey"
+      },
+      "steps": [
+        {
+          "name": "reserve_data",
+          "kind": "decode_account",
+          "address": "$input.reserve",
+          "account_type": "Reserve"
+        }
+      ],
+      "output": {
+        "type": "object",
+        "source": "$reserve_data"
+      }
+    },
+    "market_info": {
+      "inputs": {
+        "lending_market": "pubkey"
+      },
+      "steps": [
+        {
+          "name": "market_data",
+          "kind": "decode_account",
+          "address": "$input.lending_market",
+          "account_type": "LendingMarket"
+        }
+      ],
+      "output": {
+        "type": "object",
+        "source": "$market_data"
       }
     }
   }

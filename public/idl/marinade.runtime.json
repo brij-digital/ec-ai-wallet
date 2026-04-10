@@ -5,7 +5,330 @@
   "program_id": "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD",
   "codama_path": "/idl/marinade.codama.json",
   "label": "Marinade Liquid Staking",
-  "writes": {},
-  "views": {},
+  "writes": {
+    "deposit": {
+      "instruction": "deposit",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        },
+        {
+          "name": "mint_to",
+          "kind": "ata",
+          "owner": "$wallet",
+          "mint": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So"
+        },
+        {
+          "name": "reserve_pda",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:reserve"
+          ]
+        },
+        {
+          "name": "msol_mint_authority",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:st_mint"
+          ]
+        },
+        {
+          "name": "liq_pool_msol_leg_authority",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:liq_st_sol_authority"
+          ]
+        },
+        {
+          "name": "liq_pool_sol_leg_pda",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:liq_sol"
+          ]
+        }
+      ],
+      "args": {
+        "lamports": "$input.lamports"
+      },
+      "accounts": {
+        "state": "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+        "msol_mint": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+        "liq_pool_sol_leg_pda": "$liq_pool_sol_leg_pda",
+        "liq_pool_msol_leg": "UefNb6z6yvArqe4cJHTXCqStRsKmWhGxnZzuHbikP5Q",
+        "liq_pool_msol_leg_authority": "$liq_pool_msol_leg_authority",
+        "reserve_pda": "$reserve_pda",
+        "transfer_from": "$wallet",
+        "mint_to": "$mint_to",
+        "msol_mint_authority": "$msol_mint_authority",
+        "system_program": "11111111111111111111111111111111",
+        "token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      },
+      "pre": [
+        {
+          "kind": "spl_ata_create_idempotent",
+          "payer": "$wallet",
+          "ata": "$mint_to",
+          "owner": "$wallet",
+          "mint": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So"
+        }
+      ]
+    },
+    "order_unstake": {
+      "instruction": "order_unstake",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        },
+        {
+          "name": "burn_msol_from",
+          "kind": "ata",
+          "owner": "$wallet",
+          "mint": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So"
+        }
+      ],
+      "args": {
+        "msol_amount": "$input.msol_amount"
+      },
+      "accounts": {
+        "state": "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+        "msol_mint": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+        "burn_msol_from": "$burn_msol_from",
+        "burn_msol_authority": "$wallet",
+        "new_ticket_account": "$input.new_ticket_account",
+        "clock": "SysvarC1ock11111111111111111111111111111111",
+        "rent": "SysvarRent111111111111111111111111111111111",
+        "token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      }
+    },
+    "liquid_unstake": {
+      "instruction": "liquid_unstake",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        },
+        {
+          "name": "get_msol_from",
+          "kind": "ata",
+          "owner": "$wallet",
+          "mint": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So"
+        },
+        {
+          "name": "liq_pool_sol_leg_pda",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:liq_sol"
+          ]
+        }
+      ],
+      "args": {
+        "msol_amount": "$input.msol_amount"
+      },
+      "accounts": {
+        "state": "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+        "msol_mint": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+        "liq_pool_sol_leg_pda": "$liq_pool_sol_leg_pda",
+        "liq_pool_msol_leg": "UefNb6z6yvArqe4cJHTXCqStRsKmWhGxnZzuHbikP5Q",
+        "treasury_msol_account": "B1aLzaNMeFVAyQ6f3XbbUyKcH2YPHu2fqiEagmiF23VR",
+        "get_msol_from": "$get_msol_from",
+        "get_msol_from_authority": "$wallet",
+        "transfer_sol_to": "$wallet",
+        "system_program": "11111111111111111111111111111111",
+        "token_program": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+      },
+      "pre": [
+        {
+          "kind": "spl_ata_create_idempotent",
+          "payer": "$wallet",
+          "ata": "$get_msol_from",
+          "owner": "$wallet",
+          "mint": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So"
+        }
+      ]
+    },
+    "claim": {
+      "instruction": "claim",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        },
+        {
+          "name": "reserve_pda",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:reserve"
+          ]
+        }
+      ],
+      "args": {},
+      "accounts": {
+        "state": "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+        "reserve_pda": "$reserve_pda",
+        "ticket_account": "$input.ticket_account",
+        "transfer_sol_to": "$wallet",
+        "clock": "SysvarC1ock11111111111111111111111111111111",
+        "system_program": "11111111111111111111111111111111"
+      }
+    }
+  },
+  "views": {
+    "derive_accounts": {
+      "inputs": {
+        "owner": "pubkey",
+        "validator_vote": "pubkey"
+      },
+      "steps": [
+        {
+          "name": "reserve_pda",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:reserve"
+          ]
+        },
+        {
+          "name": "msol_mint_authority",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:st_mint"
+          ]
+        },
+        {
+          "name": "liq_pool_msol_leg_authority",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:liq_st_sol_authority"
+          ]
+        },
+        {
+          "name": "liq_pool_sol_leg_pda",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:liq_sol"
+          ]
+        },
+        {
+          "name": "stake_deposit_authority",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:deposit"
+          ]
+        },
+        {
+          "name": "stake_withdraw_authority",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:withdraw"
+          ]
+        },
+        {
+          "name": "validator_duplication_flag",
+          "kind": "pda",
+          "program_id": "$protocol.programId",
+          "seeds": [
+            "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+            "utf8:unique_validator",
+            "$input.validator_vote"
+          ]
+        },
+        {
+          "name": "msol_token_account",
+          "kind": "ata",
+          "owner": "$input.owner",
+          "mint": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So"
+        }
+      ],
+      "output": {
+        "type": "object",
+        "source": "$derived",
+        "object_schema": {
+          "entity_type": "marinade_derived_accounts",
+          "fields": {
+            "reserve_pda": {
+              "type": "pubkey"
+            },
+            "msol_mint_authority": {
+              "type": "pubkey"
+            },
+            "liq_pool_msol_leg_authority": {
+              "type": "pubkey"
+            },
+            "liq_pool_sol_leg_pda": {
+              "type": "pubkey"
+            },
+            "stake_deposit_authority": {
+              "type": "pubkey"
+            },
+            "stake_withdraw_authority": {
+              "type": "pubkey"
+            },
+            "validator_duplication_flag": {
+              "type": "pubkey"
+            },
+            "msol_token_account": {
+              "type": "pubkey"
+            }
+          }
+        }
+      }
+    },
+    "staking_state": {
+      "steps": [
+        {
+          "name": "staking_state",
+          "kind": "decode_account",
+          "address": "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+          "account_type": "State"
+        }
+      ],
+      "output": {
+        "type": "object",
+        "source": "$staking_state",
+        "object_schema": {
+          "entity_type": "marinade_staking_state",
+          "fields": {
+            "msolMint": {
+              "type": "pubkey"
+            },
+            "adminAuthority": {
+              "type": "pubkey"
+            },
+            "operationalSolAccount": {
+              "type": "pubkey"
+            },
+            "treasuryMsolAccount": {
+              "type": "pubkey"
+            }
+          }
+        }
+      }
+    }
+  },
   "transforms": {}
 }

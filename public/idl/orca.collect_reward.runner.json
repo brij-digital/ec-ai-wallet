@@ -1,0 +1,31 @@
+{
+  "schema": "solana-action-runner.v1",
+  "actionId": "orca.collect_reward",
+  "title": "Orca Collect Reward",
+  "description": "Prepare the Orca Whirlpool collect reward instruction for a position and reward index.",
+  "inputs": {
+    "position": {
+      "type": "pubkey",
+      "description": "Whirlpool position address."
+    },
+    "reward_index": {
+      "type": "u8",
+      "description": "Reward index to collect."
+    }
+  },
+  "steps": [
+    {
+      "id": "collect_reward",
+      "kind": "write",
+      "protocolId": "orca-whirlpool-mainnet",
+      "operationId": "collect_reward_v2",
+      "input": {
+        "position": "$input.position",
+        "reward_index": "$input.reward_index"
+      }
+    }
+  ],
+  "output": {
+    "draft": "$collect_reward.output"
+  }
+}

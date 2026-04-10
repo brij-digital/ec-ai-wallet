@@ -5,8 +5,138 @@
   "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
   "codama_path": "/idl/meteora_dlmm.codama.json",
   "label": "Meteora DLMM",
-  "writes": {},
-  "views": {},
+  "writes": {
+    "swap": {
+      "instruction": "swap2",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        }
+      ],
+      "args": {
+        "amount_in": "$input.amount_in",
+        "min_amount_out": "$input.min_amount_out",
+        "remaining_accounts": "$input.remaining_accounts",
+        "remaining_accounts_info": "$input.remaining_accounts_info"
+      },
+      "accounts": {
+        "lb_pair": "$input.lb_pair",
+        "bin_array_bitmap_extension": "$input.bin_array_bitmap_extension",
+        "reserve_x": "$input.reserve_x",
+        "reserve_y": "$input.reserve_y",
+        "user_token_in": "$input.user_token_in",
+        "user_token_out": "$input.user_token_out",
+        "token_x_mint": "$input.token_x_mint",
+        "token_y_mint": "$input.token_y_mint",
+        "oracle": "$input.oracle",
+        "user": "$wallet",
+        "token_x_program": "$input.token_x_program",
+        "token_y_program": "$input.token_y_program",
+        "memo_program": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+        "event_authority": "$input.event_authority",
+        "program": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
+      },
+      "remaining_accounts": "$input.remaining_accounts"
+    },
+    "add_liquidity": {
+      "instruction": "add_liquidity_by_strategy2",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        }
+      ],
+      "args": {
+        "liquidity_parameter": "$input.liquidity_parameter",
+        "remaining_accounts": "$input.remaining_accounts",
+        "remaining_accounts_info": "$input.remaining_accounts_info"
+      },
+      "accounts": {
+        "position": "$input.position",
+        "lb_pair": "$input.lb_pair",
+        "bin_array_bitmap_extension": "$input.bin_array_bitmap_extension",
+        "user_token_x": "$input.user_token_x",
+        "user_token_y": "$input.user_token_y",
+        "reserve_x": "$input.reserve_x",
+        "reserve_y": "$input.reserve_y",
+        "token_x_mint": "$input.token_x_mint",
+        "token_y_mint": "$input.token_y_mint",
+        "sender": "$wallet",
+        "token_x_program": "$input.token_x_program",
+        "token_y_program": "$input.token_y_program",
+        "memo_program": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+        "event_authority": "$input.event_authority",
+        "program": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
+      },
+      "remaining_accounts": "$input.remaining_accounts"
+    },
+    "remove_liquidity": {
+      "instruction": "remove_liquidity_by_range2",
+      "steps": [
+        {
+          "name": "wallet",
+          "kind": "wallet_pubkey"
+        }
+      ],
+      "args": {
+        "from_bin_id": "$input.from_bin_id",
+        "to_bin_id": "$input.to_bin_id",
+        "bps_to_remove": "$input.bps_to_remove",
+        "remaining_accounts": "$input.remaining_accounts",
+        "remaining_accounts_info": "$input.remaining_accounts_info"
+      },
+      "accounts": {
+        "position": "$input.position",
+        "lb_pair": "$input.lb_pair",
+        "bin_array_bitmap_extension": "$input.bin_array_bitmap_extension",
+        "user_token_x": "$input.user_token_x",
+        "user_token_y": "$input.user_token_y",
+        "reserve_x": "$input.reserve_x",
+        "reserve_y": "$input.reserve_y",
+        "token_x_mint": "$input.token_x_mint",
+        "token_y_mint": "$input.token_y_mint",
+        "sender": "$wallet",
+        "token_x_program": "$input.token_x_program",
+        "token_y_program": "$input.token_y_program",
+        "memo_program": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+        "event_authority": "$input.event_authority",
+        "program": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
+      },
+      "remaining_accounts": "$input.remaining_accounts"
+    }
+  },
+  "views": {
+    "pool_info": {
+      "inputs": {
+        "lb_pair": "pubkey",
+        "active_id": "i32",
+        "bin_step": "u16",
+        "token_x_mint": "pubkey",
+        "token_y_mint": "pubkey",
+        "reserve_x": "pubkey",
+        "reserve_y": "pubkey",
+        "oracle": "pubkey"
+      },
+      "output": {
+        "type": "object",
+        "source": "$input"
+      }
+    },
+    "position_info": {
+      "inputs": {
+        "position": "pubkey",
+        "lb_pair": "pubkey",
+        "owner": "pubkey",
+        "lower_bin_id": "i32",
+        "upper_bin_id": "i32"
+      },
+      "output": {
+        "type": "object",
+        "source": "$input"
+      }
+    }
+  },
   "transforms": {
     "derive_position_related_pdas": [
       {

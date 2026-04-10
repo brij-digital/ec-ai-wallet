@@ -1,0 +1,79 @@
+{
+  "schema": "solana-action-runner.v1",
+  "actionId": "orca.quote_and_swap_exact_in",
+  "title": "Orca Quote and Swap Exact In",
+  "description": "Quote an Orca Whirlpool exact-in swap, then prepare the matching swap draft.",
+  "inputs": {
+    "whirlpool": {
+      "type": "pubkey",
+      "description": "Whirlpool address."
+    },
+    "token_in_mint": {
+      "type": "token_mint",
+      "description": "Input token mint."
+    },
+    "token_out_mint": {
+      "type": "token_mint",
+      "description": "Output token mint."
+    },
+    "amount_in": {
+      "type": "u64",
+      "description": "Input token amount."
+    },
+    "slippage_bps": {
+      "type": "u16",
+      "description": "Slippage tolerance in basis points.",
+      "default": "100"
+    },
+    "unwrap_sol_output": {
+      "type": "bool",
+      "required": false,
+      "default": false,
+      "description": "Close the wrapped SOL output account after the swap."
+    }
+  },
+  "steps": [
+    {
+      "id": "quote",
+      "kind": "read",
+      "protocolId": "orca-whirlpool-mainnet",
+      "operationId": "quote_exact_in",
+      "input": {
+        "whirlpool": "$input.whirlpool",
+        "token_in_mint": "$input.token_in_mint",
+        "token_out_mint": "$input.token_out_mint",
+        "amount_in": "$input.amount_in",
+        "slippage_bps": "$input.slippage_bps",
+        "unwrap_sol_output": "$input.unwrap_sol_output"
+      }
+    },
+    {
+      "id": "swap",
+      "kind": "write",
+      "protocolId": "orca-whirlpool-mainnet",
+      "operationId": "swap_exact_in",
+      "input": {
+        "amount": "$quote.output.amount_in",
+        "other_amount_threshold": "$quote.output.minimum_out",
+        "sqrt_price_limit": "$quote.meta.derived.sqrt_price_limit",
+        "amount_specified_is_input": true,
+        "a_to_b": "$quote.output.a_to_b",
+        "token_program_a": "$quote.meta.loadInstructionAccounts.token_program_a",
+        "token_program_b": "$quote.meta.loadInstructionAccounts.token_program_b",
+        "whirlpool": "$quote.meta.loadInstructionAccounts.whirlpool",
+        "token_mint_a": "$quote.meta.loadInstructionAccounts.token_mint_a",
+        "token_mint_b": "$quote.meta.loadInstructionAccounts.token_mint_b",
+        "token_vault_a": "$quote.meta.loadInstructionAccounts.token_vault_a",
+        "token_vault_b": "$quote.meta.loadInstructionAccounts.token_vault_b",
+        "tick_array0": "$quote.meta.loadInstructionAccounts.tick_array0",
+        "tick_array1": "$quote.meta.loadInstructionAccounts.tick_array1",
+        "tick_array2": "$quote.meta.loadInstructionAccounts.tick_array2",
+        "oracle": "$quote.meta.loadInstructionAccounts.oracle"
+      }
+    }
+  ],
+  "output": {
+    "quote": "$quote.output",
+    "draft": "$swap.output"
+  }
+}

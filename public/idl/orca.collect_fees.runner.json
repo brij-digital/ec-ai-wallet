@@ -1,0 +1,27 @@
+{
+  "schema": "solana-action-runner.v1",
+  "actionId": "orca.collect_fees",
+  "title": "Orca Collect Fees",
+  "description": "Prepare the Orca Whirlpool collect fees instruction for a position.",
+  "inputs": {
+    "position": {
+      "type": "pubkey",
+      "description": "Whirlpool position address.",
+      "example": "9xQeWvG816bUx9EPfEZ4oJkQeN1MZ6H7Q6qD7q4tT8oZ"
+    }
+  },
+  "steps": [
+    {
+      "id": "collect_fees",
+      "kind": "write",
+      "protocolId": "orca-whirlpool-mainnet",
+      "operationId": "collect_fees_v2",
+      "input": {
+        "position": "$input.position"
+      }
+    }
+  ],
+  "output": {
+    "draft": "$collect_fees.output"
+  }
+}

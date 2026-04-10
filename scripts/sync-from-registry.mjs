@@ -67,6 +67,7 @@ function rewriteWalletJson(value) {
         || key === 'agentRuntimePath'
         || key === 'entitySchemaPath'
         || key === 'ingestSpecPath'
+        || key === 'path'
       )
     ) {
       rewritten[key] = rewriteRootPathForWalletLayout(child);
@@ -239,10 +240,11 @@ async function main() {
   // Sync action runners
   for (const name of await fs.readdir(path.join(REGISTRY_DIR, 'action-runners'))) {
     try {
-      await syncFile(
+      await syncJsonFile(
         path.join(REGISTRY_DIR, 'action-runners', name),
         path.join(TARGET_DIR, name),
-        name
+        name,
+        rewriteWalletJson
       );
       synced.push(name);
     } catch (e) {

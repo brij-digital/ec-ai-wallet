@@ -1,0 +1,42 @@
+{
+  "schema": "solana-action-runner.v1",
+  "actionId": "orca.quote_increase_liquidity",
+  "title": "Orca Quote Increase Liquidity",
+  "description": "Quote an Orca liquidity deposit for an existing position. This first-wave runner is read-only.",
+  "inputs": {
+    "position": {
+      "type": "pubkey",
+      "description": "Whirlpool position address."
+    },
+    "specified_token_mint": {
+      "type": "token_mint",
+      "description": "Token mint used as the quote side."
+    },
+    "specified_token_amount": {
+      "type": "u64",
+      "description": "Token amount to use for the quote."
+    },
+    "slippage_bps": {
+      "type": "u16",
+      "description": "Slippage tolerance in basis points.",
+      "default": "100"
+    }
+  },
+  "steps": [
+    {
+      "id": "quote",
+      "kind": "read",
+      "protocolId": "orca-whirlpool-mainnet",
+      "operationId": "quote_increase_liquidity",
+      "input": {
+        "position": "$input.position",
+        "specified_token_mint": "$input.specified_token_mint",
+        "specified_token_amount": "$input.specified_token_amount",
+        "slippage_bps": "$input.slippage_bps"
+      }
+    }
+  ],
+  "output": {
+    "quote": "$quote.output"
+  }
+}

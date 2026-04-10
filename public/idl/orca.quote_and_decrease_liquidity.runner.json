@@ -1,0 +1,55 @@
+{
+  "schema": "solana-action-runner.v1",
+  "actionId": "orca.quote_and_decrease_liquidity",
+  "title": "Orca Quote and Decrease Liquidity",
+  "description": "Quote a liquidity withdrawal from an Orca position, then prepare the matching decrease liquidity instruction.",
+  "inputs": {
+    "position": {
+      "type": "pubkey",
+      "description": "Whirlpool position address."
+    },
+    "specified_token_mint": {
+      "type": "token_mint",
+      "description": "Token mint used as the quote side."
+    },
+    "specified_token_amount": {
+      "type": "u64",
+      "description": "Token amount to use for the quote."
+    },
+    "slippage_bps": {
+      "type": "u16",
+      "description": "Slippage tolerance in basis points.",
+      "default": "100"
+    }
+  },
+  "steps": [
+    {
+      "id": "quote",
+      "kind": "read",
+      "protocolId": "orca-whirlpool-mainnet",
+      "operationId": "quote_decrease_liquidity",
+      "input": {
+        "position": "$input.position",
+        "specified_token_mint": "$input.specified_token_mint",
+        "specified_token_amount": "$input.specified_token_amount",
+        "slippage_bps": "$input.slippage_bps"
+      }
+    },
+    {
+      "id": "decrease",
+      "kind": "write",
+      "protocolId": "orca-whirlpool-mainnet",
+      "operationId": "decrease_liquidity_v2",
+      "input": {
+        "position": "$quote.output.position",
+        "liquidity_amount": "$quote.output.liquidity_delta",
+        "token_min_a": "$quote.output.token_min_a",
+        "token_min_b": "$quote.output.token_min_b"
+      }
+    }
+  ],
+  "output": {
+    "quote": "$quote.output",
+    "draft": "$decrease.output"
+  }
+}
