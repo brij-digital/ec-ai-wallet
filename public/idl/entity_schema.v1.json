@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Entity Transform Schema v1",
+  "type": "object",
+  "required": ["indexingId", "sourceProtocolIds", "entities"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "indexingId": { "type": "string" },
+    "sourceProtocolIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "version": { "type": "string" },
+    "entities": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["source", "transform", "emit"],
+        "properties": {
+          "source": {
+            "type": "object",
+            "required": ["from", "recordName"],
+            "properties": {
+              "from": { "enum": ["state", "record"] },
+              "recordKind": { "type": "string" },
+              "sourceProtocolIds": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string" }
+              },
+              "recordName": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+                ]
+              }
+            }
+          },
+          "transform": {
+            "type": "object",
+            "properties": {
+              "extract": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "compute": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["ref", "inputs", "output"],
+                  "properties": {
+                    "ref": { "type": "string" },
+                    "inputs": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "output": { "type": "string" }
+                  }
+                }
+              },
+              "groupBy": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "reduce": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "required": ["op"],
+                  "properties": {
+                    "op": {
+                      "enum": ["sum", "count", "min", "max", "last"]
+                    },
+                    "value": true
+                  }
+                }
+              }
+            }
+          },
+          "emit": {
+            "type": "object",
+            "required": ["id", "fields"],
+            "properties": {
+              "id": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+                ]
+              },
+              "indexes": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string" }
+                }
+              },
+              "timeField": { "type": "string" },
+              "defaultOrderBy": { "type": "array", "items": { "type": "string" } },
+              "fields": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "required": ["type"],
+                  "properties": {
+                    "type": { "type": "string" },
+                    "primaryKey": { "type": "boolean" },
+                    "filterable": { "type": "boolean" },
+                    "value": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

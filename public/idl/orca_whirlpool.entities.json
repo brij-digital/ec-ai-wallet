@@ -1,10 +1,9 @@
 {
-  "$schema": "/idl/entity_schema.v1.entities.json",
+  "$schema": "/idl/entity_schema.v1.json",
   "indexingId": "orca-whirlpool-mainnet",
   "sourceProtocolIds": [
     "orca-whirlpool-mainnet"
   ],
-  "version": "0.2.0",
   "entities": {
     "Pool": {
       "source": {

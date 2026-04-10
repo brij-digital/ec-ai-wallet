@@ -1,9 +1,8 @@
 {
-  "$schema": "/idl/entity_schema.v1.entities.json",
+  "$schema": "/idl/entity_schema.v1.json",
   "indexingId": "pump-core-mainnet",
   "sourceProtocolIds": [
     "pump-core-mainnet"
   ],
-  "version": "0.2.0",
   "entities": {}
 }

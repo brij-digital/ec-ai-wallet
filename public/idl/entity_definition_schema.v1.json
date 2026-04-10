@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Entity Definition Schema v1",
+  "type": "object",
+  "required": ["source", "transform", "emit"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["from", "recordName"],
+      "properties": {
+        "from": { "enum": ["state", "record"] },
+        "recordKind": { "type": "string" },
+        "sourceProtocolIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "recordName": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "transform": {
+      "type": "object",
+      "properties": {
+        "extract": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "compute": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["ref", "inputs", "output"],
+            "properties": {
+              "ref": { "type": "string" },
+              "inputs": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "output": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "groupBy": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "reduce": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["op"],
+            "properties": {
+              "op": { "type": "string" },
+              "value": true
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "emit": {
+      "type": "object",
+      "required": ["id", "fields"],
+      "properties": {
+        "id": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+          ]
+        },
+        "indexes": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          }
+        },
+        "timeField": { "type": "string" },
+        "defaultOrderBy": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "type": "string" },
+              "primaryKey": { "type": "boolean" },
+              "filterable": { "type": "boolean" },
+              "value": true
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

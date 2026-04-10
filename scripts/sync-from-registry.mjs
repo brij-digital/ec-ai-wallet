@@ -20,6 +20,10 @@ function toRegistryStem(assetPath) {
   return path.posix.basename(assetPath, '.json');
 }
 
+function toIndexingWalletStem(assetPath) {
+  return path.posix.basename(assetPath, '.json').replace(/-mainnet$/u, '');
+}
+
 function rewriteRootPathForWalletLayout(assetPath) {
   if (typeof assetPath !== 'string' || !assetPath.startsWith('/')) {
     return assetPath;
@@ -39,8 +43,11 @@ function rewriteRootPathForWalletLayout(assetPath) {
   if (assetPath.startsWith('/indexing/ingest/')) {
     return `/idl/${toRegistryStem(assetPath).replace(/-/gu, '_')}.ingest.json`;
   }
+  if (assetPath === '/indexing/entities/entity_schema.v1.json' || assetPath === '/indexing/entities/entity_definition_schema.v1.json') {
+    return `/idl/${path.posix.basename(assetPath)}`;
+  }
   if (assetPath.startsWith('/indexing/entities/')) {
-    return `/idl/${toRegistryStem(assetPath).replace(/-/gu, '_')}.entities.json`;
+    return `/idl/${toIndexingWalletStem(assetPath).replace(/-/gu, '_')}.entities.json`;
   }
   if (assetPath.startsWith('/action-runners/')) {
     return `/idl/${path.posix.basename(assetPath)}`;
@@ -113,6 +120,72 @@ async function syncJsonFile(srcPath, destPath, destName, transform = (value) => 
   await fs.writeFile(destPath, src, 'utf8');
 }
 
+async function syncRenderedJson(value, destPath, destName, transform = (entry) => entry) {
+  const src = JSON.stringify(transform(value), null, 2) + '\n';
+  if (CHECK_MODE) {
+    try {
+      const dest = await fs.readFile(destPath, 'utf8');
+      if (src !== dest) {
+        throw new Error(`Out of date: ${destName}`);
+      }
+    } catch (e) {
+      if (e.code === 'ENOENT') throw new Error(`Missing: ${destName}`);
+      throw e;
+    }
+    return;
+  }
+  await fs.writeFile(destPath, src, 'utf8');
+}
+
+async function loadEntityDocument(srcPath, indexing) {
+  const sourceProtocolIds = Array.isArray(indexing?.sources)
+    ? Array.from(
+      new Set(
+        indexing.sources
+          .map((source) => (source && typeof source.protocolId === 'string' ? source.protocolId : null))
+          .filter(Boolean),
+      ),
+    )
+    : [];
+
+  const stat = await fs.stat(srcPath);
+  if (!stat.isDirectory()) {
+    const parsed = await readJson(srcPath);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error(`Entity schema at ${srcPath} must be a JSON object.`);
+    }
+    return {
+      ...parsed,
+      indexingId: typeof parsed.indexingId === 'string' ? parsed.indexingId : indexing?.id,
+      sourceProtocolIds:
+        Array.isArray(parsed.sourceProtocolIds) && parsed.sourceProtocolIds.length > 0
+          ? parsed.sourceProtocolIds
+          : sourceProtocolIds,
+    };
+  }
+
+  const entries = await fs.readdir(srcPath, { withFileTypes: true });
+  const entityEntries = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((entry) => [entry.name.replace(/\.json$/u, ''), entry.name]);
+  const entities = {};
+  for (const [entityName, entityRelativePath] of entityEntries) {
+    const entityPath = path.resolve(srcPath, entityRelativePath);
+    const entityDefinition = await readJson(entityPath);
+    if (entityDefinition && typeof entityDefinition === 'object' && !Array.isArray(entityDefinition)) {
+      delete entityDefinition.$schema;
+    }
+    entities[entityName] = entityDefinition;
+  }
+  return {
+    $schema: '/indexing/entities/entity_schema.v1.json',
+    indexingId: indexing?.id,
+    sourceProtocolIds,
+    entities,
+  };
+}
+
 function toWalletSlug(value) {
   return value.replace(/-mainnet$/u, '').replace(/-/gu, '_');
 }
@@ -173,6 +246,19 @@ async function main() {
     }
   }
 
+  for (const name of [
+    'entity_schema.v1.json',
+    'entity_definition_schema.v1.json',
+  ]) {
+    const srcPath = path.join(REGISTRY_DIR, 'indexing', 'entities', name);
+    try {
+      await syncFile(srcPath, path.join(TARGET_DIR, name), name);
+      synced.push(name);
+    } catch (e) {
+      outOfDate.push(e.message);
+    }
+  }
+
   // Sync protocol files
   for (const p of registry.protocols) {
     const slug = toWalletSlug(p.id);
@@ -209,8 +295,12 @@ async function main() {
       const indexingSlug = toWalletSlug(indexing.id);
       if (indexing.entitySchemaPath) {
         try {
-          await syncJsonFile(
+          const compiledEntityDocument = await loadEntityDocument(
             path.join(REGISTRY_DIR, indexing.entitySchemaPath.slice(1)),
+            indexing,
+          );
+          await syncRenderedJson(
+            compiledEntityDocument,
             path.join(TARGET_DIR, `${indexingSlug}.entities.json`),
             `${indexingSlug}.entities.json`,
             rewriteWalletJson,
