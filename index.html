@@ -10,7 +10,7 @@
     <div id="root"></div>
     <script>
       (function () {
-        const endpoint = 'https://api.brijmail.com/client-error';
+        const endpoint = window.location.origin + '/client-error';
         function post(payload) {
           try {
             fetch(endpoint, {

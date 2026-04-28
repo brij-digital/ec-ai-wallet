@@ -8,7 +8,9 @@ import { ViewPlaygroundTab } from './app/components/ViewPlaygroundTab';
 import { AgentTab } from './app/components/AgentTab';
 import { RunnerTab } from './app/components/RunnerTab';
 
-const VIEW_API_BASE_URL = 'https://api.brijmail.com';
+const VIEW_API_BASE_URL =
+  import.meta.env.VITE_VIEW_API_BASE_URL
+  ?? (typeof window !== 'undefined' ? window.location.origin : '');
 
 type AppTab = 'indexViews' | 'raw' | 'compute' | 'tv' | 'agent' | 'runner';
 type AppMode = 'normal' | 'advanced';
